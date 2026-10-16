@@ -1,0 +1,57 @@
+# Languages Jarvis can listen and speak in.
+#
+# whisper_code   Whisper's language code.
+# stt_model      "default" uses [stt].model from settings.toml. Or give a path to a
+#                CTranslate2-converted fine-tune (see docs/LANGUAGES.md).
+# tts_engine     "piper" (ONNX voices, fast on CPU) or "mms" (Meta MMS-TTS).
+# tts_voice      Piper voice name, or a Hugging Face model id for "mms".
+# names          Words that name this language, in any script.
+# command_words  Verbs in this language that mean speak / talk / switch.
+#                A short utterance with a command word AND a language name
+#                switches language: "switch to Tamil", "සිංහලෙන් කතා කරන්න".
+#                Words like "say" and "translate" are left out on purpose, so
+#                "translate this to Tamil" does not switch.
+# switch_phrases Whole utterances that switch to this language.
+# confirm        What Jarvis says (in the new language) after switching.
+#
+# To add a language, copy a block and change the values.
+
+[en]
+name = "English"
+native_name = "English"
+whisper_code = "en"
+stt_model = "default"
+tts_engine = "piper"
+tts_voice = "en_US-lessac-medium"
+names = ["english", "ඉංග්‍රීසි", "ඉංග්‍රීසියෙන්", "ஆங்கிலம்", "ஆங்கிலத்தில்"]
+command_words = ["speak", "talk", "reply", "answer", "respond", "switch", "change"]
+switch_phrases = ["english please"]
+confirm = "Okay, I'll speak English now."
+
+[si]
+name = "Sinhala"
+native_name = "සිංහල"
+whisper_code = "si"
+# Base Whisper is weak at Sinhala. A fine-tune works better: docs/LANGUAGES.md
+stt_model = "default"
+tts_engine = "piper"
+# Community voice, MIT licence: https://huggingface.co/chaturadilan/dilu-tts
+tts_voice = "si_LK-dilu-medium"
+names = ["sinhala", "sinhalese", "සිංහල", "සිංහලෙන්"]
+command_words = ["කතා", "මාරු"]
+switch_phrases = ["sinhala please"]
+confirm = "හරි, මම දැන් සිංහලෙන් කතා කරන්නම්."
+
+[ta]
+name = "Tamil"
+native_name = "தமிழ்"
+whisper_code = "ta"
+stt_model = "default"
+# Meta MMS-TTS, CC-BY-NC 4.0 (non-commercial, fine for self-study).
+# A community Piper voice also exists: huggingface.co/tinisoft/piper-ta_IN-rasa_male-medium
+tts_engine = "mms"
+tts_voice = "facebook/mms-tts-tam"
+names = ["tamil", "தமிழ்", "தமிழில்"]
+command_words = ["பேசு", "பேசுங்கள்", "பேசவும்", "மாற்று", "மாறு"]
+switch_phrases = ["tamil please"]
+confirm = "சரி, இனி நான் தமிழில் பேசுகிறேன்."

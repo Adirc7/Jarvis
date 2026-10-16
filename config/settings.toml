@@ -1,0 +1,63 @@
+# Jarvis settings. Values here are defaults; change them freely.
+
+[general]
+default_language = "en"        # a key from config/languages.toml
+# "fixed": Jarvis keeps one language until you tell it to switch (recommended).
+# "auto":  Jarvis follows the language Whisper detects in each utterance.
+#          Experimental: detection on short commands is unreliable.
+language_mode = "fixed"
+
+[hotkeys]
+# pynput hotkey syntax. The kill switch works from any app.
+kill_switch = "<ctrl>+<alt>+k"
+push_to_talk = "<ctrl>+<alt>+<space>"   # used from Phase 1
+
+[latency]
+# Target from speech end to the first audio of the reply, for simple questions.
+target_first_audio_ms = 1500
+
+[stt]
+model = "small"                 # multilingual; compare with "large-v3-turbo"
+device = "cuda"                 # falls back to "cpu" if CUDA isn't available
+compute_type = "int8_float16"   # use "int8" on CPU
+vad_filter = true
+# If Whisper hears a different language than the current one with at least this
+# probability, Jarvis re-transcribes in that language before checking for a
+# switch command. This is how "switch to English" still works in Sinhala mode.
+retranscribe_threshold = 0.80
+
+[vision]
+camera_index = 0
+num_hands = 1
+hand_model = "models/hand_landmarker.task"
+
+[telemetry]
+dir = "logs"
+
+[llm]
+# Providers are tried in this order. A provider is skipped when its API key
+# is missing. Fallback happens only before the first word of a reply arrives.
+order = ["gemini", "groq", "openrouter", "ollama"]
+timeout_s = 20
+
+# Model names change often. If the smoke test reports "model not found",
+# look up the current free model name in that provider's console.
+[llm.providers.gemini]
+base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+api_key_env = "GEMINI_API_KEY"
+model = "gemini-flash-latest"
+
+[llm.providers.groq]
+base_url = "https://api.groq.com/openai/v1"
+api_key_env = "GROQ_API_KEY"
+model = "llama-3.3-70b-versatile"
+
+[llm.providers.openrouter]
+base_url = "https://openrouter.ai/api/v1"
+api_key_env = "OPENROUTER_API_KEY"
+model = "meta-llama/llama-3.3-70b-instruct:free"
+
+[llm.providers.ollama]
+base_url = "http://localhost:11434/v1"
+api_key_env = ""                # local: no key needed
+model = "qwen3:4b"              # fits in 6 GB VRAM next to Whisper small
