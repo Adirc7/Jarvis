@@ -60,3 +60,34 @@ for simple questions. Report p50 and p95 from telemetry, never only the mean.
 environment.
 **Why:** faster-whisper, MediaPipe and pywinauto all support it, and uv makes
 the setup one command.
+
+## D10. Voices: Kokoro for English, Piper for Sinhala, MMS for Tamil (Phase 1)
+**Decision:** One engine per language behind a single interface
+(`voice/tts.py`). English uses Kokoro's British voice `bm_george` by default.
+**Why:** Kokoro sounds the most natural of the free local options; Piper and
+MMS cover the languages Kokoro doesn't.
+**Not doing:** cloning a real actor's voice. Jarvis gets its own voice plus an
+effects chain (D11).
+
+## D11. A "Jarvis feel" through production, not imitation
+**Decision:** Every reply goes through a light chain (high-pass, warmth,
+presence, compression, faint chorus, small room reverb), then loudness
+matching to -20 dB RMS so all three languages sound equally loud.
+**Why:** Most of what makes an assistant voice sound polished is processing.
+All of it is adjustable in `[voice_style]`.
+
+## D12. Speak while the reply is still being written
+**Decision:** The LLM stream is cut into sentences (`voice/text_split.py`).
+The first chunk goes to TTS as soon as it's 12 characters and ends a
+sentence; later chunks are at least 40 characters so speech isn't choppy.
+TTS runs on one worker thread; the player queues chunks.
+**Why:** Waiting for the whole reply would add seconds of silence (plan 10.1).
+**Measured:** in the build container (CPU only, fake STT and LLM), first audio
+came 0.66 s after transcription. Real numbers come from your laptop's logs.
+
+## D13. Push-to-talk on one held key, mic stream always open
+**Decision:** Hold Right Ctrl to talk. The input stream stays open so the first
+syllable isn't clipped, but frames are kept only while the key is down.
+Pressing the key while Jarvis speaks interrupts it (barge-in).
+**Why:** No always-on listening, no echo problem (Jarvis never records itself),
+and a natural way to interrupt.

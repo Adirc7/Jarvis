@@ -34,6 +34,7 @@ class Language:
     stt_model: str
     tts_engine: str
     tts_voice: str
+    tts_lang: str = ""
     names: tuple[str, ...] = ()
     command_words: tuple[str, ...] = ()
     switch_phrases: tuple[str, ...] = ()
@@ -97,6 +98,7 @@ def parse_languages(table: dict[str, Any]) -> dict[str, Language]:
             stt_model=v.get("stt_model", "default"),
             tts_engine=v.get("tts_engine", "piper"),
             tts_voice=v.get("tts_voice", ""),
+            tts_lang=v.get("tts_lang", ""),
             names=tuple(v.get("names", [v["name"]])),
             command_words=tuple(v.get("command_words", [])),
             switch_phrases=tuple(v.get("switch_phrases", [])),

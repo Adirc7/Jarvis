@@ -8,23 +8,63 @@ default_language = "en"        # a key from config/languages.toml
 language_mode = "fixed"
 
 [hotkeys]
-# pynput hotkey syntax. The kill switch works from any app.
+# pynput hotkey syntax. These work from any app.
 kill_switch = "<ctrl>+<alt>+k"
-push_to_talk = "<ctrl>+<alt>+<space>"   # used from Phase 1
+mute = "<ctrl>+<alt>+m"         # voice replies on/off (text still prints)
+# Hold this single key to talk, release to send. Key names come from pynput:
+# "ctrl_r" (right Ctrl), "alt_r", "f9", or one character such as "`".
+push_to_talk = "ctrl_r"
 
 [latency]
 # Target from speech end to the first audio of the reply, for simple questions.
 target_first_audio_ms = 1500
+
+[audio]
+sample_rate = 16000             # what Whisper expects
+input_device = ""               # empty = Windows default microphone
+output_device = ""              # empty = Windows default speakers
+min_utterance_s = 0.35          # shorter key taps are ignored
+max_utterance_s = 30
 
 [stt]
 model = "small"                 # multilingual; compare with "large-v3-turbo"
 device = "cuda"                 # falls back to "cpu" if CUDA isn't available
 compute_type = "int8_float16"   # use "int8" on CPU
 vad_filter = true
+beam_size = 1                   # 1 is fastest; 5 is a little more accurate
+initial_prompt = "Jarvis"       # words Whisper should expect (names, apps)
+# Check which language was spoken before transcribing (one extra encoder pass).
+detect_language = true
 # If Whisper hears a different language than the current one with at least this
 # probability, Jarvis re-transcribes in that language before checking for a
 # switch command. This is how "switch to English" still works in Sinhala mode.
 retranscribe_threshold = 0.80
+
+[tts]
+kokoro_model = "models/kokoro-v1.0.onnx"
+kokoro_voices = "models/voices-v1.0.bin"
+piper_dir = "models/piper"
+speed = 1.0                     # 0.9 = slower and calmer
+# Start speaking as soon as the first short sentence is ready.
+first_chunk_min_chars = 12
+chunk_min_chars = 40
+chunk_max_chars = 220
+
+# The "Jarvis feel": a light studio chain applied to every reply.
+# Set enabled = false to hear the raw voice.
+[voice_style]
+enabled = true
+highpass_hz = 90                # remove rumble
+low_shelf_db = 2.0              # a little more chest (below 250 Hz)
+presence_db = 2.5               # clarity around 3 kHz
+air_db = 2.0                    # crisp top end above 9 kHz
+compressor_threshold_db = -20
+compressor_ratio = 3.0          # even, controlled loudness
+chorus_mix = 0.08               # faint synthetic shimmer; 0 = off
+reverb_room = 0.14              # small, clean room
+reverb_wet = 0.10
+output_gain_db = 0.0
+target_rms_db = -20.0           # same loudness for every voice and language
 
 [vision]
 camera_index = 0
