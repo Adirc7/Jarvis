@@ -27,7 +27,7 @@ stt_model = "default"
 # British male voices: bm_george, bm_lewis, bm_daniel, bm_fable.
 # Listen first: uv run python scripts/voice_preview.py
 tts_engine = "kokoro"
-tts_voice = "bm_george"
+tts_voice = "bm_lewis"           # chosen after listening to all four
 tts_lang = "en-gb"
 names = ["english", "ඉංග්‍රීසි", "ඉංග්‍රීසියෙන්", "ஆங்கிலம்", "ஆங்கிலத்தில்"]
 command_words = ["speak", "talk", "reply", "answer", "respond", "switch", "change"]
