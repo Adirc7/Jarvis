@@ -127,3 +127,15 @@ never the same one twice in a row, never when muted.
 **Why:** People cover thinking time the same way; silence longer than about a
 second sounds like a broken assistant. Telemetry marks fillers separately so
 `first_audio` still measures the real reply.
+
+## D18. Research priorities from the literature review
+**Decision:** Do three quick wins first (verified vs claimed completion,
+Godspeed and usability plus wellbeing measures in every study, a
+feedback-only empathy bandit), then the two big bets that form the
+contribution: emotion context in the desktop agent, and a small consented
+Sri Lankan emotional speech set with assistant labels.
+**Why:** A review of 23 papers (2026-10-18) found no work combining an acting
+desktop agent with emotion-aware replies and per-user empathy, no public
+Sinhala emotional-speech corpus, and large accuracy drops for emotion models
+on unseen languages. Details and references in ROADMAP.md, "Research
+priorities".
