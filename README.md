@@ -5,8 +5,9 @@ A context-aware multimodal desktop assistant: voice, hand gestures and app
 context, with verified actions. Self-study build, free tools only.
 
 Status: **Phase 1** (spoken conversation). Next: emotion-aware replies
-(Phase 1.5) and Windows tools (Phase 2). See `docs/ROADMAP.md` for the plan,
-`docs/DEVLOG.md` for progress and `docs/DECISIONS.md` for the reasoning.
+(Phase 1.5) and Windows tools (Phase 2). See `docs/ROADMAP.md` for the plan
+and the research priorities behind it, `docs/DEVLOG.md` for progress and
+`docs/DECISIONS.md` for the reasoning.
 
 ## What works now
 

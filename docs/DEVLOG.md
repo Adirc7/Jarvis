@@ -49,3 +49,13 @@ Future you (and anyone reading the repo) will thank you.
 - Thinking fillers, pre-rendered per language, only when a reply is slow.
 - Roadmap: empathy modes, improvement ladder, human-like goals, light memory
   (Phase 2.5). Decisions D15–D17. 89 tests passing.
+
+## 2026-10-18: Literature review and research priorities
+
+- Reviewed 23 papers: desktop agents, voice and gesture, Sri Lankan speech,
+  emotion recognition, empathetic agents, bandit personalisation,
+  proactivity, human-likeness, wellbeing and regulation.
+- Six gaps found; three are strong enough to be the report's contribution.
+- Roadmap updated: quick wins (verified vs claimed completion, study
+  measures, feedback-only empathy bandit) and big bets (emotion context in
+  the agent, Sri Lankan emotional speech set). Decision D18.

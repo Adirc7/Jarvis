@@ -9,15 +9,55 @@ exists.
 |---|---|---|---|
 | 0 | Foundations: event bus, telemetry, kill switch, free LLMs, languages | Built, not yet run on the laptop | Smoke test passes on the laptop |
 | 1 | Spoken conversation | Built, not yet run on the laptop | Recorded dialogue tests, WER/CER per language, working mute and barge-in, p50/p95 latency |
-| **1.5** | **Emotion-aware, human-like replies** | Character sheet, empathy modes and fillers built; emotion detection planned | See below |
-| 2 | Windows and browser tools, verified; allow-list first | Next to build | 20–30 fixed tasks passed or failed by real state checks |
+| **1.5** | **Emotion-aware, human-like replies** (the research contribution) | Character sheet, empathy modes and fillers built; feedback bandit next; emotion detection planned | See below |
+| 2 | Windows and browser tools, verified; allow-list first | Next to build | 20–30 fixed tasks passed or failed by real state checks, with **verified and claimed completion reported side by side** |
 | **2.5** | **Light memory** (an early slice of Phase 6) | Planned | Jarvis recalls facts and recent sessions you allowed it to keep; "forget that" verifiably deletes |
 | 3 | Hand tracking | Later | Gesture accuracy and false activations measured |
 | 4 | Voice and gesture together | Later | "This/that" resolves to the right object in controlled tasks |
 | 5 | Speaking up on its own | Later | Relevant announcements, duplicates suppressed, quiet mode |
 | 6 | Memory | Later | Source-linked answers, verified deletion |
 | 7 | Multi-step tasks | Later | Multi-step tasks verified, clean recovery from induced failures |
-| 8 | Evaluation and demo | Later | Reproducible evaluation run and written report |
+| 8 | Evaluation and demo | Later | Reproducible evaluation run and written report, using the study measures below |
+
+## Research priorities
+
+From the literature review of 23 papers (2026-10-18; the full review with
+tables and references is the Claude doc "Jarvis: Research Background and
+Gaps"). No reviewed work combines an acting desktop agent, voice and gesture,
+emotion-aware replies and per-user personalisation, and none studies Sinhala
+or Tamil speakers using an assistant.
+
+**Quick wins (do first):**
+
+1. **Verified vs claimed completion** (Phase 2). Every tool reports what it
+   observed; every evaluation reports both rates. AnovaX, a recent voice
+   desktop agent, acts without checking results
+   ([arXiv:2607.15367](https://www.alphaxiv.org/abs/2607.15367)).
+2. **Study measures** (all user studies). Godspeed
+   ([Bartneck et al. 2009](https://www.bartneck.de/publications/2009/measurementInstrumentsRobots/))
+   and the System Usability Scale in every study; in trials longer than a
+   week, also daily use and a short loneliness questionnaire, because heavier
+   chatbot use went with more loneliness and dependence in a 981-person
+   randomised study ([Fang et al. 2025](https://arxiv.org/html/2503.17473v1)).
+3. **Feedback-only empathy bandit** (Phase 1.5, next). Starts learning your
+   preferred mode from what you say ("too much", "be more direct", "thanks")
+   before the emotion model exists. See "Empathy modes" below.
+
+**Big bets (the contribution):**
+
+4. **Emotion context in the desktop agent** (Phase 1.5, steps 1–2 below).
+   Voice desktop agents don't report adapting to mood, and emotion-aware
+   agents don't act on a computer
+   ([Abbasian et al.](https://arxiv.org/abs/2405.04777)).
+5. **A Sri Lankan emotional speech set** (Phase 1.5, "Dataset" below). No
+   public Sinhala emotional-speech corpus was found; Tamil has one read-speech
+   set ([EmoTa](https://aclanthology.org/2025.chipsal-1.19)); and emotion
+   models lose much of their accuracy on languages they weren't trained on
+   ([Mi, Ma, Toda 2026](https://arxiv.org/pdf/2606.06200)).
+
+**Later:** code-switching test set (Sinhala–English, Tamil–English
+commands), EmoTa as a Tamil baseline if its licence allows, adaptive voice
+vs gesture (Phase 4), full-duplex turn-taking.
 
 ## Phase 1.5: Emotion-aware replies
 
@@ -75,14 +115,39 @@ voice, offer a choice).
 1. **Manual (built).** `/empathy supportive`, or say "be more direct", "be
    gentler", "back to normal". The LLM receives the mode's instruction; the
    voice speed follows the mode.
-2. **Adaptive (planned).** The detected emotion picks the starting mode, and
-   a **contextual bandit** learns *your* preference per emotional state from
-   signals you give anyway (interrupting, repeating, "thanks") and from
-   explicit feedback ("too much", a thumbs up or down). It trains on the
-   laptop in milliseconds; the LLM itself is never retrained.
-3. **Limits.** You set the allowed range; the adaptive policy can't leave it.
+2. **Feedback-only bandit (next).** Before any emotion detection, Jarvis
+   learns which mode you prefer from direct feedback ("too much", "be more
+   direct", "thanks") and stores the scores in a small JSON file. One
+   Beta(good + 1, bad + 1) score per mode; Thompson sampling picks the mode.
+3. **Adaptive with emotion (planned).** Once the emotion model exists, the
+   scores are kept per emotional state (a **contextual bandit**), and signals
+   you give anyway count too (interrupting, repeating yourself). It trains on
+   the laptop in milliseconds; the LLM itself is never retrained.
+4. **Limits.** You set the allowed range; the learned policy can't leave it.
    Real distress always gets a supportive, safe reply, whatever the setting.
    Jarvis adapts *its own* style; it never tries to change your emotions.
+
+### Dataset: Sri Lankan emotional speech
+
+The second big bet. Small, consented, and labelled for what an assistant
+needs.
+
+1. **Ethics first.** Ask the supervisor whether a formal study needs ethics
+   approval; written consent from every speaker; recordings stay local, and
+   each speaker can withdraw.
+2. **Labels that fit an assistant:** calm, rushed, frustrated, confused
+   (plus neutral). Public sets use basic emotions (anger, happiness, sadness,
+   fear, neutral) and miss these.
+3. **Languages:** Sinhala, Tamil, Sri Lankan English; aim for at least 10
+   speakers per language, balanced by gender.
+4. **Speech that sounds real:** short role-play scenarios ("the build failed
+   again", "you're late for a lecture") rather than neutral sentences read
+   aloud, plus your own consented corrections from daily use.
+5. **Two annotators per clip;** report agreement with Fleiss' kappa, as EmoTa
+   did, and keep only clips they agree on for testing.
+6. **Use:** train and test the improvement ladder below, always
+   leave-one-speaker-out. Publish features or the dataset only if every
+   speaker agreed to that.
 
 ### Evaluation: the improvement ladder
 
