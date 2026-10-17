@@ -39,3 +39,13 @@ Future you (and anyone reading the repo) will thank you.
 - New Phase 1.5: speech emotion model beside Whisper, emotion passed to the
   LLM as context, corrections become labels, small classifier tuned on my
   voice. No LLM fine-tuning. Plan in ROADMAP.md, reasoning in DECISIONS D14.
+
+## 2026-10-17: Character, empathy modes, fillers
+
+- `config/persona.toml`: Jarvis's personality, speaking style, honesty
+  limits, current abilities; local date and time added to every prompt.
+- Empathy modes (logical, balanced, supportive) via `/empathy` or phrases
+  like "be more direct"; supportive mode slows the voice.
+- Thinking fillers, pre-rendered per language, only when a reply is slow.
+- Roadmap: empathy modes, improvement ladder, human-like goals, light memory
+  (Phase 2.5). Decisions D15–D17. 89 tests passing.

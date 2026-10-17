@@ -8,6 +8,7 @@ first sentence is playing while the LLM is still writing the rest.
 from __future__ import annotations
 
 import asyncio
+import random
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, AsyncIterator, Callable
 
@@ -71,6 +72,14 @@ class VoiceSink(TextSink):
             min_chars=int(settings.get("tts.chunk_min_chars", 40)),
             max_chars=int(settings.get("tts.chunk_max_chars", 220)),
         )
+        self.speed_factor = 1.0                 # set by the empathy mode
+        # Fillers: tiny pre-rendered phrases ("Mm. One moment.") that cover
+        # thinking time when the real reply is slow.
+        self.fillers_enabled = bool(settings.get("tts.fillers", True))
+        self.filler_after_s = float(settings.get("tts.filler_after_ms", 700)) / 1000
+        self._fillers: dict[str, list[tuple[Any, int]]] = {}
+        self._last_filler: dict[str, int] = {}
+        self._rng = random.Random()
 
     # ---- public ---------------------------------------------------------
     async def say(self, text: str, lang: Language, token: CancelToken | None = None) -> None:
@@ -86,7 +95,11 @@ class VoiceSink(TextSink):
         speak = self._can_speak(lang)
         chunker = SentenceChunker(**self._chunk_cfg)
         q: asyncio.Queue = asyncio.Queue()
-        worker = asyncio.create_task(self._synth_worker(q, lang, token, turn)) if speak else None
+        real_audio_started = asyncio.Event()
+        worker = (asyncio.create_task(self._synth_worker(q, lang, token, turn, real_audio_started))
+                  if speak else None)
+        filler = (asyncio.create_task(self._filler_if_slow(lang, token, turn, real_audio_started))
+                  if speak and self.fillers_enabled else None)
         parts: list[str] = []
         try:
             async for piece in pieces:
@@ -105,6 +118,8 @@ class VoiceSink(TextSink):
             q.put_nowait(None)
             if worker is not None:
                 await worker
+            if filler is not None and not filler.done():
+                filler.cancel()
         if parts:
             self.out(" [stopped]" if token.cancelled else "")
         await self._wait_playback(token)
@@ -129,6 +144,19 @@ class VoiceSink(TextSink):
             self.tts.render("Ready.", lang)
         except Exception as exc:
             self._report_broken(lang, exc)
+            return
+        self.prepare_fillers(lang)
+
+    def prepare_fillers(self, lang: Language) -> None:
+        """Pre-render this language's fillers so they can play instantly (blocking)."""
+        if not self.fillers_enabled or lang.code in self._fillers or not lang.fillers:
+            return
+        if lang.code in self._broken:
+            return
+        try:
+            self._fillers[lang.code] = [self.tts.render(t, lang, self.speed_factor) for t in lang.fillers]
+        except Exception as exc:
+            self._report_broken(lang, exc)
 
     # ---- internals ------------------------------------------------------
     def _can_speak(self, lang: Language) -> bool:
@@ -140,8 +168,28 @@ class VoiceSink(TextSink):
             self.out(f"\n[voice] {lang.name} voice unavailable, replies will be text only: {exc}")
             self._tel.log("tts_error", language=lang.code, error=str(exc)[:300])
 
+    async def _filler_if_slow(self, lang: Language, token: CancelToken, turn: Turn,
+                              real_audio_started: asyncio.Event) -> None:
+        """If the real reply hasn't started in time, say one short filler."""
+        try:
+            await asyncio.wait_for(real_audio_started.wait(), timeout=self.filler_after_s)
+            return                                  # fast enough: no filler needed
+        except asyncio.TimeoutError:
+            pass
+        if token.cancelled or self.muted:
+            return
+        options = self._fillers.get(lang.code)
+        if not options:
+            return                                  # not rendered yet (prepare_fillers runs at start-up)
+        choices = [i for i in range(len(options)) if i != self._last_filler.get(lang.code)] or [0]
+        i = self._rng.choice(choices)
+        self._last_filler[lang.code] = i
+        audio, sr = options[i]
+        self._tel.log("filler", language=lang.code, index=i)
+        self.player.play(audio, sr, token, on_start=lambda: turn.mark("filler"))
+
     async def _synth_worker(self, q: asyncio.Queue, lang: Language, token: CancelToken | None,
-                            turn: Turn | None) -> None:
+                            turn: Turn | None, real_audio_started: asyncio.Event | None = None) -> None:
         loop = asyncio.get_running_loop()
         first = True
         while True:
@@ -150,7 +198,8 @@ class VoiceSink(TextSink):
                 return
             try:
                 with self._tel.span("tts", language=lang.code, chars=len(chunk)):
-                    audio, sr = await loop.run_in_executor(self._executor, self.tts.render, chunk, lang)
+                    audio, sr = await loop.run_in_executor(
+                        self._executor, self.tts.render, chunk, lang, self.speed_factor)
             except Exception as exc:
                 self._report_broken(lang, exc)
                 return
@@ -158,6 +207,8 @@ class VoiceSink(TextSink):
                 return
             if turn is not None and first:
                 turn.mark("first_tts")
+            if first and real_audio_started is not None:
+                real_audio_started.set()
             first = False
             on_start = (lambda t=turn: t.mark("first_audio")) if turn is not None else None
             self.player.play(audio, sr, token, on_start=on_start)

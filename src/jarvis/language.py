@@ -119,9 +119,9 @@ class LanguageManager:
     def llm_instruction(self) -> str:
         lang = self.current
         if lang.code == "en":
-            return "Reply in English. Keep replies short: they are spoken aloud."
+            return "Reply in English."
         return (
             f"Always reply in {lang.name} ({lang.native_name}), written in {lang.name} script, "
-            f"even if the user mixes in English words. Keep replies short: they are spoken aloud. "
+            f"even if the user mixes in English words. "
             f"Keep app names, file names and code in their original form."
         )

@@ -47,8 +47,9 @@ class FakeEngine:
         self.lang_code = lang_code
         self.log = log
 
-    def synthesize(self, text):
+    def synthesize(self, text, speed_factor=1.0):
         self.log.append((self.lang_code, text))
+        self.last_speed = speed_factor
         return np.zeros(len(text) * 10, np.float32)
 
 

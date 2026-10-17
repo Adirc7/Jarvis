@@ -23,19 +23,11 @@ from .events import (
 )
 from .killswitch import HotkeyListener, Once
 from .language import LanguageManager, normalize
+from .persona import Persona
 from .state import Mode, SharedState
 from .telemetry import Telemetry, Turn
 from .voice.sink import TextSink
 
-SYSTEM_PROMPT = (
-    "You are Jarvis, a desktop assistant on the user's Windows laptop. "
-    "You cannot control the computer yet; if asked to act, say that tools arrive in a later phase. "
-    "Be concise and plain-spoken."
-)
-SPOKEN_STYLE = (
-    "Your replies are spoken aloud by a text-to-speech voice: no markdown, no lists, no emojis, "
-    "no code. Usually one to three sentences unless the user asks for detail."
-)
 HISTORY_TURNS = 12
 LLM_UNAVAILABLE = "I can't reach any language model right now. Check the internet connection or start Ollama."
 
@@ -50,8 +42,10 @@ class App:
         sink: TextSink | None = None,
         transcriber=None,
         recorder=None,
+        persona: Persona | None = None,
     ):
         self.settings = settings
+        self.persona = persona or Persona.load()
         self.telemetry = telemetry
         self.out = out
         default = settings.get("general.default_language", "en")
@@ -68,6 +62,8 @@ class App:
             telemetry,
         )
         self.sink = sink or TextSink(out)
+        self.state.empathy = self.persona.default_mode
+        self._apply_empathy_voice()
         self.transcriber = transcriber
         self.recorder = recorder
         self.history: list[dict[str, str]] = []
@@ -81,18 +77,44 @@ class App:
         self.telemetry.log("language_changed", old=ev.old, new=ev.new, source=ev.source)
         if self.bus.is_bound:
             self.bus.publish(ev)
+            prepare = getattr(self.sink, "prepare_fillers", None)
+            if prepare is not None:   # get the new language's fillers ready in the background
+                self.bus.loop.run_in_executor(None, prepare, self.lang.current)
 
     def system_prompt(self) -> str:
-        parts = [SYSTEM_PROMPT, self.lang.llm_instruction()]
-        if self.sink.spoken:
-            parts.append(SPOKEN_STYLE)
-        return "\n".join(parts)
+        return self.persona.system_prompt(
+            language_instruction=self.lang.llm_instruction(),
+            spoken=self.sink.spoken,
+            mode=self.state.empathy,
+        )
+
+    # ---- empathy mode ---------------------------------------------------
+    def _apply_empathy_voice(self) -> None:
+        mode = self.persona.modes.get(self.state.empathy)
+        if hasattr(self.sink, "speed_factor") and mode is not None:
+            self.sink.speed_factor = mode.speed
+
+    def set_empathy(self, mode: str, source: str) -> bool:
+        if mode not in self.persona.modes:
+            return False
+        if mode != self.state.empathy:
+            self.telemetry.log("empathy_changed", old=self.state.empathy, new=mode, source=source)
+        self.state.empathy = mode
+        self._apply_empathy_voice()
+        return True
 
     # ---- one request ----------------------------------------------------
     async def handle_text(self, text: str, source: str = "keyboard", turn: Turn | None = None) -> str:
         turn = turn or self.telemetry.turn(source=source)
         if self.state.mode == Mode.PAUSED:
             self.state.mode = Mode.IDLE   # a new request resumes after the kill switch
+
+        # "be more direct" / "be gentler": change style, then let the model
+        # acknowledge it naturally, in whatever language is active.
+        mode = self.persona.detect_mode_command(text)
+        if mode is not None:
+            self.set_empathy(mode, source=f"{source}_command")
+            turn.mark("empathy_switch")
 
         code = self.lang.detect_switch(text)
         if code is not None:
@@ -257,7 +279,7 @@ class App:
                 f"{self.settings.get('hotkeys.mute')} mutes, {self.settings.get('hotkeys.kill_switch')} stops everything. "
                 "You can also type."
             )
-        self.out("Commands: /lang <code>, /mute, /stop, /status, /quit")
+        self.out("Commands: /lang <code>, /empathy <mode>, /mute, /stop, /status, /quit")
         self.telemetry.log("session_start", language=self.state.language, providers=names, mode=mode)
         try:
             while True:
@@ -303,12 +325,18 @@ class App:
                 self.lang.set(arg, source="command")
                 lang = self.lang.current
                 await self.sink.say(lang.confirm or f"Switched to {lang.name}.", lang, self.state.token())
+        elif cmd == "/empathy":
+            arg = arg.strip()
+            if not self.set_empathy(arg, source="command"):
+                self.out(f"Empathy modes: {', '.join(self.persona.modes)} (now: {self.state.empathy})")
+            else:
+                self.out(f"[empathy: {arg}]")
         elif cmd == "/status":
             self.out(
                 f"mode={self.state.mode.value} language={self.state.language} "
-                f"generation={self.state.cancel_generation} last_llm={self.llm.last_provider} "
+                f"generation={self.state.cancel_generation} empathy={self.state.empathy} last_llm={self.llm.last_provider} "
                 f"muted={getattr(self.sink, 'muted', None)}"
             )
         else:
-            self.out("Commands: /lang <code>, /mute, /stop, /status, /quit")
+            self.out("Commands: /lang <code>, /empathy <mode>, /mute, /stop, /status, /quit")
         return True

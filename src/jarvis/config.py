@@ -39,6 +39,7 @@ class Language:
     command_words: tuple[str, ...] = ()
     switch_phrases: tuple[str, ...] = ()
     confirm: str = ""
+    fillers: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -103,6 +104,7 @@ def parse_languages(table: dict[str, Any]) -> dict[str, Language]:
             command_words=tuple(v.get("command_words", [])),
             switch_phrases=tuple(v.get("switch_phrases", [])),
             confirm=v.get("confirm", ""),
+            fillers=tuple(v.get("fillers", [])),
         )
     return langs
 
