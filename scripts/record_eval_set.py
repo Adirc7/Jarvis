@@ -1,0 +1,85 @@
+"""Record yourself reading test sentences, to measure speech recognition later.
+
+    uv run python scripts/record_eval_set.py eval/sentences_en.txt --lang en
+    uv run python scripts/record_eval_set.py eval/sentences_si.txt --lang si
+
+For each sentence: press Enter, read it aloud, press Enter again. Recordings go
+to eval/recordings/<lang>/ with a manifest.csv of file -> correct text.
+They stay on your laptop (the folder is in .gitignore). Only record other
+people if they agree.
+
+Then score models with scripts/eval_stt.py.
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import sys
+from pathlib import Path
+
+import numpy as np
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from jarvis.voice.audio_io import save_wav  # noqa: E402
+
+RATE = 16000
+
+
+def read_sentences(path: Path) -> list[str]:
+    lines = path.read_text(encoding="utf-8").splitlines()
+    return [l.strip() for l in lines if l.strip() and not l.lstrip().startswith("#")]
+
+
+def record_until_enter() -> np.ndarray:
+    import sounddevice as sd
+
+    frames: list[np.ndarray] = []
+
+    def callback(indata, n, t, status):
+        frames.append(indata[:, 0].copy())
+
+    with sd.InputStream(samplerate=RATE, channels=1, dtype="float32", callback=callback):
+        input("   recording... press Enter when done ")
+    return np.concatenate(frames) if frames else np.zeros(0, np.float32)
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    ap.add_argument("sentences", type=Path)
+    ap.add_argument("--lang", required=True, help="Jarvis language code: en, si, ta")
+    ap.add_argument("--speaker", default="me", help="label for whoever is reading")
+    args = ap.parse_args()
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
+    sentences = read_sentences(args.sentences)
+    out_dir = ROOT / "eval" / "recordings" / args.lang
+    manifest = out_dir / "manifest.csv"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    existing = manifest.is_file()
+    with open(manifest, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        if not existing:
+            writer.writerow(["file", "text", "speaker"])
+        for i, text in enumerate(sentences, 1):
+            print(f"\n[{i}/{len(sentences)}] {text}")
+            cmd = input("   Enter = record, s = skip, q = quit: ").strip().lower()
+            if cmd == "q":
+                break
+            if cmd == "s":
+                continue
+            audio = record_until_enter()
+            name = f"{args.speaker}_{i:03d}.wav"
+            save_wav(out_dir / name, audio, RATE)
+            writer.writerow([name, text, args.speaker])
+            f.flush()
+            print(f"   saved {name} ({len(audio) / RATE:.1f} s)")
+    print(f"\nManifest: {manifest}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

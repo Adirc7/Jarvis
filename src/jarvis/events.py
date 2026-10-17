@@ -65,5 +65,22 @@ class KillSwitchPressed(Event):
 
 
 @dataclass(frozen=True)
+class MuteToggled(Event):
+    source: str = "hotkey"
+
+
+@dataclass(frozen=True)
+class PushToTalkPressed(Event):
+    """Push-to-talk key went down: recording has started."""
+
+
+@dataclass(frozen=True, eq=False)
+class UtteranceCaptured(Event):
+    """Push-to-talk key came up. `audio` is 16 kHz mono float32."""
+    audio: object                   # numpy array (kept untyped so events.py needs no numpy)
+    seconds: float
+
+
+@dataclass(frozen=True)
 class Shutdown(Event):
     reason: str = ""

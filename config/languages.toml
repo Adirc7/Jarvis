@@ -3,8 +3,11 @@
 # whisper_code   Whisper's language code.
 # stt_model      "default" uses [stt].model from settings.toml. Or give a path to a
 #                CTranslate2-converted fine-tune (see docs/LANGUAGES.md).
-# tts_engine     "piper" (ONNX voices, fast on CPU) or "mms" (Meta MMS-TTS).
-# tts_voice      Piper voice name, or a Hugging Face model id for "mms".
+# tts_engine     "kokoro" (English voices, best quality), "piper" (ONNX voices,
+#                fast on CPU, many languages) or "mms" (Meta MMS-TTS).
+# tts_voice      Kokoro voice (bm_george ...), Piper voice name, or a Hugging
+#                Face model id for "mms".
+# tts_lang       Kokoro only: "en-gb" for British voices, "en-us" for American.
 # names          Words that name this language, in any script.
 # command_words  Verbs in this language that mean speak / talk / switch.
 #                A short utterance with a command word AND a language name
@@ -21,8 +24,11 @@ name = "English"
 native_name = "English"
 whisper_code = "en"
 stt_model = "default"
-tts_engine = "piper"
-tts_voice = "en_US-lessac-medium"
+# British male voices: bm_george, bm_lewis, bm_daniel, bm_fable.
+# Listen first: uv run python scripts/voice_preview.py
+tts_engine = "kokoro"
+tts_voice = "bm_george"
+tts_lang = "en-gb"
 names = ["english", "ඉංග්‍රීසි", "ඉංග්‍රීසියෙන්", "ஆங்கிலம்", "ஆங்கிலத்தில்"]
 command_words = ["speak", "talk", "reply", "answer", "respond", "switch", "change"]
 switch_phrases = ["english please"]

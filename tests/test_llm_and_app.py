@@ -1,7 +1,7 @@
 import pytest
 
 from conftest import FakeClient
-from jarvis.__main__ import App
+from jarvis.app import App
 from jarvis.agent.llm import FallbackLLM, LLMUnavailable, Provider
 from jarvis.events import KillSwitchPressed
 from jarvis.state import Mode, SharedState
@@ -102,7 +102,7 @@ async def test_kill_switch_pauses(settings):
     import asyncio
     app, out = make_app(settings, FakeClient())
     app.bus.bind()
-    task = asyncio.create_task(app._kill_switch_task())
+    task = asyncio.create_task(app._control_task())
     await asyncio.sleep(0)
     app.bus.publish(KillSwitchPressed(source="test"))
     await asyncio.sleep(0.01)

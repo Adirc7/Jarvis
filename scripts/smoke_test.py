@@ -1,4 +1,4 @@
-"""Phase 0 smoke test: does everything Jarvis needs run on this laptop, at the same time?
+"""Smoke test: does everything Jarvis needs run on this laptop, at the same time?
 
     python scripts/smoke_test.py                    full test: mic, camera, LLMs
     python scripts/smoke_test.py --no-camera        skip the webcam
@@ -13,6 +13,7 @@ What it checks:
   5. camera         MediaPipe hand tracking: frames per second and latency
   6. together       camera tracking WHILE Whisper runs: does tracking slow down?
   7. llm            each free provider: speed, tool calling, Sinhala/Tamil replies
+  8. voices         each language's voice: loads, speed, and plays it on your speakers
 
 Results print as a table and are saved to logs/smoke-<time>.json.
 Tip: run it twice, speaking English the first time and Sinhala or Tamil the second.
@@ -431,11 +432,50 @@ async def check_llms(settings: Settings, r: Report, tel: Telemetry) -> None:
 
 
 # --------------------------------------------------------------------------
+# 8. Voices (Phase 1)
+# --------------------------------------------------------------------------
+def check_voices(settings: Settings, play: bool, r: Report, tel: Telemetry) -> None:
+    section("8. Voices")
+    try:
+        from jarvis.voice.tts import TTSRouter
+    except Exception as exc:
+        r.add("tts", "FAIL", f"voice libraries missing ({exc}). Install with: uv sync --extra voice")
+        return
+    router = TTSRouter(settings)
+    for lang in settings.languages.values():
+        phrase = lang.confirm or "Hello."
+        try:
+            router.render("Ready.", lang)                     # first call loads and warms up
+            t0 = time.perf_counter()
+            audio, sr = router.render(phrase, lang)
+            ms = (time.perf_counter() - t0) * 1000
+        except Exception as exc:
+            hint = "" if "download_models" in str(exc) or "missing" not in str(exc).lower() else " Run: uv run python scripts/download_models.py"
+            r.add(f"voice {lang.name}", "WARN", f"{lang.tts_engine}/{lang.tts_voice}: {str(exc)[:160]}{hint}")
+            continue
+        rtf = (ms / 1000) / max(len(audio) / sr, 1e-6)
+        tel.log("smoke_tts", language=lang.code, engine=lang.tts_engine, ms=round(ms, 1), rtf=round(rtf, 3))
+        r.add(f"voice {lang.name}", "PASS" if rtf < 0.5 else "WARN",
+              f"{lang.tts_engine}/{lang.tts_voice}: {ms:.0f} ms for {len(audio) / sr:.1f} s (real-time factor {rtf:.2f})")
+        if play:
+            try:
+                import sounddevice as sd
+                print(f"  playing {lang.name}: {phrase}")
+                sd.play(audio, sr)
+                sd.wait()
+            except Exception as exc:
+                r.add("speakers", "WARN", f"playback failed: {exc}")
+                play = False
+
+
+# --------------------------------------------------------------------------
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Jarvis Phase 0 smoke test")
+    ap = argparse.ArgumentParser(description="Jarvis smoke test")
     ap.add_argument("--no-mic", action="store_true")
     ap.add_argument("--no-camera", action="store_true")
     ap.add_argument("--no-llm", action="store_true")
+    ap.add_argument("--no-voice", action="store_true", help="skip the text-to-speech check")
+    ap.add_argument("--no-speaker", action="store_true", help="check voices without playing them")
     ap.add_argument("--record", type=float, default=6, help="seconds of mic audio to record")
     ap.add_argument("--seconds", type=float, default=10, help="seconds per camera test")
     ap.add_argument("--whisper-model", default=None, help="override [stt].model, e.g. large-v3-turbo")
@@ -465,6 +505,9 @@ def main() -> int:
 
     if not args.no_llm:
         asyncio.run(check_llms(settings, r, tel))
+
+    if not args.no_voice:
+        check_voices(settings, play=not args.no_speaker, r=r, tel=tel)
 
     r.print_table()
     out = log_dir / f"smoke-{stamp}.json"
