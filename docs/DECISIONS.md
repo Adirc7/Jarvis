@@ -91,3 +91,13 @@ syllable isn't clipped, but frames are kept only while the key is down.
 Pressing the key while Jarvis speaks interrupts it (barge-in).
 **Why:** No always-on listening, no echo problem (Jarvis never records itself),
 and a natural way to interrupt.
+
+## D14. Emotion awareness through perception, not LLM fine-tuning (Phase 1.5)
+**Decision:** Add a speech emotion model beside Whisper and pass its label
+and confidence to the LLM as context. Tune only the emotion classifier, on
+your own voice, using your corrections as labels. Don't fine-tune the LLM.
+**Why:** The LLM already knows how to respond to emotions; what it lacks is
+the signal, because transcription removes tone. Free hosted LLMs can't be
+fine-tuned, and a small classifier on frozen features fits the RTX 4050.
+**Rules:** local only, no stored audio, can be switched off, hedge instead of
+asserting. Details in ROADMAP.md.
