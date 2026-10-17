@@ -29,7 +29,7 @@ from .effects import VoiceStyle
 class TTSEngine(Protocol):
     sample_rate: int
 
-    def synthesize(self, text: str) -> np.ndarray: ...
+    def synthesize(self, text: str, speed_factor: float = 1.0) -> np.ndarray: ...
 
 
 class KokoroTTS:
@@ -47,8 +47,8 @@ class KokoroTTS:
         self.voice, self.lang, self.speed = voice, lang or "en-us", speed
         self.sample_rate = 24000
 
-    def synthesize(self, text: str) -> np.ndarray:
-        audio, sr = self._kokoro.create(text, voice=self.voice, speed=self.speed, lang=self.lang)
+    def synthesize(self, text: str, speed_factor: float = 1.0) -> np.ndarray:
+        audio, sr = self._kokoro.create(text, voice=self.voice, speed=self.speed * speed_factor, lang=self.lang)
         self.sample_rate = sr
         return np.asarray(audio, dtype=np.float32)
 
@@ -63,12 +63,14 @@ class PiperTTS:
                 f"Piper voice missing: {onnx_path}. Run: uv run python scripts/download_models.py"
             )
         self._voice = PiperVoice.load(onnx_path)
-        self._config = SynthesisConfig(length_scale=1.0 / speed if speed else None)
+        self._config_cls = SynthesisConfig
+        self.speed = speed or 1.0
         self.sample_rate = self._voice.config.sample_rate
 
-    def synthesize(self, text: str) -> np.ndarray:
+    def synthesize(self, text: str, speed_factor: float = 1.0) -> np.ndarray:
+        config = self._config_cls(length_scale=1.0 / (self.speed * speed_factor))
         parts = []
-        for chunk in self._voice.synthesize(text, syn_config=self._config):
+        for chunk in self._voice.synthesize(text, syn_config=config):
             self.sample_rate = chunk.sample_rate
             parts.append(chunk.audio_float_array)
         return np.concatenate(parts).astype(np.float32) if parts else np.zeros(0, np.float32)
@@ -84,11 +86,11 @@ class MmsTTS:
         self._torch = torch
         self._model = VitsModel.from_pretrained(model_id)
         self._tokenizer = AutoTokenizer.from_pretrained(model_id)
-        if speed and speed != 1.0:
-            self._model.speaking_rate = speed
+        self.speed = speed or 1.0
         self.sample_rate = self._model.config.sampling_rate
 
-    def synthesize(self, text: str) -> np.ndarray:
+    def synthesize(self, text: str, speed_factor: float = 1.0) -> np.ndarray:
+        self._model.speaking_rate = self.speed * speed_factor
         inputs = self._tokenizer(text, return_tensors="pt")
         with self._torch.no_grad():
             wave = self._model(**inputs).waveform
@@ -129,8 +131,8 @@ class TTSRouter:
                 self._engines[lang.code] = self._factory(lang, self._settings)
             return self._engines[lang.code]
 
-    def render(self, text: str, lang: Language) -> tuple[np.ndarray, int]:
+    def render(self, text: str, lang: Language, speed_factor: float = 1.0) -> tuple[np.ndarray, int]:
         engine = self.engine(lang)
-        audio = engine.synthesize(text)
+        audio = engine.synthesize(text, speed_factor=speed_factor)
         sr = engine.sample_rate
         return self.style.process(audio, sr), sr

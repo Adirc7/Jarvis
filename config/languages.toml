@@ -16,6 +16,9 @@
 #                "translate this to Tamil" does not switch.
 # switch_phrases Whole utterances that switch to this language.
 # confirm        What Jarvis says (in the new language) after switching.
+# fillers        Short sounds Jarvis may say while it's still thinking, only
+#                when the real reply is slow ("mm, one moment"). Pre-recorded
+#                at start-up so they play instantly.
 #
 # To add a language, copy a block and change the values.
 
@@ -33,6 +36,7 @@ names = ["english", "ඉංග්‍රීසි", "ඉංග්‍රීසි�
 command_words = ["speak", "talk", "reply", "answer", "respond", "switch", "change"]
 switch_phrases = ["english please"]
 confirm = "Okay, I'll speak English now."
+fillers = ["Mm.", "One moment.", "Let me check.", "Right, one sec.", "Let me think."]
 
 [si]
 name = "Sinhala"
@@ -47,6 +51,7 @@ names = ["sinhala", "sinhalese", "සිංහල", "සිංහලෙන්"]
 command_words = ["කතා", "මාරු"]
 switch_phrases = ["sinhala please"]
 confirm = "හරි, මම දැන් සිංහලෙන් කතා කරන්නම්."
+fillers = ["හ්ම්.", "පොඩ්ඩක් ඉන්න."]
 
 [ta]
 name = "Tamil"
@@ -61,3 +66,4 @@ names = ["tamil", "தமிழ்", "தமிழில்"]
 command_words = ["பேசு", "பேசுங்கள்", "பேசவும்", "மாற்று", "மாறு"]
 switch_phrases = ["tamil please"]
 confirm = "சரி, இனி நான் தமிழில் பேசுகிறேன்."
+fillers = ["ம்ம்.", "ஒரு நிமிடம்."]

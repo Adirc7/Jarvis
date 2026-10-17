@@ -13,8 +13,12 @@ Status: **Phase 1** (spoken conversation). Next: emotion-aware replies
 - **Talk to it**: hold Right Ctrl, speak, let go. Whisper transcribes, a free
   LLM answers, and Jarvis speaks the reply sentence by sentence while the rest
   is still being written.
-- **Its own voice**: a British Kokoro voice with a light studio effects chain
-  (the "Jarvis feel"). No cloned voices.
+- **Its own voice and character**: a British Kokoro voice (Lewis) with a light
+  studio effects chain, and a written personality in `config/persona.toml`.
+  No cloned voices; Jarvis says it's an AI if you ask.
+- **Empathy modes**: logical, balanced or supportive. Say "be more direct" or
+  "be gentler", or type `/empathy supportive`.
+- **Natural timing**: a short "mm, one moment" only when a reply is slow.
 - **Three languages**: English, Sinhala, Tamil. "Switch to Tamil",
   "සිංහලෙන් කතා කරන්න", or `/lang si`. Each language has its own speech
   model and voice.
@@ -85,13 +89,17 @@ these scripts properly.
 | | `[tts] speed` | `0.9` = slower, calmer voice |
 | | `[voice_style]` | the effects chain; `enabled = false` for the raw voice |
 | `config/languages.toml` | `tts_voice` | which voice each language uses |
+| `config/persona.toml` | `user_name` | what Jarvis calls you (empty = no name) |
+| | `[personality]`, `[speaking_style]` | Jarvis's character; edit freely |
+| | `[empathy] default` | starting empathy mode |
 
 ## Project layout
 
 ```
-config/            settings.toml, languages.toml
+config/            settings.toml, languages.toml, persona.toml
 src/jarvis/
   app.py           request pipeline, voice loop, hotkeys
+  persona.py       character sheet -> instructions for the LLM
   bus.py           event bus (threads -> asyncio queues)
   state.py         shared state + cancel tokens
   language.py      language switching rules

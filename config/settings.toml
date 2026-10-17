@@ -49,6 +49,10 @@ speed = 1.0                     # 0.9 = slower and calmer
 first_chunk_min_chars = 12
 chunk_min_chars = 40
 chunk_max_chars = 220
+# Say a short filler ("Mm, one moment") if the real reply hasn't started
+# speaking this long after the request went to the LLM. Once per turn at most.
+fillers = true
+filler_after_ms = 700
 
 # The "Jarvis feel": a light studio chain applied to every reply.
 # Set enabled = false to hear the raw voice.

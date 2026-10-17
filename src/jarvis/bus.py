@@ -39,6 +39,10 @@ class EventBus:
     def is_bound(self) -> bool:
         return self._loop is not None
 
+    @property
+    def loop(self) -> asyncio.AbstractEventLoop | None:
+        return self._loop
+
     def subscribe(
         self,
         *types: type[Event],

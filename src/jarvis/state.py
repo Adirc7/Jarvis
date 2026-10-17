@@ -23,6 +23,7 @@ class Mode(str, Enum):
 @dataclass
 class SharedState:
     language: str = "en"
+    empathy: str = "balanced"     # emotional style: logical, balanced, supportive
     mode: Mode = Mode.IDLE
     current_task: str | None = None
     active_app: str | None = None

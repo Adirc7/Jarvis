@@ -101,3 +101,29 @@ the signal, because transcription removes tone. Free hosted LLMs can't be
 fine-tuned, and a small classifier on frozen features fits the RTX 4050.
 **Rules:** local only, no stored audio, can be switched off, hedge instead of
 asserting. Details in ROADMAP.md.
+
+## D15. A written character sheet, and an honest one
+**Decision:** Jarvis's personality, speaking style, limits and current
+abilities live in `config/persona.toml` and are built into every prompt,
+with the local date and time.
+**Why:** A consistent character is the biggest single step toward feeling
+human, and a file makes it easy to tune and to compare versions in tests.
+**Rules:** Jarvis says it's an AI when asked, doesn't claim feelings,
+doesn't flatter, isn't a therapist, and never promises abilities it doesn't
+have yet (the `cannot_yet` list is updated each phase).
+
+## D16. Empathy modes: manual now, learned later
+**Decision:** Three modes (logical, balanced, supportive) switchable by
+command or phrase; each sets an LLM instruction and a voice speed. A
+contextual bandit will later learn the user's preferred mode per emotional
+state, inside user-set limits.
+**Why:** The LLM can already write in any style; what it can't know is which
+style this user prefers. Learning that preference is cheap and personal.
+
+## D17. Fillers only when the reply is slow
+**Decision:** Short, pre-rendered fillers ("Mm.", "One moment.") play if no
+real speech has started 0.7 s after the LLM request; at most one per turn,
+never the same one twice in a row, never when muted.
+**Why:** People cover thinking time the same way; silence longer than about a
+second sounds like a broken assistant. Telemetry marks fillers separately so
+`first_audio` still measures the real reply.
