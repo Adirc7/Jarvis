@@ -63,7 +63,7 @@ the setup one command.
 
 ## D10. Voices: Kokoro for English, Piper for Sinhala, MMS for Tamil (Phase 1)
 **Decision:** One engine per language behind a single interface
-(`voice/tts.py`). English uses Kokoro's British voice `bm_george` by default.
+(`voice/tts.py`). English uses Kokoro's British voice `bm_lewis`, chosen after comparing all four British male voices with and without the effects chain.
 **Why:** Kokoro sounds the most natural of the free local options; Piper and
 MMS cover the languages Kokoro doesn't.
 **Not doing:** cloning a real actor's voice. Jarvis gets its own voice plus an
