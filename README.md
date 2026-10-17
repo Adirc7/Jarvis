@@ -4,8 +4,9 @@ Ai assistant how deal with emotions of the users'
 A context-aware multimodal desktop assistant: voice, hand gestures and app
 context, with verified actions. Self-study build, free tools only.
 
-Status: **Phase 1** (spoken conversation). See `docs/DEVLOG.md` for progress
-and `docs/DECISIONS.md` for the design decisions behind the code.
+Status: **Phase 1** (spoken conversation). Next: emotion-aware replies
+(Phase 1.5) and Windows tools (Phase 2). See `docs/ROADMAP.md` for the plan,
+`docs/DEVLOG.md` for progress and `docs/DECISIONS.md` for the reasoning.
 
 ## What works now
 
@@ -102,7 +103,7 @@ src/jarvis/
   perception/ tools/ proactive/ memory/   later phases
 scripts/           smoke_test, download_models, voice_preview, record_eval_set, eval_stt
 eval/              test sentences (recordings stay local)
-docs/              DECISIONS.md, LANGUAGES.md, DEVLOG.md
+docs/              ROADMAP.md, DECISIONS.md, LANGUAGES.md, DEVLOG.md
 ```
 
 ## Privacy

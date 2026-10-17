@@ -33,3 +33,9 @@ Future you (and anyone reading the repo) will thank you.
    `turn.stt_done`, `turn.first_token`, `turn.first_audio`.
 3. Record 20 sentences per language and compare Whisper models with
    `scripts/eval_stt.py`.
+
+## 2026-10-17: Emotion awareness added to the roadmap
+
+- New Phase 1.5: speech emotion model beside Whisper, emotion passed to the
+  LLM as context, corrections become labels, small classifier tuned on my
+  voice. No LLM fine-tuning. Plan in ROADMAP.md, reasoning in DECISIONS D14.
