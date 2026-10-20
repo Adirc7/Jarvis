@@ -212,3 +212,32 @@ Sinhala and English and can judge Singlish; he can't judge whether Tamil or
 Tanglish examples are right, and wrong labels would make the results
 meaningless.
 **Revisit:** if a Tamil-speaking classmate or friend agrees to help.
+
+## D24. One core plus skills
+**Decision:** Jarvis is a core (voice, languages, emotion, memory, safety,
+the tool system) plus skills (Study, Visualise, Data, Research, News,
+Friend). A skill is an instruction file plus the tools it needs, running on
+the Phase 2 tool system. The roadmap starts with an explicit build order.
+**Why:** Every new idea fits the same pattern: the LLM decides, a free tool
+gets real results, Jarvis shows the source or the check. Building that
+platform once makes each skill small, and keeps the research (emotion,
+Sinhala and Singlish, verified and safe actions) in the core instead of
+spread across features.
+**Revisit:** if a skill needs something the tool system can't express.
+
+## D25. Phase 2 safety: a gate, risk tiers, no raw shell
+**Decision:** Every tool call, MCP tools included, passes one gate:
+registered tools only, schema-checked arguments, allowed folders only, and
+four risk tiers (just do it; do and log with undo; ask first with a clear
+yes; never). No raw command shell. Deletes go to a recycle folder. Text
+from outside (web, news, email, files) is untrusted: while it's in the
+turn, anything above "just do it" needs confirmation. LLM-written code runs
+on copies in a scratch folder with a time limit and an import check. Private
+folders go only to the local model. Every action is verified and logged.
+**Why:** The AI will make mistakes and Whisper will mishear; the design
+makes those mistakes cheap. Prompt injection is the main outside threat for
+an agent that reads the web. Measuring it (zero unsafe actions on a safety
+test set, plus how often Jarvis asked unnecessarily) turns safety into a
+result.
+**Limits:** the code runner stops accidents, not a determined attacker;
+malware already on the PC is out of scope.

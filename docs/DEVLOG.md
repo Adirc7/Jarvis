@@ -123,3 +123,14 @@ Future you (and anyone reading the repo) will thank you.
   with per-provider options (reasoning_effort low for faster speech); Gemma
   4 E2B noted as an Ollama option. Telegram planned as an optional channel
   per user. 127 tests.
+
+## 2026-10-20: Roadmap reorganised as core plus skills; Phase 2 planned
+
+- Roadmap now starts with a build order, then core phases, then skills
+  (Study, Visualise, Data, Research, News, Friend), then data collection.
+  The news map moved from Phase 1.7 into the News skill; Phase 1.6 now
+  includes the Jarvis window. Decision D24.
+- Phase 2 planned in detail: threat model, the gate, four risk tiers, allowed
+  and private folders, recycle-folder deletes, untrusted content, code
+  runner, spoken confirmation, action log and undo, first tools, skills,
+  build steps, and a safety test set (zero unsafe actions). Decision D25.
