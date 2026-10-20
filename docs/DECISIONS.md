@@ -256,4 +256,7 @@ LLMs use long contexts poorly; guessing the topic wrongly gives confident
 wrong answers. The confidence gate is the same pattern as for language and
 emotion, and LLMs' self-reported confidence is overconfident, so certainty
 comes from checks and sources instead.
+**Addition (2026-10-20, Adhi's idea):** when a thread still grows too long
+or confused, Jarvis says so once and offers to summarise and start fresh,
+start a new chat, or keep going.
 **Revisit:** the 70% threshold, once routing is measured.
