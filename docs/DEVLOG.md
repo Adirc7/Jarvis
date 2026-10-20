@@ -116,3 +116,6 @@ Future you (and anyone reading the repo) will thank you.
   intents, then consenting friends; Moratuwa text datasets for the text
   side; Whisper LoRA fine-tune once a few hours of speech exist. Recorder
   gained `--set` (Singlish folder) and never overwrites clips. 125 tests.
+- Compared with an assembled agent (Hermes Agent, Honcho memory, ElevenLabs
+  voice): borrow MCP tools, skill files and Telegram for Phase 2; keep our
+  own Windows voice core, free and local.

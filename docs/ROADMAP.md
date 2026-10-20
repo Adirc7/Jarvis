@@ -273,6 +273,21 @@ First-audio latency p50/p95 for phone calls next to the laptop numbers
 (telemetry tags each turn with its channel), and whether WER changes with the
 phone's microphone.
 
+## Phase 2 notes: reuse, don't rebuild
+
+From comparing with assembled "build your own Jarvis" agents such as Hermes
+Agent (Nous Research), 2026-10-20:
+
+- **Tools through MCP** where a server exists (files, calendar, email,
+  browser) instead of writing each tool; Jarvis keeps the allow-list, risk
+  tiers and verified completion on top.
+- **Skills as small instruction files** for specific jobs, loaded when
+  relevant.
+- **Telegram** as the walkie-talkie channel (Phase 1.6, step 4).
+- Not adopted as the base: Hermes runs on Linux, macOS or WSL2 (not native
+  Windows, where the microphone, GPU and hotkeys live), and the voice loop,
+  Sinhala handling, kill switch and emotion work are this project's core.
+
 ## Startup greeting (Phase 1, next)
 
 One short spoken line when Jarvis starts, built from the local time and the
