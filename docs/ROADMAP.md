@@ -310,6 +310,14 @@ window:
    finished or cancelled, log saved, process ends. Ctrl+Alt+K stops what
    Jarvis is doing but doesn't quit it.
 
+Ways to wake Jarvis (2026-10-21): "Hey Jarvis" or "Hi Jarvis" (test
+whether the pretrained "hey jarvis" model also catches "Hi"; if not,
+openWakeWord can train a custom phrase for free from synthetic speech), a
+**double clap** (optional, off by default: two sharp sound peaks 0.2-0.6 s
+apart, found with simple signal processing, no model; door knocks and desk
+taps are the false alarms to measure), and a double wave once gestures
+exist (Phase 3).
+
 Candidate libraries, to check when building: openWakeWord's pretrained
 "hey jarvis" model (non-commercial licence, fine here; D3), pystray for the
 tray icon, pywebview to show the window. **Measure:** missed wakes, and
@@ -388,6 +396,10 @@ rarely triggered by accident:
 | Point + "this" | Refer to what you point at ("explain this"); Phase 4 |
 | Double wave | Wake Jarvis without speaking |
 
+- **Mostly ready-made:** MediaPipe's Gesture Recognizer (Apache-2.0)
+  already recognises open palm, thumbs up, thumbs down, pointing up, fist
+  and victory without any training. Swipes and the double wave come from
+  following the hand's position over a few frames, with simple code.
 - **Deliberate:** each gesture is held about half a second; the orb shows
   which gesture it saw.
 - **Never for risky actions:** gestures, like voice, can't confirm "ask
