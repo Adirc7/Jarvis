@@ -107,3 +107,6 @@ Future you (and anyone reading the repo) will thank you.
 - Reply language follows the speaker with a confidence gate (sure: switch;
   maybe: ask once; unsure: stay). Decision D22. Dataset clips get language
   labels too.
+- Grammar baseline for mixed speech: action last plus helper words
+  (karanna, pannunga); the trained model must beat it. Dataset plan: text
+  first, recorded subset, LLM paraphrases for training only.

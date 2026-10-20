@@ -350,7 +350,22 @@ only what fails.
    ([Etxaniz et al. 2024](https://aclanthology.org/2024.naacl-short.46));
    romanized Singlish needs transliteration before NLLB, and tone and
    politeness can be lost on the way back.
-4. **Train where it fails:** a small classifier on a frozen multilingual
+4. **A grammar baseline (idea from 2026-10-20).** English puts the action
+   first ("open the file"); Sinhala, Tamil, Singlish and Tanglish put it
+   last, followed by a helper word ("file eka open karanna", "file-a open
+   pannunga"). A hand-written rule (verb at the end, Sinhala or Tamil helper
+   words such as eka, karanna, mata, da, pannunga) is the simple baseline the
+   trained model has to beat, and the check afterwards on what the model
+   learned to look at.
+5. **Train where it fails:** a small classifier on a frozen multilingual
    encoder, the same pattern as the emotion model. It also runs offline and
    in milliseconds, so common commands skip the LLM.
-5. **Learn from corrections:** "no, I meant..." adds a labelled example.
+6. **Learn from corrections:** "no, I meant..." adds a labelled example.
+
+**Making the dataset.** Mixed Sinhala-English and Tamil-English data exists
+only as typed social-media text, labelled word by word (about 90-96% word
+accuracy in a 2019 Moratuwa thesis); there is no recorded speech of
+assistant commands. So: text first (examples per intent in all five ways of
+speaking), then a consented recorded subset. LLM-written paraphrases may be
+added to the *training* data, never to the test set, which stays real and
+human-written.
