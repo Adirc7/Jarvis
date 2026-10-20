@@ -98,7 +98,7 @@ def test_good_push_to_talk_keys(name):
 @pytest.mark.parametrize("name, words", [
     ("a", "typing"), ("space", "typing"), ("shift_r", "typing"), ("ctrl_l", "typing"), ("enter", "typing"),
     ("cmd", "Copilot"), ("cmd_l", "Windows"), ("media_volume_up", "Fn"), ("print_screen", "Windows"),
-    ("esc", "cancel"), (None, "which key"),
+    ("esc", "cancel"), (None, "which key"), ("f23", "Copilot"),
 ])
 def test_bad_push_to_talk_keys(name, words):
     problem = check_push_to_talk_key(name)

@@ -121,6 +121,9 @@ def check_push_to_talk_key(name: str | None) -> str | None:
         return "You use that key while typing, so Jarvis would start listening as you type."
     if low.startswith("cmd"):
         return "Windows uses that key itself (the Copilot key sends it too)."
+    if low == "f23":
+        return ("That's the Copilot key (it sends Windows + Shift + F23): Windows would open Copilot "
+                "every time you talk. Right Alt, just to its left, works well.")
     if low.startswith("media_"):
         return "That's a media key. Hold Fn while pressing it to get the F-key instead."
     if low in ("print_screen", "num_lock"):
