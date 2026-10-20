@@ -132,14 +132,17 @@ sheet: "Good evening, sir. It's getting late; what do you need?"
 - Varies; never the same line twice in a row; in the last language used.
 - **Sessions, like a person would (2026-10-20):** going to sleep after 30
   seconds of silence only stops listening; the session carries on.
-  - *Same session* (woken again within about 30 minutes): no greeting at
-    all. Jarvis says "Yes, sir?" or simply continues; if the wake already
+  - *Same session* (woken again within about 15 minutes, a setting Adhi
+    suggested keeping at 10-20): no greeting at all. Jarvis says "Yes, sir?" or simply continues; if the wake already
     contains the request ("Hey Jarvis, and for x = 2?"), it just answers.
-  - *Back after a while* (30 minutes to a few hours): a short pick-up, not
+  - *Back after a while* (15 minutes to a few hours): a short pick-up, not
     a greeting: "Welcome back. We'd left the Power BI chart half done."
   - *First wake of the day:* the full time-of-day greeting.
   - The session ends when you quit, after about 3 hours idle, or overnight.
   - The 30 seconds stretch when Jarvis has just asked you a question.
+  - Long silences get no unprompted check-ins: like a good assistant,
+    Jarvis doesn't interrupt your work (speaking up on its own is Phase 5,
+    with a quiet mode).
 - Doesn't open anything or read news unless you ask.
 
 ## Replying in the language you speak (Phase 1, after the greeting)
@@ -371,6 +374,31 @@ Gradio) or aiortc (lower level, lighter).
 First-audio latency p50/p95 for phone calls next to the laptop numbers
 (telemetry tags each turn with its channel), and whether WER changes with the
 phone's microphone.
+
+## Phase 3: Hand gestures
+
+A small, deliberate set (2026-10-21), so gestures are easy to remember and
+rarely triggered by accident:
+
+| Gesture | What it does |
+|---|---|
+| Open palm | Stop talking ("hold on"), like pressing push-to-talk |
+| Thumbs up / thumbs down | Feedback for the empathy learner; on thumbs down Jarvis offers another way |
+| Swipe left / right | Previous / next: PDF pages, quiz cards, plots |
+| Point + "this" | Refer to what you point at ("explain this"); Phase 4 |
+| Double wave | Wake Jarvis without speaking |
+
+- **Deliberate:** each gesture is held about half a second; the orb shows
+  which gesture it saw.
+- **Never for risky actions:** gestures, like voice, can't confirm "ask
+  first" actions; only a click does.
+- **Camera only in gesture mode**, switched on by you; landmarks (numbers)
+  are processed, video is never stored (D7).
+- **GPU:** MediaPipe's hand tracking runs on the CPU (its Python version
+  on Windows has no GPU option), and 15 frames a second is enough for
+  gestures, so the RTX 4050 stays free for Whisper and the emotion model.
+- **Measure:** accuracy per gesture and false activations per hour (the
+  Phase 3 "done when").
 
 ## Phase 2: Tools and safety
 

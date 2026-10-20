@@ -164,3 +164,8 @@ Future you (and anyone reading the repo) will thank you.
 - Greeting plan: no greeting when woken again in the same session; a short
   pick-up after a while; the full greeting only on the first wake of the
   day.
+- Same-session window set to about 15 minutes (setting, 10-20); no
+  unprompted check-ins after long silences.
+- Phase 3 gesture set: open palm (stop), thumbs up/down (feedback), swipe
+  (next/previous), point + "this" (Phase 4), double wave (silent wake);
+  held half a second, never for risky actions, hand tracking on the CPU.
