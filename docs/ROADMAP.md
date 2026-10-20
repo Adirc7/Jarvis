@@ -411,6 +411,13 @@ Not in scope: malware already on the PC, or someone else using the laptop.
    that button, and a web page or file can't either. Until the Jarvis window
    exists, the box is a small always-on-top window (Python's built-in
    tkinter); on the phone (Phase 1.6) you tap it.
+   **Choices in the box (idea from 2026-10-20):** a tick box per item
+   (untick files to keep), up to three alternative actions (e.g. zip
+   instead of delete), and "Something else..." to type what to do instead.
+   Two rules keep it safe: each button's label is written by Jarvis's code
+   from the exact tool call, never by the LLM, so what you click is what
+   runs; and typed text goes back to the LLM as a new request, through the
+   gate again, with its own box if it's risky.
 9. **Action log and undo.** Every action goes to `logs/actions-*.jsonl`:
    time, tool, arguments, tier, who confirmed, verify result. "Undo that"
    reverses the last reversible action.
