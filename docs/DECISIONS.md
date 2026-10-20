@@ -17,6 +17,11 @@ Pro models to paid in 2026), so no single provider is load-bearing.
 free tier (`groq_oss`, same key, its own limits). Providers can pass extra
 request fields (`options`). Claude isn't included: it has no free API and no
 open weights; "Claude" models on Hugging Face are other models imitating it.
+**Update (2026-10-21, first laptop run):** Groq retired llama-3.3-70b-versatile
+on 2026-08-16 (its replacement advice: gpt-oss), and OpenRouter's Llama 3.3
+stopped being free. Now: Gemini, Groq gpt-oss-20b (fast), Groq gpt-oss-120b,
+OpenRouter Gemma 4 31B (free), Ollama. Thinking models get
+`reasoning_effort = "low"`: Gemini took 7 s to its first word without it.
 **Why:** All four speak the same API, so one class covers them. Switching
 mid-reply would produce a garbled answer.
 **Privacy:** free hosted tiers may use prompts to improve their products. Don't

@@ -99,26 +99,33 @@ timeout_s = 20
 base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
 api_key_env = "GEMINI_API_KEY"
 model = "gemini-flash-latest"
+# Gemini's newer Flash models think before answering; on the first laptop run
+# that took 7 s before the first word. "low" keeps the thinking short.
+options = { reasoning_effort = "low" }
 
+# Groq retired llama-3.3-70b-versatile on 2026-08-16 and recommends OpenAI's
+# open-weight gpt-oss models (Apache-2.0) instead. Two of them, same key, each
+# with its own free limits: the small one first because it's very fast, the
+# big one as the stronger backup (and later for hard maths in the Study skill).
 [llm.providers.groq]
 base_url = "https://api.groq.com/openai/v1"
 api_key_env = "GROQ_API_KEY"
-model = "llama-3.3-70b-versatile"
+model = "openai/gpt-oss-20b"
+options = { reasoning_effort = "low" }
 
-# OpenAI's open-weight model (Apache-2.0) on Groq's free tier: same key as
-# above, with its own free limits, so it also takes over when the first
-# Groq model is rate-limited. It thinks before answering; "low" keeps that
-# short so speech starts sooner.
 [llm.providers.groq_oss]
 base_url = "https://api.groq.com/openai/v1"
 api_key_env = "GROQ_API_KEY"
 model = "openai/gpt-oss-120b"
 options = { reasoning_effort = "low" }
 
+# The free model list changes often (Llama 3.3 70B stopped being free in
+# 2026). Free models end in ":free": https://openrouter.ai/models?max_price=0
+# "openrouter/free" also works: it picks any free model automatically.
 [llm.providers.openrouter]
 base_url = "https://openrouter.ai/api/v1"
 api_key_env = "OPENROUTER_API_KEY"
-model = "meta-llama/llama-3.3-70b-instruct:free"
+model = "google/gemma-4-31b-it:free"
 
 [llm.providers.ollama]
 base_url = "http://localhost:11434/v1"

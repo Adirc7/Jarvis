@@ -191,3 +191,29 @@ Future you (and anyone reading the repo) will thank you.
   what (the ML parts are mine; Claude guides and reviews).
 - README rewritten around the idea; the system map page updated.
 - Next: M0, the first real run on the laptop.
+
+## 2026-10-21: First run on the laptop (milestone M0, part 1)
+
+Setup finished on Windows 11 (ASUS, RTX 4050 6 GB, driver 591.44), project
+on D:. 123 unit tests passed on Windows. Hardware check:
+
+| Check | Result |
+|---|---|
+| GPU for Whisper | PASS: CUDA visible to CTranslate2 |
+| Microphone | PASS: Realtek array, rms 0.0078, peak 0.17 |
+| Whisper small load | 66.6 s, first run, including the download |
+| Whisper first call | 41.7 s for 6 s of audio: first-run CUDA warm-up, not steady speed |
+| Whisper steady | p50 222 ms per run while the camera ran (53 runs) |
+| Whisper heard | English, p = 0.71: "Oh my god, Javis is going to be a Javis Twitter" |
+| Hand tracking | 7.3 fps alone (dim room at 3 a.m.), 14.8 fps in the second test; hand found in 56% of frames |
+| Voices | Lewis RTF 0.28, Sinhala 0.03, Tamil 0.18: all fast enough |
+| Gemini | answered, tools work, but 7.2 s to first word and an empty reply |
+| Groq, OpenRouter | FAIL: retired / no longer free models |
+
+Fixes: Groq now gpt-oss-20b and gpt-oss-120b, OpenRouter Gemma 4 31B (free),
+`reasoning_effort = "low"` for thinking models, the hardware check gives
+thinking models room to reply, times Whisper's warm-up separately, and no
+longer prints a negative "drop". Two noisy Hugging Face warnings silenced.
+
+**Next:** `git pull`, run the hardware check again, then the first
+conversation and the latency table.
