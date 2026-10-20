@@ -376,3 +376,24 @@ So: text first (examples per intent in English, Sinhala and Singlish), then
 a consented recorded subset. LLM-written paraphrases may be
 added to the *training* data, never to the test set, which stays real and
 human-written.
+
+Recording rounds (2026-10-20):
+
+1. **Round 1, just you (about 30 minutes):** `eval/sentences_en.txt`,
+   `sentences_si.txt` and `sentences_singlish.txt` (templates with hints;
+   write your own natural version of each), recorded with
+   `scripts/record_eval_set.py`. Gives the first WER for English and
+   Sinhala and the first language-detection test for Singlish.
+2. **Round 2, intents:** the JSON intent examples, a subset recorded by you.
+3. **Round 3, friends with written consent:** the same files with
+   `--speaker friend1`, so tests can use speakers the model never heard.
+4. **Text from social media:** request the University of Moratuwa
+   code-mixed datasets (released for academic use) for the text side; don't
+   scrape people's posts.
+5. **Training on audio:** once a few hours of transcribed Sinhala and
+   Singlish speech exist, fine-tune Whisper small with LoRA on the laptop GPU
+   and compare it with the original on held-out speakers
+   (`eval_stt.py --model <path>` already accepts a fine-tuned model).
+
+Synthetic speech (e.g. the Piper Sinhala voice) is only for testing the
+pipeline: a model trained on it learns what Piper sounds like, not people.

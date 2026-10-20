@@ -2,9 +2,12 @@
 
     uv run python scripts/record_eval_set.py eval/sentences_en.txt --lang en
     uv run python scripts/record_eval_set.py eval/sentences_si.txt --lang si
+    uv run python scripts/record_eval_set.py eval/sentences_singlish.txt --lang si --set singlish
+    uv run python scripts/record_eval_set.py eval/sentences_si.txt --lang si --speaker friend1
 
 For each sentence: press Enter, read it aloud, press Enter again. Recordings go
-to eval/recordings/<lang>/ with a manifest.csv of file -> correct text.
+to eval/recordings/<set>/ (the language code unless --set is given) with a
+manifest.csv of file -> correct text. Recording again never overwrites a clip.
 They stay on your laptop (the folder is in .gitignore). Only record other
 people if they agree.
 
@@ -33,6 +36,16 @@ def read_sentences(path: Path) -> list[str]:
     return [l.strip() for l in lines if l.strip() and not l.lstrip().startswith("#")]
 
 
+def clip_name(out_dir: Path, speaker: str, sentences: Path, index: int) -> str:
+    """me_sentences_si_003.wav, or me_sentences_si_003-2.wav if that exists."""
+    base = f"{speaker}_{sentences.stem}_{index:03d}"
+    name, n = f"{base}.wav", 1
+    while (out_dir / name).exists():
+        n += 1
+        name = f"{base}-{n}.wav"
+    return name
+
+
 def record_until_enter() -> np.ndarray:
     import sounddevice as sd
 
@@ -51,19 +64,20 @@ def main() -> int:
     ap.add_argument("sentences", type=Path)
     ap.add_argument("--lang", required=True, help="Jarvis language code: en, si, ta")
     ap.add_argument("--speaker", default="me", help="label for whoever is reading")
+    ap.add_argument("--set", dest="set_name", help="folder under eval/recordings (default: the language code)")
     args = ap.parse_args()
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
 
     sentences = read_sentences(args.sentences)
-    out_dir = ROOT / "eval" / "recordings" / args.lang
+    out_dir = ROOT / "eval" / "recordings" / (args.set_name or args.lang)
     manifest = out_dir / "manifest.csv"
     out_dir.mkdir(parents=True, exist_ok=True)
     existing = manifest.is_file()
     with open(manifest, "a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         if not existing:
-            writer.writerow(["file", "text", "speaker"])
+            writer.writerow(["file", "text", "speaker", "lang"])
         for i, text in enumerate(sentences, 1):
             print(f"\n[{i}/{len(sentences)}] {text}")
             cmd = input("   Enter = record, s = skip, q = quit: ").strip().lower()
@@ -72,9 +86,9 @@ def main() -> int:
             if cmd == "s":
                 continue
             audio = record_until_enter()
-            name = f"{args.speaker}_{i:03d}.wav"
+            name = clip_name(out_dir, args.speaker, args.sentences, i)
             save_wav(out_dir / name, audio, RATE)
-            writer.writerow([name, text, args.speaker])
+            writer.writerow([name, text, args.speaker, args.lang])
             f.flush()
             print(f"   saved {name} ({len(audio) / RATE:.1f} s)")
     print(f"\nManifest: {manifest}")
