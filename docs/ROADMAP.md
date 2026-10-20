@@ -324,7 +324,7 @@ Gradio) or aiortc (lower level, lighter).
 - **Private only:** reachable through Tailscale, never a public link; a
   pairing code on top.
 - **Phone requests are remote control:** anything above "just do it" asked
-  from the phone needs confirmation on the phone (Phase 2 tiers).
+  from the phone needs a tap to confirm on the phone (Phase 2 tiers).
 - **Same privacy as the laptop:** audio is processed and dropped, never
   stored.
 
@@ -356,7 +356,7 @@ Not in scope: malware already on the PC, or someone else using the laptop.
 1. The LLM proposes a tool call (tool name and arguments).
 2. **The gate** checks it: registered tool, valid arguments, paths inside
    allowed folders, tier, untrusted content in the turn.
-3. If the tier says so, Jarvis **asks** and waits for a clear yes.
+3. If the tier says so, Jarvis **asks**, and only your click confirms.
 4. The tool runs; the kill switch can stop it at any time.
 5. **Verify:** the tool checks the real result (the window opened, the file
    is at its new path).
@@ -379,7 +379,7 @@ Not in scope: malware already on the PC, or someone else using the laptop.
    |---|---|---|
    | Just do it | open app, open file or link, search, read, list a folder, battery and time | Runs at once |
    | Do and log | create, move, rename, copy | Runs, is logged; "undo that" reverses it |
-   | Ask first | delete, send, install, run code, change a setting | Jarvis says exactly what will happen and runs it only after a clear yes |
+   | Ask first | delete, send, install, run code, change a setting | A box shows exactly what will happen; it runs only after you click to confirm |
    | Never | system folders, administrator rights, a raw command shell, turning off the kill switch | Not available at all |
 
 4. **Allowed folders**, set per computer in `config/settings.local.toml`
@@ -401,11 +401,16 @@ Not in scope: malware already on the PC, or someone else using the laptop.
    by default, with "allow for this session" for plots and calculations.
    Honest limit: this stops accidents, not a determined attacker; Windows
    Sandbox is a stronger option on Windows editions that include it.
-8. **A confirmation that can't be misheard.** For "ask first", Jarvis says
-   the action in plain words ("Delete 3 files in Downloads?") and accepts
-   only a clear yes, in English, Sinhala or Singlish, or the Confirm button
-   in the window. Silence or anything else means no, so a misheard request
-   still stops here.
+8. **Only a click confirms (idea from 2026-10-20).** For "ask first", a
+   confirmation box shows exactly what will happen (which files, from where
+   to where) with two buttons: the action itself ("Move 3 files") and
+   Cancel, which has the focus, so pressing Enter cancels. **Voice can
+   cancel but never confirm**: Whisper could hear "no" as "yes", but a
+   mishearing can then only make Jarvis more careful, never less. No click
+   within 60 seconds means cancelled. Jarvis's own tools can never press
+   that button, and a web page or file can't either. Until the Jarvis window
+   exists, the box is a small always-on-top window (Python's built-in
+   tkinter); on the phone (Phase 1.6) you tap it.
 9. **Action log and undo.** Every action goes to `logs/actions-*.jsonl`:
    time, tool, arguments, tier, who confirmed, verify result. "Undo that"
    reverses the last reversible action.
@@ -503,7 +508,7 @@ only what fails.
    PC actions yet).
 2. "Just do it" tools on the laptop, each with its `verify()`.
 3. "Do and log" tools, undo, and the recycle folder.
-4. Spoken confirmation in English, Sinhala and Singlish.
+4. The confirmation box (click to confirm; voice can only cancel).
 5. Untrusted-content marking.
 6. Code runner.
 7. Skills loader; the Study skill, level 1, end to end.

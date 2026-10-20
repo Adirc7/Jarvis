@@ -134,3 +134,5 @@ Future you (and anyone reading the repo) will thank you.
   and private folders, recycle-folder deletes, untrusted content, code
   runner, spoken confirmation, action log and undo, first tools, skills,
   build steps, and a safety test set (zero unsafe actions). Decision D25.
+- "Ask first" actions are confirmed only by a click; voice can cancel but
+  never confirm, so speech errors can only make Jarvis more careful.
