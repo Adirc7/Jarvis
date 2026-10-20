@@ -158,3 +158,15 @@ without an explicit encoding, so Sinhala and Tamil text doesn't depend on the
 Windows code page.
 **Revisit:** if Jarvis is ever installed on a computer that isn't a
 developer's, package it properly (an installer) instead.
+
+## D20. Phone access through an internet call, not a phone number (Phase 1.6)
+**Decision:** The phone opens a page served by Jarvis and talks to it over
+WebRTC, through Tailscale when away from home. No telephone number.
+**Why:** Free (D1); full-quality audio instead of phone-line audio, which
+matters for Whisper in Sinhala and Tamil; and it reuses the whole voice loop,
+since the phone is only another audio source and sink. Phone numbers cost
+money after short trials and free temporary ones are likely foreign.
+**Rules:** private network only, pairing code, confirmation for anything
+beyond read-only once tools exist.
+**Revisit:** if calling from an ordinary phone line without internet becomes
+a real need.
