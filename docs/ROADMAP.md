@@ -311,6 +311,19 @@ only what fails.
    `{"text": "mata Russia news pennanna", "lang": "si-Latn", "intent": "show_news", "slots": {"country": "Russia"}}`
 3. **Measure:** intent accuracy and slot accuracy per language, typed and
    spoken (through Whisper), never tested on examples used for training.
+   Compare three pipelines on the same test set (idea from 2026-10-20):
+   - **A. Direct** (now): the LLM reads Sinhala or Tamil and replies in it.
+   - **B. Understand in English, reply in Sinhala:** Whisper's built-in
+     translate task (not in large-v3-turbo) or NLLB-200 (Sinhala and Tamil,
+     CC-BY-NC, runs locally) turns the request into English; the LLM gets
+     the English and the original, and writes the reply in Sinhala.
+   - **C. Translate everything:** English in, English reply, translated
+     back to Sinhala.
+   Report accuracy, added latency, and how natural native speakers rate the
+   replies. Translating into English first has helped LLMs on other tasks
+   ([Etxaniz et al. 2024](https://aclanthology.org/2024.naacl-short.46));
+   romanized Singlish needs transliteration before NLLB, and tone and
+   politeness can be lost on the way back.
 4. **Train where it fails:** a small classifier on a frozen multilingual
    encoder, the same pattern as the emotion model. It also runs offline and
    in milliseconds, so common commands skip the LLM.

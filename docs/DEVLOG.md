@@ -101,3 +101,6 @@ Future you (and anyone reading the repo) will thank you.
   Sri Lankan and code-mixed commands with a JSON test set, then train a
   small classifier only where it fails. The emotional speech set gets intent
   labels too.
+- Translation as a bridge: compare direct Sinhala/Tamil, understand-in-
+  English-reply-in-Sinhala, and full translation on the intent test set
+  (accuracy, latency, naturalness).
