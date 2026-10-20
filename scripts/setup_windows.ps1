@@ -114,6 +114,25 @@ function New-Shortcut([string]$Path, [string]$Target, [string]$Arguments, [strin
     $link.Save()
 }
 
+# Where the big downloads go when Jarvis lives on another drive than Windows:
+# a .cache folder next to the project folder (D:\Projects\.cache for
+# D:\Projects\Jarvis), so they don't fill up C:. The uv cache must be on the
+# same drive as the project, or uv copies every package twice.
+function Get-CacheVariables([string]$ProjectRoot) {
+    $cacheRoot = Join-Path (Split-Path -Parent $ProjectRoot) ".cache"
+    $vars = [ordered]@{}
+    $vars["UV_CACHE_DIR"] = Join-Path $cacheRoot "uv"                    # downloaded packages
+    $vars["UV_PYTHON_INSTALL_DIR"] = Join-Path $cacheRoot "uv-python"    # Python 3.12 itself
+    $vars["HF_HOME"] = Join-Path $cacheRoot "huggingface"                # Whisper and MMS models
+    $vars["OLLAMA_MODELS"] = Join-Path $cacheRoot "ollama-models"        # Ollama models
+    return $vars
+}
+
+function Set-UserVariable([string]$Name, [string]$Value) {
+    [Environment]::SetEnvironmentVariable($Name, $Value, "User")   # for every new window
+    Set-Item -Path "Env:$Name" -Value $Value                          # for this one
+}
+
 function Test-VcRuntime {
     $sys = Join-Path $env:WINDIR "System32"
     return (Test-Path (Join-Path $sys "msvcp140.dll")) -and (Test-Path (Join-Path $sys "vcruntime140_1.dll"))
@@ -155,7 +174,38 @@ try {
     }
 
     # 1 ---------------------------------------------------------------------
-    Write-Step "Tools: uv (fetches Python 3.12 and the packages)"
+    Write-Step "Disk space and tools"
+    $drive = [IO.Path]::GetPathRoot($Root)
+    try {
+        $freeGb = [math]::Round((New-Object System.IO.DriveInfo($drive)).AvailableFreeSpace / 1GB, 1)
+        if ($freeGb -lt 10) {
+            Add-Warning "Only $freeGb GB free on $drive. Jarvis needs roughly 6 GB, plus 2.5 GB with Ollama."
+        } else {
+            Write-Ok "$freeGb GB free on $drive"
+        }
+    } catch { }
+
+    if ($OnWindows -and $drive -and ($drive.TrimEnd('\') -ne $env:SystemDrive)) {
+        $cacheVars = Get-CacheVariables $Root
+        $unset = @($cacheVars.Keys | Where-Object { -not [Environment]::GetEnvironmentVariable($_) })
+        if ($unset.Count -eq 0) {
+            Write-Ok "downloads already kept off $($env:SystemDrive) ($($cacheVars['UV_CACHE_DIR']) and others)"
+        } else {
+            Write-Note "Jarvis is on $drive but the package cache, Python and Whisper/Ollama models"
+            Write-Note "would still download to $($env:SystemDrive) (several GB)."
+            $cacheRoot = Split-Path -Parent $cacheVars["UV_CACHE_DIR"]
+            if (Read-YesNo "Keep them on $($drive.TrimEnd('\')) as well, in $cacheRoot?" $true) {
+                foreach ($name in $unset) { Set-UserVariable $name $cacheVars[$name] }
+                Write-Ok ("set for your user account: " + ($unset -join ", "))
+                if (Get-Process ollama -ErrorAction SilentlyContinue) {
+                    Write-Note "Quit and reopen Ollama so it uses the new models folder."
+                }
+            } else {
+                Write-Note "Keeping the default locations on $($env:SystemDrive)."
+            }
+        }
+    }
+
     $Uv = Find-Uv
     if ($Uv) {
         Write-Ok "uv found: $Uv"

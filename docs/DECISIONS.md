@@ -145,7 +145,9 @@ priorities".
 installs everything, asks only what a script can't know (LLM keys, whether
 the keyboard has a Right Ctrl), runs the tests and creates shortcuts.
 Settings that belong to one computer go in `config/settings.local.toml`,
-merged over `settings.toml` and not committed.
+merged over `settings.toml` and not committed. When the project is on
+another drive than Windows, the large downloads follow it there (the uv
+cache must share the project's drive, or every package is copied twice).
 **Why:** Setup steps typed by hand get skipped or done in the wrong order,
 and a hand-edited `settings.toml` conflicts with every `git pull`. The script
 is safe to rerun, so "run setup again" is the answer to both updating and

@@ -31,10 +31,16 @@ and the research priorities behind it, `docs/DEVLOG.md` for progress and
 
 ## Setup on Windows
 
-1. **Get the code** into a folder outside OneDrive, e.g. `C:\Users\<you>\Jarvis`:
+1. **Get the code** into a folder outside OneDrive, on any drive, e.g.
+   `D:\Projects\Jarvis`:
    ```powershell
+   D:
+   cd \Projects
    git clone https://github.com/Adirc7/Jarvis
    ```
+   On a drive other than C:, setup offers to keep the big downloads (package
+   cache, Python, Whisper and Ollama models) on that drive too, in
+   `D:\Projects\.cache`. Jarvis needs roughly 6 GB, plus 2.5 GB with Ollama.
    No Git? Install it with `winget install Git.Git`, or use Code → Download
    ZIP on GitHub (right-click the ZIP → Properties → Unblock, then extract).
 2. **Double-click `Setup Jarvis.cmd`** in the Jarvis folder. It:

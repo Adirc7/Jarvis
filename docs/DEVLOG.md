@@ -71,6 +71,10 @@ Future you (and anyone reading the repo) will thank you.
 - `config/settings.local.toml` for this computer's settings;
   `scripts/choose_key.py` picks the push-to-talk key by pressing it and
   refuses keys you type with, Windows/Copilot keys and media keys.
+- Project on a drive other than C: (my C: is nearly full): setup checks free
+  space and offers to keep uv's cache, Python, and the Whisper and Ollama
+  models in a `.cache` folder next to the project, via user environment
+  variables (UV_CACHE_DIR, UV_PYTHON_INSTALL_DIR, HF_HOME, OLLAMA_MODELS).
 - Checks done in the build container: Windows-only wheel resolution for
   all 83 packages, no default-encoding file access, the setup script run
   under PowerShell 7 (success, missing key, saved key and failed install
