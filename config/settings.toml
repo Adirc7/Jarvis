@@ -90,7 +90,9 @@ dir = "logs"
 [llm]
 # Providers are tried in this order. A provider is skipped when its API key
 # is missing. Fallback happens only before the first word of a reply arrives.
-order = ["gemini", "groq", "groq_oss", "openrouter", "ollama"]
+# Ordered by speed measured on the laptop (2026-10-21): Groq's gpt-oss models
+# answered in 0.2-0.3 s; Gemini took 7 s and was often overloaded (503).
+order = ["groq_oss", "groq", "gemini", "openrouter", "ollama"]
 timeout_s = 20
 
 # Model names change often. If the smoke test reports "model not found",
@@ -119,13 +121,14 @@ api_key_env = "GROQ_API_KEY"
 model = "openai/gpt-oss-120b"
 options = { reasoning_effort = "low" }
 
-# The free model list changes often (Llama 3.3 70B stopped being free in
-# 2026). Free models end in ":free": https://openrouter.ai/models?max_price=0
-# "openrouter/free" also works: it picks any free model automatically.
+# Free models come and go and get rate-limited (Gemma 4 returned 429 on the
+# laptop), so this uses OpenRouter's free router, which picks any free model
+# that can handle the request. A fixed one also works, e.g.
+# "google/gemma-4-31b-it:free": https://openrouter.ai/models?max_price=0
 [llm.providers.openrouter]
 base_url = "https://openrouter.ai/api/v1"
 api_key_env = "OPENROUTER_API_KEY"
-model = "google/gemma-4-31b-it:free"
+model = "openrouter/free"
 
 [llm.providers.ollama]
 base_url = "http://localhost:11434/v1"

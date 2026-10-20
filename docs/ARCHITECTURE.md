@@ -106,7 +106,7 @@ the safety gate.
   audio; the player queues them. Speaking starts after the first sentence,
   not after the whole reply.
 - **Fallback** (`agent/llm.py`, D2). Five free LLM entries are tried in
-  order; the next takes over only before the first word arrives.
+  order (fastest first, as measured on the laptop); the next takes over only before the first word arrives.
 
 **What crosses the internet:** only the prompt text sent to a cloud LLM (and
 search queries for skills). Audio, video, landmarks, recordings and files in
@@ -120,10 +120,10 @@ private folders stay on the laptop (D7, D25).
 | English voice | Kokoro-82M, voice Lewis | Laptop | built | text, then audio |
 | Sinhala voice | Piper si_LK-dilu-medium | Laptop | built | text, then audio |
 | Tamil voice | MMS-TTS Tamil (CC-BY-NC) | Laptop | built | text, then audio |
-| Brain 1 | Gemini Flash | Cloud, free | built | prompt, then reply or tool call |
-| Brain 2 | gpt-oss-20b on Groq (fast) | Cloud, free | built | same |
-| Brain 3 | gpt-oss-120b on Groq | Cloud, free | built | same; for hard maths |
-| Brain 4 | Gemma 4 31B on OpenRouter | Cloud, free | built | same |
+| Brain 1 | gpt-oss-120b on Groq | Cloud, free | built | prompt, then reply or tool call; 0.2 s to first word |
+| Brain 2 | gpt-oss-20b on Groq | Cloud, free | built | same; 0.3 s |
+| Brain 3 | Gemini Flash | Cloud, free | built | same; slower, sometimes overloaded |
+| Brain 4 | OpenRouter free router | Cloud, free | built | same; picks any free model |
 | Brain, offline | Qwen3 4B on Ollama | Laptop | built | same |
 | Wake word | openWakeWord "hey jarvis" | Laptop CPU | planned | audio frames, then "wake" |
 | End of speech | Silero VAD | Laptop CPU | planned | audio frames, then "speech" or "silence" |
