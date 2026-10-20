@@ -59,3 +59,23 @@ Future you (and anyone reading the repo) will thank you.
 - Roadmap updated: quick wins (verified vs claimed completion, study
   measures, feedback-only empathy bandit) and big bets (emotion context in
   the agent, Sri Lankan emotional speech set). Decision D18.
+
+## 2026-10-20: Ready to install on the laptop
+
+- `Setup Jarvis.cmd`: one double-click installs uv, Python 3.12, the
+  packages (CUDA only with an NVIDIA GPU), the Visual C++ runtime if
+  missing, models, `.env`, the push-to-talk key, tests, desktop and Start menu
+  shortcuts, and offers the hardware check. Decision D19.
+- `Start Jarvis.cmd` / the desktop shortcut: voice mode, reopened in Windows
+  Terminal when available so Sinhala and Tamil display.
+- `config/settings.local.toml` for this computer's settings;
+  `scripts/choose_key.py` picks the push-to-talk key by pressing it and
+  refuses keys you type with, Windows/Copilot keys and media keys.
+- Checks done in the build container: Windows-only wheel resolution for
+  all 83 packages, no default-encoding file access, the setup script run
+  under PowerShell 7 (success, missing key, saved key and failed install
+  paths). 123 tests passing.
+- Not yet run on real Windows: the `.cmd` launchers, shortcuts, Notepad step
+  and GPU detection.
+
+**Next:** install on the laptop, then the Phase 1 checks listed on 2026-10-17.

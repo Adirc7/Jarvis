@@ -31,39 +31,58 @@ and the research priorities behind it, `docs/DEVLOG.md` for progress and
 
 ## Setup on Windows
 
-1. Install **uv**. In PowerShell:
-   ```powershell
-   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-   ```
-   Close and reopen PowerShell afterwards.
-2. Get the code and install everything (uv fetches Python 3.12 itself):
+1. **Get the code** into a folder outside OneDrive, e.g. `C:\Users\<you>\Jarvis`:
    ```powershell
    git clone https://github.com/Adirc7/Jarvis
-   cd Jarvis
-   uv sync --all-extras
    ```
-   `--all-extras` includes the Tamil voice (torch, about 1 GB more). To skip
-   it: `uv sync --extra voice --extra vision --extra desktop --extra gpu --extra dev`.
-3. Download the voices and hand-tracking model:
-   ```powershell
-   uv run python scripts/download_models.py
-   ```
-4. Add at least one free LLM key:
-   ```powershell
-   copy .env.example .env
-   notepad .env
-   ```
-   Easiest: Gemini (https://aistudio.google.com/apikey) and Groq
-   (https://console.groq.com/keys).
-5. Optional, for offline use: install Ollama from https://ollama.com, then
-   `ollama pull qwen3:4b`.
+   No Git? Install it with `winget install Git.Git`, or use Code → Download
+   ZIP on GitHub (right-click the ZIP → Properties → Unblock, then extract).
+2. **Double-click `Setup Jarvis.cmd`** in the Jarvis folder. It:
+   - installs uv, which fetches Python 3.12 and every package (the CUDA
+     libraries too if it finds an NVIDIA GPU), plus the Visual C++ runtime if
+     it's missing;
+   - downloads the voices and the hand-tracking model;
+   - opens `.env` in Notepad for your free LLM keys: Gemini
+     (https://aistudio.google.com/apikey) and Groq (https://console.groq.com/keys);
+   - asks about your push-to-talk key (some new laptops have a Copilot key
+     where Right Ctrl used to be; then you press the key you want instead);
+   - runs the unit tests, creates the shortcuts, and offers a hardware check
+     (mic, speakers, camera, GPU, voices).
 
-To update later: `git pull`, then `uv sync --all-extras`.
+   The first run downloads a few GB. If a step fails, fix what it says and run
+   it again; finished steps are skipped. Options: `"Setup Jarvis.cmd" -NoTamil`
+   skips the Tamil voice (about 1 GB of torch), `-NoGpu` skips CUDA.
+3. **Double-click Jarvis** on the desktop (or `Start Jarvis.cmd`). Hold the
+   push-to-talk key, speak, let go. "Jarvis (text chat)" in the Start menu is
+   the typing version.
+
+Optional, for answers without internet: install Ollama from
+https://ollama.com and run setup again; it offers to download `qwen3:4b`.
+
+**Update:** `git pull`, then double-click `Setup Jarvis.cmd` again.
+
+**Settings for this computer** (push-to-talk key, audio devices, Whisper
+model) go in `config/settings.local.toml`: same format as
+`config/settings.toml`, only the lines you change. It isn't committed, so
+updates never overwrite it. Change the push-to-talk key any time with
+`uv run python scripts/choose_key.py`.
+
+<details>
+<summary>Manual setup (what the script does)</summary>
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+uv sync --all-extras
+uv run python scripts/download_models.py
+copy .env.example .env
+notepad .env
+```
+</details>
 
 ## Run
 
 ```powershell
-uv run jarvis --voice                           # talk to Jarvis (hold Right Ctrl)
+uv run jarvis --voice                           # talk to Jarvis (hold the push-to-talk key)
 uv run jarvis                                   # text chat
 uv run python scripts/smoke_test.py --show      # check mic, camera, GPU, models, voices
 uv run python scripts/voice_preview.py --play   # hear the candidate voices
@@ -83,9 +102,12 @@ these scripts properly.
 
 ## Settings worth knowing
 
+Put your own values for `settings.toml` in `config/settings.local.toml` (see
+Setup); edit the other files directly.
+
 | File | Setting | What it does |
 |---|---|---|
-| `config/settings.toml` | `[hotkeys] push_to_talk` | key to hold while speaking (`ctrl_r`, `f9`, ...) |
+| `config/settings.toml` | `[hotkeys] push_to_talk` | key to hold while speaking (`ctrl_r`, `f9`, ...); `scripts/choose_key.py` sets it |
 | | `[stt] model` | Whisper model: `small`, `large-v3-turbo`, ... |
 | | `[tts] speed` | `0.9` = slower, calmer voice |
 | | `[voice_style]` | the effects chain; `enabled = false` for the raw voice |
@@ -97,7 +119,10 @@ these scripts properly.
 ## Project layout
 
 ```
+Setup Jarvis.cmd   one-click setup (runs scripts/setup_windows.ps1)
+Start Jarvis.cmd   starts voice mode (runs scripts/run_jarvis.cmd)
 config/            settings.toml, languages.toml, persona.toml
+                   (+ settings.local.toml: this computer only, not committed)
 src/jarvis/
   app.py           request pipeline, voice loop, hotkeys
   persona.py       character sheet -> instructions for the LLM
@@ -110,7 +135,9 @@ src/jarvis/
                    effects, player, sink (streams replies to speech), text_split
   evaluation/      WER/CER scoring
   perception/ tools/ proactive/ memory/   later phases
-scripts/           smoke_test, download_models, voice_preview, record_eval_set, eval_stt
+scripts/           setup_windows, run_jarvis, choose_key, smoke_test, download_models,
+                   voice_preview, record_eval_set, eval_stt
+assets/            shortcut icon
 eval/              test sentences (recordings stay local)
 docs/              ROADMAP.md, DECISIONS.md, LANGUAGES.md, DEVLOG.md
 ```

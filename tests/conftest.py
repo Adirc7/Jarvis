@@ -52,4 +52,4 @@ class FakeClient:
 
 @pytest.fixture
 def settings():
-    return load_settings()
+    return load_settings(local=False)   # the committed config, not this computer's overrides

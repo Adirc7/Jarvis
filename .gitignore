@@ -10,3 +10,4 @@ node_modules/
 dist/
 eval/recordings/
 samples/
+config/settings.local.toml

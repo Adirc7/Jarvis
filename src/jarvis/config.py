@@ -1,14 +1,26 @@
-"""Load settings.toml, languages.toml and .env into plain Python objects."""
+"""Load settings.toml, languages.toml and .env into plain Python objects.
+
+Settings for one computer (push-to-talk key, audio devices, ...) go in
+config/settings.local.toml: same format, only the values you change. It isn't
+committed, so `git pull` never overwrites it.
+"""
 
 from __future__ import annotations
 
+import json
 import os
+import re
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+LOCAL_SETTINGS = "settings.local.toml"
+LOCAL_HEADER = (
+    "# Your settings for this computer. Same format as settings.toml; only write\n"
+    "# what you change. This file isn't committed, so updates never overwrite it.\n"
+)
 
 
 def load_dotenv(path: Path) -> None:
@@ -109,11 +121,54 @@ def parse_languages(table: dict[str, Any]) -> dict[str, Language]:
     return langs
 
 
-def load_settings(config_dir: Path | None = None) -> Settings:
+def merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    """Copy of `base` with `override` on top: tables merge, other values replace."""
+    out = dict(base)
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(out.get(key), dict):
+            out[key] = merge(out[key], value)
+        else:
+            out[key] = value
+    return out
+
+
+def set_local_value(path: Path, table: str, key: str, value: str) -> None:
+    """Set `[table] key = "value"` in a local settings file, keeping everything else.
+
+    Only handles a plain top-level table and a string value, which is all the
+    setup script needs.
+    """
+    text = path.read_text(encoding="utf-8") if path.is_file() else LOCAL_HEADER
+    line = f"{key} = {json.dumps(value, ensure_ascii=False)}"
+    header = re.search(rf"^\[{re.escape(table)}\][ \t]*(#.*)?$", text, re.M)
+    if header is None:
+        text = text.rstrip("\n") + f"\n\n[{table}]\n{line}\n"
+    else:
+        start = header.end()
+        nxt = re.search(r"^[ \t]*\[", text[start:], re.M)
+        end = start + nxt.start() if nxt else len(text)
+        body = text[start:end]
+        existing = re.compile(rf"^[ \t]*{re.escape(key)}[ \t]*=.*$", re.M)
+        if existing.search(body):
+            body = existing.sub(lambda _: line, body, count=1)
+        else:
+            body = "\n" + line + body
+        text = text[:start] + body + text[end:]
+    tomllib.loads(text)   # never write a file Jarvis can't read back
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def load_settings(config_dir: Path | None = None, local: bool = True) -> Settings:
+    """Read the settings. `local=False` ignores settings.local.toml (tests)."""
     config_dir = config_dir or PROJECT_ROOT / "config"
     load_dotenv(PROJECT_ROOT / ".env")
     with open(config_dir / "settings.toml", "rb") as f:
         raw = tomllib.load(f)
+    local_path = config_dir / LOCAL_SETTINGS
+    if local and local_path.is_file():
+        with open(local_path, "rb") as f:
+            raw = merge(raw, tomllib.load(f))
     with open(config_dir / "languages.toml", "rb") as f:
         languages = parse_languages(tomllib.load(f))
     settings = Settings(raw=raw, languages=languages)
