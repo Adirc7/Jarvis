@@ -234,3 +234,20 @@ conversation and the latency table.
 
 Decision: order the brains by measured speed (Groq first), and use
 OpenRouter's `openrouter/free` router instead of one fixed free model.
+
+## 2026-10-21: First conversation on the laptop (typed, in voice mode)
+
+- Worked end to end on Groq gpt-oss-120b: the greeting ("Still up, sir?"),
+  "sir", and time awareness ("while the world's asleep").
+- Problem 1: asked what's happening in Sri Lanka, it answered from the LLM's
+  old training memory as if current. Fix: a boundary rule never to present
+  anything as current unless a tool fetched it this conversation, and
+  "search the web or check current news" added to `cannot_yet`.
+- Problem 2: a physics answer came back with LaTeX and bold markers, which
+  the voice would read aloud. Fix: the spoken-reply instruction forbids
+  symbols and LaTeX, and `clean_for_speech` now says LaTeX in words
+  ("8 pi G over c to the power 4"); `$5` stays money.
+- Problem 3: holding Right Ctrl did nothing (no "[listening...]" line), so
+  the keyboard listener isn't receiving the key. Being diagnosed with
+  `scripts/choose_key.py`.
+- 143 tests passing.
