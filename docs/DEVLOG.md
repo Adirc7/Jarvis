@@ -119,3 +119,7 @@ Future you (and anyone reading the repo) will thank you.
 - Compared with an assembled agent (Hermes Agent, Honcho memory, ElevenLabs
   voice): borrow MCP tools, skill files and Telegram for Phase 2; keep our
   own Windows voice core, free and local.
+- Added OpenAI's open gpt-oss-120b (Groq free tier) as a fifth provider,
+  with per-provider options (reasoning_effort low for faster speech); Gemma
+  4 E2B noted as an Ollama option. Telegram planned as an optional channel
+  per user. 127 tests.

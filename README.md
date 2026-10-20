@@ -25,7 +25,8 @@ and the research priorities behind it, `docs/DEVLOG.md` for progress and
   model and voice.
 - **Interrupt it**: press push-to-talk while it's speaking (barge-in),
   `Ctrl+Alt+M` to mute replies, `Ctrl+Alt+K` to stop everything.
-- **Free LLMs with fallback**: Gemini, Groq, OpenRouter, local Ollama.
+- **Free LLMs with fallback**: Gemini, Groq (Llama and OpenAI's open gpt-oss),
+  OpenRouter, local Ollama.
 - **Measured from day one**: every stage is timed in `logs/`; scripts to
   record test sentences and score Whisper models (WER/CER).
 

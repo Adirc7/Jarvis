@@ -255,8 +255,10 @@ before they allow the microphone. Library to choose when building: FastRTC
    from hearing itself. Shared with hands-free mode on the laptop.
 3. **Home-screen app.** Add the page to the home screen so it opens like an
    app, with a pairing code entered once.
-4. **Optional, later:** Telegram voice notes as a walkie-talkie fallback that
-   needs no tunnel.
+4. **Optional channels, later:** Telegram (free bot, text and voice notes,
+   works without a tunnel), off by default and switched on per user in
+   settings, so anyone else using Jarvis picks their own channel. WhatsApp
+   needs Meta's business API, so not now.
 
 ### Rules
 
