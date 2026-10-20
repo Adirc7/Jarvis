@@ -274,8 +274,11 @@ class App:
                 self.telemetry.log("voice_start_failed", error=str(exc)[:300])
         if voice:
             tasks.append(asyncio.create_task(self._voice_task()))
+            from .voice.capture import describe_key
+
+            ptt = describe_key(self.settings.get("hotkeys.push_to_talk", "ctrl_r"))
             self.out(
-                f"Hold {self.settings.get('hotkeys.push_to_talk')} and speak. "
+                f"Hold {ptt} and speak. "
                 f"{self.settings.get('hotkeys.mute')} mutes, {self.settings.get('hotkeys.kill_switch')} stops everything. "
                 "You can also type."
             )

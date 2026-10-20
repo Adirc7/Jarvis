@@ -139,3 +139,20 @@ desktop agent with emotion-aware replies and per-user empathy, no public
 Sinhala emotional-speech corpus, and large accuracy drops for emotion models
 on unseen languages. Details and references in ROADMAP.md, "Research
 priorities".
+
+## D19. One-click setup on Windows; per-computer settings kept apart
+**Decision:** `Setup Jarvis.cmd` runs `scripts/setup_windows.ps1`, which
+installs everything, asks only what a script can't know (LLM keys, whether
+the keyboard has a Right Ctrl), runs the tests and creates shortcuts.
+Settings that belong to one computer go in `config/settings.local.toml`,
+merged over `settings.toml` and not committed.
+**Why:** Setup steps typed by hand get skipped or done in the wrong order,
+and a hand-edited `settings.toml` conflicts with every `git pull`. The script
+is safe to rerun, so "run setup again" is the answer to both updating and
+repairing.
+**Checked before the first install:** every dependency resolves to a Windows
+wheel for Python 3.12 (nothing compiles on the laptop), and no file is opened
+without an explicit encoding, so Sinhala and Tamil text doesn't depend on the
+Windows code page.
+**Revisit:** if Jarvis is ever installed on a computer that isn't a
+developer's, package it properly (an installer) instead.
