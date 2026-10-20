@@ -123,11 +123,15 @@ adaptive voice vs gesture (Phase 4), full-duplex turn-taking.
 
 ## Startup greeting (Phase 1, next)
 
-One short spoken line when Jarvis starts, built from the local time and the
-character sheet: "Good evening. It's getting late; what do you need?"
+One short spoken line when Jarvis starts, and later when you wake it with
+"Hey Jarvis" (Phase 1.6), built from the local time and the character
+sheet: "Good evening, sir. It's getting late; what do you need?"
 
+- Time of day: morning, afternoon, evening or night, from the laptop clock.
+- How Jarvis addresses you is a setting: "sir", your name, or nothing.
 - Varies; never the same line twice in a row; in the last language used.
-- A full greeting once a day; later launches the same day get "I'm here."
+- A full greeting once a day; later wakes the same day get "Yes?" or
+  "I'm here."
 - Doesn't open anything or read news unless you ask.
 
 ## Replying in the language you speak (Phase 1, after the greeting)
@@ -277,8 +281,34 @@ or off, in counterbalanced order.
 
 ## Phase 1.6: Jarvis window and phone calls
 
+**How Jarvis runs on the laptop (2026-10-20).** Jarvis becomes a
+background program with a tray icon (next to the clock) instead of a CMD
+window:
+
+1. **Start:** double-click Jarvis; `uv run jarvis` in CMD for development
+   (you see its messages); starting at login is an option, off by default.
+2. **Sleeping:** only the tray icon. A small wake-word model listens for
+   "Hey Jarvis" on the laptop; audio is dropped at once and nothing leaves
+   the laptop. The tray menu has Open, Pause listening (microphone off) and
+   Quit.
+3. **Awake:** "Hey Jarvis" pops up the window with a time-of-day greeting;
+   push-to-talk still works as a backup.
+4. **Back to sleep:** after about 30 s of silence, "that's all, thanks", or
+   closing the window (a setting can make closing quit instead).
+5. **Quit:** tray menu, or "Jarvis, shut down": microphone off, tasks
+   finished or cancelled, log saved, process ends. Ctrl+Alt+K stops what
+   Jarvis is doing but doesn't quit it.
+
+Candidate libraries, to check when building: openWakeWord's pretrained
+"hey jarvis" model (non-commercial licence, fine here; D3), pystray for the
+tray icon, pywebview to show the window. **Measure:** missed wakes, and
+false wakes per hour with a film or lecture playing.
+
 **The window.** A local web page Jarvis serves on the laptop, opened as its
-own window. It shows the conversation, equations rendered properly (spoken
+own window. **Design idea (2026-10-20):** Jarvis as a central orb that
+pulses while listening, thinking and speaking, with the skills (Study,
+Research, Data, News, Visualise, Friend) arranged around it; the skill you
+are talking about opens out from the orb, and any skill can be clicked. It shows the conversation, equations rendered properly (spoken
 as ideas, not symbol by symbol), plots from Visualise and Data, the news
 map, confirmations for "ask first" actions, and the action log with undo.
 The same page, reached from the phone, is the call screen. Designed as an
