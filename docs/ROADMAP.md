@@ -10,7 +10,7 @@ not when its code exists.
 ## Build order
 
 1. **Laptop check:** smoke test, first spoken conversation, latency p50/p95.
-2. **Startup greeting**, then **replying in the language you speak**.
+2. **Startup greeting** (built), then **replying in the language you speak**.
 3. **Feedback-only empathy bandit** (quick win 3).
 4. **Phase 2: tools and safety**, with the intent test set.
 5. **Study skill, level 1**: the first skill on Phase 2.
@@ -28,7 +28,7 @@ when measurements say it should.
 | Phase | What | Status | Done when |
 |---|---|---|---|
 | 0 | Foundations: event bus, telemetry, kill switch, free LLMs, languages | Built, not yet run on the laptop | Smoke test passes on the laptop |
-| 1 | Spoken conversation; next: a short startup greeting, then replying in the language you speak | Built, not yet run on the laptop | Recorded dialogue tests, WER/CER per language, working mute and barge-in, p50/p95 latency |
+| 1 | Spoken conversation and startup greeting; next: replying in the language you speak | Built, not yet run on the laptop | Recorded dialogue tests, WER/CER per language, working mute and barge-in, p50/p95 latency |
 | **1.5** | **Emotion-aware, human-like replies** (the research contribution) | Character sheet, empathy modes and fillers built; feedback bandit next; emotion detection planned | See "Phase 1.5" |
 | 1.6 | Jarvis window, and calling Jarvis from your phone (free internet call, no phone number) | Planned | The window shows replies, equations, plots and confirmations; a hold-to-talk call works on home Wi-Fi and away through Tailscale, private only, with first-audio p50/p95 logged per channel |
 | **2** | **Tools and safety**: the platform every skill runs on | Planned in detail (below) | 20-30 fixed tasks with **verified and claimed completion side by side**; **zero unsafe actions** on the safety test set; intent accuracy per language |
@@ -121,7 +121,7 @@ adaptive voice vs gesture (Phase 4), full-duplex turn-taking.
 
 # The core in detail
 
-## Startup greeting (Phase 1, next)
+## Startup greeting (Phase 1, built 2026-10-21)
 
 One short spoken line when Jarvis starts, and later when you wake it with
 "Hey Jarvis" (Phase 1.6), built from the local time and the character

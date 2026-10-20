@@ -52,6 +52,7 @@ class Language:
     switch_phrases: tuple[str, ...] = ()
     confirm: str = ""
     fillers: tuple[str, ...] = ()
+    greetings: dict[str, tuple[str, ...]] = field(default_factory=dict)   # see greeting.py
 
 
 @dataclass(frozen=True)
@@ -119,6 +120,7 @@ def parse_languages(table: dict[str, Any]) -> dict[str, Language]:
             switch_phrases=tuple(v.get("switch_phrases", [])),
             confirm=v.get("confirm", ""),
             fillers=tuple(v.get("fillers", [])),
+            greetings={k: tuple(lines) for k, lines in v.get("greetings", {}).items()},
         )
     return langs
 

@@ -6,6 +6,15 @@ default_language = "en"        # a key from config/languages.toml
 # "auto":  Jarvis follows the language Whisper detects in each utterance.
 #          Experimental: detection on short commands is unreliable.
 language_mode = "fixed"
+# Small files Jarvis keeps between runs (e.g. when you last talked). Not committed.
+state_dir = "state"
+
+[greeting]
+# Jarvis greets like a person: a full greeting the first time each day, a
+# short "welcome back" after a break, and nothing extra within the same
+# session. The lines are in config/languages.toml under [<code>.greetings].
+enabled = true
+same_session_minutes = 15     # talk again within this time = same session (10-20 feels natural)
 
 [hotkeys]
 # pynput hotkey syntax. These work from any app.
