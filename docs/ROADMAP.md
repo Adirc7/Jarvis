@@ -2,16 +2,17 @@
 
 Phases follow the implementation plan, plus Phase 1.5 (emotion awareness
 and human-like conversation) and Phase 2.5 (light memory), added on
-2026-10-17, and Phase 1.6 (calling Jarvis from the phone), added on
-2026-10-20. Each phase is done when its evidence exists, not when its code
+2026-10-17, and Phases 1.6 (Jarvis window and phone calls) and 1.7 (world
+news map), added on 2026-10-20. Each phase is done when its evidence exists, not when its code
 exists.
 
 | Phase | What | Status | Done when |
 |---|---|---|---|
 | 0 | Foundations: event bus, telemetry, kill switch, free LLMs, languages | Built, not yet run on the laptop | Smoke test passes on the laptop |
-| 1 | Spoken conversation | Built, not yet run on the laptop | Recorded dialogue tests, WER/CER per language, working mute and barge-in, p50/p95 latency |
+| 1 | Spoken conversation; next: a short startup greeting | Built, not yet run on the laptop | Recorded dialogue tests, WER/CER per language, working mute and barge-in, p50/p95 latency |
 | **1.5** | **Emotion-aware, human-like replies** (the research contribution) | Character sheet, empathy modes and fillers built; feedback bandit next; emotion detection planned | See below |
-| 1.6 | Call Jarvis from your phone (free internet call, no phone number) | Planned: starts once Phase 1 works on the laptop | A hold-to-talk call works on home Wi-Fi and away through Tailscale, private only, with first-audio p50/p95 logged per channel |
+| 1.6 | Jarvis window, and calling Jarvis from your phone (free internet call, no phone number) | Planned: after the startup greeting | A hold-to-talk call works on home Wi-Fi and away through Tailscale, private only, with first-audio p50/p95 logged per channel |
+| 1.7 | World news on a map | Planned: after 1.6 | Asked by voice, Jarvis reads the top headlines from articles it just fetched, names its sources, and opens the map with article cards per country; never unasked |
 | 2 | Windows and browser tools, verified; allow-list first | Next to build | 20–30 fixed tasks passed or failed by real state checks, with **verified and claimed completion reported side by side** |
 | **2.5** | **Light memory** (an early slice of Phase 6) | Planned | Jarvis recalls facts and recent sessions you allowed it to keep; "forget that" verifiably deletes |
 | 3 | Hand tracking | Later | Gesture accuracy and false activations measured |
@@ -56,6 +57,19 @@ or Tamil speakers using an assistant.
    set ([EmoTa](https://aclanthology.org/2025.chipsal-1.19)); and emotion
    models lose much of their accuracy on languages they weren't trained on
    ([Mi, Ma, Toda 2026](https://arxiv.org/pdf/2606.06200)).
+
+6. **Understanding what Sri Lankan users ask (intent)** (Phase 2). Today the
+   LLM decides what you want by choosing a tool ("show_news", country
+   "Russia"). That works well in English; nobody has measured it for
+   Sinhala, Tamil and mixed speech ("mata Russia news pennanna"). The
+   closest work is Sinhala and Tamil speech intent for banking from the
+   University of Moratuwa (about 0.5 h of data, about 80% accuracy, before
+   LLMs, no code-mixing)
+   ([Karunanayake et al. 2019](https://api.openalex.org/works/doi:10.1109%2FIALP48816.2019.9037702)).
+   Plan: a JSON test set first, the LLM as baseline, and a small trained
+   classifier only where the baseline fails. Each clip in the dataset below
+   gets an intent label as well as an emotion label: what was asked, and
+   how. See "Intent" below and decision D21.
 
 **Later:** code-switching test set (Sinhala–English, Tamil–English
 commands), EmoTa as a Tamil baseline if its licence allows, adaptive voice
@@ -138,7 +152,8 @@ needs.
    approval; written consent from every speaker; recordings stay local, and
    each speaker can withdraw.
 2. **Labels that fit an assistant:** calm, rushed, frustrated, confused
-   (plus neutral). Public sets use basic emotions (anger, happiness, sadness,
+   (plus neutral), and the intent of each clip (what was asked), so one
+   recording trains both models. Public sets use basic emotions (anger, happiness, sadness,
    fear, neutral) and miss these.
 3. **Languages:** Sinhala, Tamil, Sri Lankan English; aim for at least 10
    speakers per language, balanced by gender.
@@ -249,3 +264,54 @@ before they allow the microphone. Library to choose when building: FastRTC
 First-audio latency p50/p95 for phone calls next to the laptop numbers
 (telemetry tags each turn with its channel), and whether WER changes with the
 phone's microphone.
+
+## Startup greeting (Phase 1, next)
+
+One short spoken line when Jarvis starts, built from the local time and the
+character sheet: "Good evening. It's getting late; what do you need?"
+
+- Varies; never the same line twice in a row; in the last language used.
+- A full greeting once a day; later launches the same day get "I'm here."
+- Doesn't open anything or read news unless you ask.
+
+## Phase 1.7: World news on a map
+
+**Goal:** "What's happening in the world?" or "What's going on in Russia?"
+gets a short spoken summary and, only when asked, the Jarvis window (Phase
+1.6) with a world map; clicking a country shows article cards (picture,
+headline, news site, time) that open the full story on that site.
+
+- **Source:** GDELT (free, no key, worldwide, filter by country; gives
+  headline, picture, site, time). NewsAPI's free plan doesn't fit (24-hour
+  delay, development use only).
+- **Grounded only:** Jarvis summarises articles it just fetched, never from
+  the LLM's memory, and names the sources.
+- **Fair:** several news sites per country, reports what is said without
+  taking sides; previews and links, never whole articles copied.
+- **Intent:** the LLM picks the `show_news` tool with a country; this is
+  one of the first intents in the test set (see "Intent").
+
+## Intent: understanding what you ask
+
+**Problem:** every action depends on Jarvis understanding what you meant.
+Pretrained models (and the LLM) learned mostly from English; Sri Lankan
+users mix languages, write Sinhala in Latin letters, and Whisper adds its
+own errors.
+
+**Not the first step:** training. The JSON file is training *examples*;
+training turns them into the model's parameters. Measure first, then train
+only what fails.
+
+1. **Baseline: LLM tool calling.** Each action is a tool with parameters
+   (`show_news(country)`, `set_language(code)`, `set_empathy(mode)`, later
+   the Phase 2 tools). The LLM chooses; no training.
+2. **Test set (JSON).** Examples per intent in English, Sinhala, Tamil,
+   Singlish and Tanglish, written by you and consenting friends, plus
+   Jarvis's own mistakes you corrected:
+   `{"text": "mata Russia news pennanna", "lang": "si-Latn", "intent": "show_news", "slots": {"country": "Russia"}}`
+3. **Measure:** intent accuracy and slot accuracy per language, typed and
+   spoken (through Whisper), never tested on examples used for training.
+4. **Train where it fails:** a small classifier on a frozen multilingual
+   encoder, the same pattern as the emotion model. It also runs offline and
+   in milliseconds, so common commands skip the LLM.
+5. **Learn from corrections:** "no, I meant..." adds a labelled example.
