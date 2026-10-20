@@ -9,7 +9,7 @@ exists.
 | Phase | What | Status | Done when |
 |---|---|---|---|
 | 0 | Foundations: event bus, telemetry, kill switch, free LLMs, languages | Built, not yet run on the laptop | Smoke test passes on the laptop |
-| 1 | Spoken conversation; next: a short startup greeting | Built, not yet run on the laptop | Recorded dialogue tests, WER/CER per language, working mute and barge-in, p50/p95 latency |
+| 1 | Spoken conversation; next: a short startup greeting, then replying in the language you speak | Built, not yet run on the laptop | Recorded dialogue tests, WER/CER per language, working mute and barge-in, p50/p95 latency |
 | **1.5** | **Emotion-aware, human-like replies** (the research contribution) | Character sheet, empathy modes and fillers built; feedback bandit next; emotion detection planned | See below |
 | 1.6 | Jarvis window, and calling Jarvis from your phone (free internet call, no phone number) | Planned: after the startup greeting | A hold-to-talk call works on home Wi-Fi and away through Tailscale, private only, with first-audio p50/p95 logged per channel |
 | 1.7 | World news on a map | Planned: after 1.6 | Asked by voice, Jarvis reads the top headlines from articles it just fetched, names its sources, and opens the map with article cards per country; never unasked |
@@ -152,8 +152,9 @@ needs.
    approval; written consent from every speaker; recordings stay local, and
    each speaker can withdraw.
 2. **Labels that fit an assistant:** calm, rushed, frustrated, confused
-   (plus neutral), and the intent of each clip (what was asked), so one
-   recording trains both models. Public sets use basic emotions (anger, happiness, sadness,
+   (plus neutral), the intent of each clip (what was asked) and its
+   language (Sinhala, Tamil, English, mixed), so one recording trains and
+   tests all three. Public sets use basic emotions (anger, happiness, sadness,
    fear, neutral) and miss these.
 3. **Languages:** Sinhala, Tamil, Sri Lankan English; aim for at least 10
    speakers per language, balanced by gender.
@@ -273,6 +274,31 @@ character sheet: "Good evening. It's getting late; what do you need?"
 - Varies; never the same line twice in a row; in the last language used.
 - A full greeting once a day; later launches the same day get "I'm here."
 - Doesn't open anything or read news unless you ask.
+
+## Replying in the language you speak (Phase 1, after the greeting)
+
+Now Jarvis keeps one language until you switch it (D6). Next it follows
+you, with a confidence gate, the same idea as for emotion. Whisper already
+reports the language of every utterance and how sure it is; no training
+needed for this part.
+
+- **Sure** (80% or more, and long enough: about 3+ words): reply in that
+  language, no question.
+- **Maybe** (50-80%, pointing to a different language): ask once ("Shall I
+  continue in Sinhala?"), then remember the answer.
+- **Unsure or very short** ("ok", "hari"): keep the current language.
+- **Your setting wins:** reply language "same as mine" (default), "always
+  Sinhala/Tamil/English", or "ask"; commands like "speak Sinhala" always
+  work.
+- **Mixed speech** (Singlish, Tanglish): reply in your preferred language,
+  keeping English technical words, as now.
+- **Learns lightly:** counts which language you choose by situation (topic,
+  time of day) and uses it to pick the default, like the empathy bandit; no
+  large model training.
+- **Measure:** language-detection accuracy by language and utterance length
+  on the test set, wrong switches, and how often it asked. Whisper has no
+  "Singlish" label, so mixed and romanized speech is where it may fail; the
+  dataset's clips get a language label too.
 
 ## Phase 1.7: World news on a map
 

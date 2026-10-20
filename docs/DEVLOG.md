@@ -104,3 +104,6 @@ Future you (and anyone reading the repo) will thank you.
 - Translation as a bridge: compare direct Sinhala/Tamil, understand-in-
   English-reply-in-Sinhala, and full translation on the intent test set
   (accuracy, latency, naturalness).
+- Reply language follows the speaker with a confidence gate (sure: switch;
+  maybe: ask once; unsure: stay). Decision D22. Dataset clips get language
+  labels too.
