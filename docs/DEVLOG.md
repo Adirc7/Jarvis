@@ -112,3 +112,7 @@ Future you (and anyone reading the repo) will thank you.
   first, recorded subset, LLM paraphrases for training only.
 - Research scope narrowed to English, Sinhala and Singlish (D23): Tanglish
   dropped, Tamil only with a Tamil-speaking helper. Tamil stays in the app.
+- Recording plan: round 1 (me, English/Sinhala/Singlish templates), then
+  intents, then consenting friends; Moratuwa text datasets for the text
+  side; Whisper LoRA fine-tune once a few hours of speech exist. Recorder
+  gained `--set` (Singlish folder) and never overwrites clips. 125 tests.

@@ -1,0 +1,46 @@
+# Sinhala test sentences: write each one in Sinhala script, the way YOU
+# would really say it to Jarvis (not a word-for-word translation).
+# Lines starting with # are hints and aren't recorded; empty lines are skipped.
+# Write your sentence on the empty line under each hint. Skip any that feel
+# unnatural, and add your own at the end.
+# Record:  uv run python scripts/record_eval_set.py eval/sentences_si.txt --lang si
+
+# Jarvis, what time is it?
+
+# Open Google Chrome.
+
+# Make this bigger.
+
+# Move the cube to the left.
+
+# Switch to Sinhala.
+
+# Pause everything.
+
+# What's on my calendar tomorrow?
+
+# Explain what we can do with this model.
+
+# Export the scene as a file.
+
+# Close the browser window.
+
+# Turn the volume down a little.
+
+# Read me the last message.
+
+# How much battery do I have left?
+
+# Search for the IT3091 assignment brief.
+
+# Open Visual Studio Code in the project folder.
+
+# Rotate the model ninety degrees.
+
+# Stop talking.
+
+# What did I ask you five minutes ago?
+
+# Set a reminder to submit the report at eight.
+
+# Switch back to English.

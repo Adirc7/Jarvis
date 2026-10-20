@@ -3,7 +3,8 @@
     uv run python scripts/eval_stt.py --lang en --model small --model large-v3-turbo
     uv run python scripts/eval_stt.py --lang si --model small --model models/whisper-si-small-ct2
 
-Reads eval/recordings/<lang>/manifest.csv (made by record_eval_set.py),
+Reads eval/recordings/<lang>/manifest.csv (made by record_eval_set.py; use
+--set singlish for another folder),
 transcribes every file with each model, and prints a table like:
 
     model                 WER     CER   median ms   p95 ms
@@ -38,13 +39,15 @@ def main() -> int:
     ap.add_argument("--lang", required=True)
     ap.add_argument("--model", action="append", required=True, help="repeat to compare models")
     ap.add_argument("--beam", type=int, default=1)
+    ap.add_argument("--set", dest="set_name", help="folder under eval/recordings (default: the language code)")
     args = ap.parse_args()
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
 
     settings = load_settings()
     lang = settings.languages[args.lang]
-    manifest = ROOT / "eval" / "recordings" / args.lang / "manifest.csv"
+    set_name = args.set_name or args.lang
+    manifest = ROOT / "eval" / "recordings" / set_name / "manifest.csv"
     if not manifest.is_file():
         print(f"No recordings yet. Run: uv run python scripts/record_eval_set.py eval/sentences_{args.lang}.txt --lang {args.lang}")
         return 1
@@ -57,7 +60,7 @@ def main() -> int:
     print(f"{len(clips)} recordings in {lang.name}\n")
 
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    out_csv = settings.path("telemetry.dir", "logs") / f"eval-stt-{args.lang}-{stamp}.csv"
+    out_csv = settings.path("telemetry.dir", "logs") / f"eval-stt-{set_name}-{stamp}.csv"
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     summary = []
     with open(out_csv, "w", newline="", encoding="utf-8") as f:
