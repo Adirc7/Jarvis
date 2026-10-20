@@ -121,6 +121,12 @@ human, and a file makes it easy to tune and to compare versions in tests.
 **Rules:** Jarvis says it's an AI when asked, doesn't claim feelings,
 doesn't flatter, isn't a therapist, and never promises abilities it doesn't
 have yet (the `cannot_yet` list is updated each phase).
+**Update (2026-10-20):** the character now follows the classic composed
+personal assistant Adhi asked for: addresses him as "sir" (a setting),
+reports precisely what it did and checked, offers the next step in one
+line, warns once when something is unwise and then respects the decision,
+greets once per session and otherwise picks up where it left off. Written in
+our own words: no film lines or catchphrases.
 
 ## D16. Empathy modes: manual now, learned later
 **Decision:** Three modes (logical, balanced, supportive) switchable by
