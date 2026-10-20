@@ -197,6 +197,10 @@ def check_whisper(model, audio, settings: Settings, r: Report, tel: Telemetry):
     if not real_speech:
         print("  No recording; using 5 s of noise just to time the model.")
         audio = (np.random.default_rng(0).standard_normal(5 * SAMPLE_RATE) * 0.01).astype("float32")
+    # The very first call loads CUDA kernels (can take a long time on the first
+    # run ever); Jarvis does this at startup, so time it separately.
+    warm_text, _, warm_ms = transcribe(model, np.zeros(SAMPLE_RATE, dtype="float32"), use_vad=False)
+    r.add("whisper warm-up", "PASS", f"first call {warm_ms:.0f} ms (Jarvis does this once at startup)")
     text, info, ms = transcribe(model, audio, use_vad=real_speech)
     dur = len(audio) / SAMPLE_RATE
     rtf = (ms / 1000) / dur
@@ -346,8 +350,9 @@ def check_together(settings: Settings, model, audio, seconds: float, baseline: d
             whisper_runs=len(stt_ms), whisper_p50_ms=percentile(stt_ms, 50))
     status = "PASS" if drop < 0.25 else "WARN"
     r.add("tracking during whisper", status,
-          f"{stats['fps']:.1f} fps (was {baseline['fps']:.1f}, drop {drop:.0%}); "
-          f"Whisper ran {len(stt_ms)}x, p50 {percentile(stt_ms, 50):.0f} ms")
+          f"{stats['fps']:.1f} fps (was {baseline['fps']:.1f}, "
+          + (f"drop {drop:.0%}); " if drop > 0 else "no drop); ")
+          + f"Whisper ran {len(stt_ms)}x, p50 {percentile(stt_ms, 50):.0f} ms")
     if status == "WARN":
         r.add("together note", "WARN",
               "tracking slows down while Whisper runs: move camera capture to its own process in Phase 3")
@@ -380,8 +385,10 @@ async def probe_provider(cfg, settings: Settings, r: Report, tel: Telemetry) -> 
     first_ms = None
     text = ""
     try:
+        # Generous max_tokens: models that think first count thinking against it,
+        # and a tight limit leaves an empty reply.
         async for piece in llm.stream_text([{"role": "user", "content": "Reply with exactly one word: OK"}],
-                                           max_tokens=20):
+                                           max_tokens=1024):
             if first_ms is None:
                 first_ms = (time.perf_counter() - t0) * 1000
             text += piece
@@ -392,7 +399,9 @@ async def probe_provider(cfg, settings: Settings, r: Report, tel: Telemetry) -> 
         r.add(f"llm {name}", "WARN" if name == "ollama" else "FAIL", f"{str(exc)[:150]}{hint}")
         return
     total = (time.perf_counter() - t0) * 1000
-    r.add(f"llm {name}", "PASS", f"{cfg.model}: first token {first_ms or total:.0f} ms, total {total:.0f} ms, said {text.strip()[:20]!r}")
+    status = "PASS" if text.strip() else "WARN"
+    r.add(f"llm {name}", status, f"{cfg.model}: first token {first_ms or total:.0f} ms, total {total:.0f} ms, "
+          + (f"said {text.strip()[:20]!r}" if text.strip() else "empty reply"))
 
     try:
         _, msg = await llm.complete(
@@ -413,7 +422,7 @@ async def probe_provider(cfg, settings: Settings, r: Report, tel: Telemetry) -> 
             async for piece in llm.stream_text([
                 {"role": "system", "content": f"Reply only in {lang.name}, in {lang.name} script."},
                 {"role": "user", "content": "Say: Hello, I am Jarvis, your desktop assistant."},
-            ], max_tokens=80):
+            ], max_tokens=1024):
                 reply += piece
             ok = has_script(reply, code)
             r.add(f"llm {name} {lang.name}", "PASS" if ok else "WARN",

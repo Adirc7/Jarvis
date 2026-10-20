@@ -131,5 +131,14 @@ def test_groq_oss_provider_configured(settings):
     assert oss.model == "openai/gpt-oss-120b"
     assert oss.api_key_env == "GROQ_API_KEY"
     assert oss.options == {"reasoning_effort": "low"}
-    assert by_name["groq"].options == {}
     assert [p.name for p in settings.providers()].index("groq_oss") == 2
+
+
+def test_no_retired_models_and_thinking_kept_short(settings):
+    """Groq retired llama-3.3-70b-versatile (2026-08-16); OpenRouter's Llama 3.3
+    stopped being free. Thinking models get reasoning_effort = low for speech."""
+    by_name = {p.name: p for p in settings.providers()}
+    assert by_name["groq"].model == "openai/gpt-oss-20b"
+    assert "llama-3.3" not in by_name["openrouter"].model and by_name["openrouter"].model.endswith(":free")
+    for name in ("gemini", "groq", "groq_oss"):
+        assert by_name[name].options.get("reasoning_effort") == "low"

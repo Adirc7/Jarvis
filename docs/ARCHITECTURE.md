@@ -121,9 +121,9 @@ private folders stay on the laptop (D7, D25).
 | Sinhala voice | Piper si_LK-dilu-medium | Laptop | built | text, then audio |
 | Tamil voice | MMS-TTS Tamil (CC-BY-NC) | Laptop | built | text, then audio |
 | Brain 1 | Gemini Flash | Cloud, free | built | prompt, then reply or tool call |
-| Brain 2 | Llama 3.3 70B on Groq | Cloud, free | built | same |
+| Brain 2 | gpt-oss-20b on Groq (fast) | Cloud, free | built | same |
 | Brain 3 | gpt-oss-120b on Groq | Cloud, free | built | same; for hard maths |
-| Brain 4 | Llama 3.3 70B on OpenRouter | Cloud, free | built | same |
+| Brain 4 | Gemma 4 31B on OpenRouter | Cloud, free | built | same |
 | Brain, offline | Qwen3 4B on Ollama | Laptop | built | same |
 | Wake word | openWakeWord "hey jarvis" | Laptop CPU | planned | audio frames, then "wake" |
 | End of speech | Silero VAD | Laptop CPU | planned | audio frames, then "speech" or "silence" |
