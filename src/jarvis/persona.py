@@ -30,6 +30,7 @@ class EmpathyMode:
 class Persona:
     name: str = "Jarvis"
     user_name: str = ""
+    address: str = ""          # how Jarvis addresses the user, e.g. "sir"
     role: str = "a personal desktop assistant"
     traits: list[str] = field(default_factory=list)
     style_rules: list[str] = field(default_factory=list)
@@ -56,6 +57,7 @@ class Persona:
         return cls(
             name=raw.get("identity", {}).get("name", "Jarvis"),
             user_name=raw.get("identity", {}).get("user_name", ""),
+            address=raw.get("identity", {}).get("address", ""),
             role=raw.get("identity", {}).get("role", "a personal desktop assistant"),
             traits=raw.get("personality", {}).get("traits", []),
             style_rules=raw.get("speaking_style", {}).get("rules", []),
@@ -94,6 +96,9 @@ class Persona:
         parts = [f"You are {self.name}, {self.role}."]
         if self.user_name:
             parts.append(f"The user's name is {self.user_name}. Use it now and then, not in every reply.")
+        if self.address:
+            parts.append(f'Address the user as "{self.address}" now and then (for example "Of course, '
+                         f'{self.address}."), not in every sentence.')
         if self.traits:
             parts.append("Your personality:\n" + bullets(self.traits))
         if self.style_rules:

@@ -154,3 +154,13 @@ Future you (and anyone reading the repo) will thank you.
   listening for "Hey Jarvis", window pops up with a time-of-day greeting,
   back to sleep after silence, quit from the tray. Window design: an orb
   with the skills around it.
+
+## 2026-10-21: Session continuity and a composed-assistant character
+
+- Character sheet: `address = "sir"` (setting), plus composed, precise,
+  one-step-ahead and candid traits, and habits: greet once per session,
+  varied short acknowledgements, mention the time only when it matters.
+  Our own wording, no film lines. 128 tests passing.
+- Greeting plan: no greeting when woken again in the same session; a short
+  pick-up after a while; the full greeting only on the first wake of the
+  day.

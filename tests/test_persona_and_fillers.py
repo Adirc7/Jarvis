@@ -148,3 +148,14 @@ async def test_muted_means_no_filler(settings):
     app.sink.toggle_mute()
     await app.handle_text("hello")
     assert app.sink.player.backend.played == []
+
+
+def test_address_form_only_when_set():
+    from jarvis.persona import Persona
+    p = Persona.load()
+    assert p.address == "sir"
+    prompt = p.system_prompt(language_instruction="Reply in English.", spoken=True, mode="balanced")
+    assert 'Address the user as "sir"' in prompt
+    assert "Greet once per session" in prompt
+    p.address = ""
+    assert "Address the user" not in p.system_prompt(language_instruction="x", spoken=True, mode="balanced")

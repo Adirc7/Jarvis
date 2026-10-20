@@ -130,8 +130,16 @@ sheet: "Good evening, sir. It's getting late; what do you need?"
 - Time of day: morning, afternoon, evening or night, from the laptop clock.
 - How Jarvis addresses you is a setting: "sir", your name, or nothing.
 - Varies; never the same line twice in a row; in the last language used.
-- A full greeting once a day; later wakes the same day get "Yes?" or
-  "I'm here."
+- **Sessions, like a person would (2026-10-20):** going to sleep after 30
+  seconds of silence only stops listening; the session carries on.
+  - *Same session* (woken again within about 30 minutes): no greeting at
+    all. Jarvis says "Yes, sir?" or simply continues; if the wake already
+    contains the request ("Hey Jarvis, and for x = 2?"), it just answers.
+  - *Back after a while* (30 minutes to a few hours): a short pick-up, not
+    a greeting: "Welcome back. We'd left the Power BI chart half done."
+  - *First wake of the day:* the full time-of-day greeting.
+  - The session ends when you quit, after about 3 hours idle, or overnight.
+  - The 30 seconds stretch when Jarvis has just asked you a question.
 - Doesn't open anything or read news unless you ask.
 
 ## Replying in the language you speak (Phase 1, after the greeting)
