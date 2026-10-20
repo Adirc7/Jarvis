@@ -175,7 +175,7 @@ a real need.
 
 ## D21. Intent: LLM tool calling first, a trained classifier only where it fails
 **Decision:** Jarvis decides what you want through LLM tool calling. A JSON
-test set in English, Sinhala, Tamil and code-mixed speech measures it; a
+test set in English, Sinhala and Singlish measures it; a
 small classifier on a frozen multilingual encoder is trained only for the
 intents and languages where the baseline fails, or for speed and offline
 use.
@@ -198,3 +198,13 @@ asks only when it matters, and the user's answers become the data for a
 small preference learner.
 **Revisit:** thresholds after measuring detection accuracy by utterance
 length on the test set.
+
+## D23. Research scope: English, Sinhala and Singlish
+**Decision:** Datasets, test sets and evaluations cover English, Sinhala
+and Singlish. Tamil stays in the app but joins the research only with a
+Tamil-speaking helper; Tanglish is dropped.
+**Why:** Labels are only as good as the person checking them. Adhi speaks
+Sinhala and English and can judge Singlish; he can't judge whether Tamil or
+Tanglish examples are right, and wrong labels would make the results
+meaningless.
+**Revisit:** if a Tamil-speaking classmate or friend agrees to help.
