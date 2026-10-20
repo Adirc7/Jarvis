@@ -7,6 +7,10 @@ is a short instruction file plus the tools it needs, all running on the
 Phase 2 tool system. Every phase and skill is done when its evidence exists,
 not when its code exists.
 
+How it all works (diagrams, models, theory): [ARCHITECTURE.md](ARCHITECTURE.md).
+How to build it, milestone by milestone (M0-M8):
+[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+
 ## Build order
 
 1. **Laptop check:** smoke test, first spoken conversation, latency p50/p95.

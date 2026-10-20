@@ -178,3 +178,16 @@ Future you (and anyone reading the repo) will thank you.
   `state/presence.json` (not committed). Lines per language in
   languages.toml (Sinhala lines to be checked by Adhi). The LLM is told it
   already greeted. 140 tests passing.
+
+## 2026-10-21: Everything written down before building
+
+- `docs/ARCHITECTURE.md`: the whole system with diagrams (layers, one
+  request step by step, safety gate, camera pipeline, life cycle), how the
+  models talk to each other, every model with its input and output, voice,
+  camera and gestures, privacy, and the theory behind each part with
+  references.
+- `docs/IMPLEMENTATION_PLAN.md`: milestones M0-M8 plus recording rounds,
+  each with goal, what to learn, files, tests and "done when"; who writes
+  what (the ML parts are mine; Claude guides and reviews).
+- README rewritten around the idea; the system map page updated.
+- Next: M0, the first real run on the laptop.

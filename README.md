@@ -1,17 +1,48 @@
 # Jarvis
 Ai assistant how deal with emotions of the users'
 
-A context-aware multimodal desktop assistant: voice, hand gestures and app
-context, with verified actions. Self-study build, free tools only.
+A voice-first desktop assistant for Sri Lankan students: it talks with you in
+English, Sinhala and Singlish, notices how you feel, helps you study and work,
+and only acts on your PC in ways it can check and you can undo. A self-study
+research project built with free tools only.
 
-Jarvis is one core (voice, Sinhala and English, emotion, memory, safety)
-plus skills (study, visualise, data, research, news).
+## The idea in one picture
 
-Status: **Phase 1** (spoken conversation), about to run on the laptop.
-Next: a startup greeting, replying in the language you speak, then Phase 2
-(tools and safety) and the first skill, Study. See `docs/ROADMAP.md` for the
-build order and the research priorities behind it, `docs/DEVLOG.md` for
-progress and `docs/DECISIONS.md` for the reasoning.
+```mermaid
+flowchart LR
+    You(["You: voice, keyboard, later gestures"]) --> Hear["Hear and understand: Whisper, language, emotion, topic"]
+    Hear --> Manage["Keep the conversation together: character, empathy, threads, memory"]
+    Manage --> Brain["Think: free LLMs with fallback"]
+    Brain <--> Skills["Skills: Study, Visualise, Data, Research, News, Friend"]
+    Skills --> Gate["Act safely: safety gate, your click for risky actions"]
+    Brain --> Answer(["Answer: voice, Jarvis window, phone"])
+```
+
+Jarvis is **one core plus skills**. The core holds the research:
+
+1. **Emotion-aware replies** in an assistant that actually acts on a
+   computer.
+2. **Understanding Sinhala and Singlish**, measured, with a consented Sri
+   Lankan speech set labelled for emotion, intent and language.
+3. **Verified and safe actions:** Jarvis reports what it checked, not what
+   it hopes happened, and a misheard word can never confirm a risky action.
+
+The skills are what it helps with day to day, each built on the same safe
+tool system.
+
+**Read more:** [how it works](docs/ARCHITECTURE.md) (diagrams, models,
+theory) · [roadmap and build order](docs/ROADMAP.md) ·
+[implementation plan](docs/IMPLEMENTATION_PLAN.md) (step-by-step build
+guide) · [decisions](docs/DECISIONS.md) · [dev log](docs/DEVLOG.md) ·
+[languages](docs/LANGUAGES.md) · [measuring speech recognition](eval/README.md)
+
+## Status
+
+**Built:** spoken conversation with push-to-talk, three voices, free LLMs,
+the character and empathy modes, the startup greeting, one-click setup, and
+the evaluation tools. **Now:** the first run on the laptop (milestone M0).
+**Next:** replying in the language you speak, the empathy learner, then
+Phase 2 (tools and safety) and the first skill, Study.
 
 ## What works now
 
@@ -19,8 +50,11 @@ progress and `docs/DECISIONS.md` for the reasoning.
   LLM answers, and Jarvis speaks the reply sentence by sentence while the rest
   is still being written.
 - **Its own voice and character**: a British Kokoro voice (Lewis) with a light
-  studio effects chain, and a written personality in `config/persona.toml`.
+  studio effects chain, and a written personality in `config/persona.toml`:
+  calm, precise, a step ahead, honest, addressing you as "sir" now and then.
   No cloned voices; Jarvis says it's an AI if you ask.
+- **Greets like a person**: a time-of-day greeting the first time each day,
+  "Welcome back" after a break, just "Yes, sir?" within the same session.
 - **Empathy modes**: logical, balanced or supportive. Say "be more direct" or
   "be gentler", or type `/empathy supportive`.
 - **Natural timing**: a short "mm, one moment" only when a reply is slow.
@@ -33,6 +67,15 @@ progress and `docs/DECISIONS.md` for the reasoning.
   OpenRouter, local Ollama.
 - **Measured from day one**: every stage is timed in `logs/`; scripts to
   record test sentences and score Whisper models (WER/CER).
+
+## Coming next
+
+"Hey Jarvis", double-clap and wave to wake it; a Jarvis window with an orb
+and your skills around it; calling Jarvis from your phone; a tutor for
+physics and maths that gives hints first and checks every result; plots,
+data analysis, research with page references, and news on a world map; hand
+gestures (open palm to stop, thumbs up or down as feedback, swipes). All
+free, private by default, and planned in the [roadmap](docs/ROADMAP.md).
 
 ## Setup on Windows
 
@@ -123,7 +166,9 @@ Setup); edit the other files directly.
 | | `[tts] speed` | `0.9` = slower, calmer voice |
 | | `[voice_style]` | the effects chain; `enabled = false` for the raw voice |
 | `config/languages.toml` | `tts_voice` | which voice each language uses |
-| `config/persona.toml` | `user_name` | what Jarvis calls you (empty = no name) |
+| | `[greeting] same_session_minutes` | talk again within this time and Jarvis carries on without greeting (15) |
+| `config/persona.toml` | `address` | how Jarvis addresses you now and then: `"sir"`, your name, or `""` |
+| | `user_name` | your name, if you want Jarvis to use it (empty = no name) |
 | | `[personality]`, `[speaking_style]` | Jarvis's character; edit freely |
 | | `[empathy] default` | starting empathy mode |
 
@@ -137,6 +182,7 @@ config/            settings.toml, languages.toml, persona.toml
 src/jarvis/
   app.py           request pipeline, voice loop, hotkeys
   persona.py       character sheet -> instructions for the LLM
+  greeting.py      greetings that follow sessions, not restarts
   bus.py           event bus (threads -> asyncio queues)
   state.py         shared state + cancel tokens
   language.py      language switching rules
@@ -150,7 +196,9 @@ scripts/           setup_windows, run_jarvis, choose_key, smoke_test, download_m
                    voice_preview, record_eval_set, eval_stt
 assets/            shortcut icon
 eval/              test sentences (recordings stay local)
-docs/              ROADMAP.md, DECISIONS.md, LANGUAGES.md, DEVLOG.md
+docs/              ARCHITECTURE.md, ROADMAP.md, IMPLEMENTATION_PLAN.md,
+                   DECISIONS.md, LANGUAGES.md, DEVLOG.md
+state/, logs/      kept on this computer only (not committed)
 ```
 
 ## Privacy
