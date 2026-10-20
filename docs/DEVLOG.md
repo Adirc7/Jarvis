@@ -136,3 +136,7 @@ Future you (and anyone reading the repo) will thank you.
   build steps, and a safety test set (zero unsafe actions). Decision D25.
 - "Ask first" actions are confirmed only by a click; voice can cancel but
   never confirm, so speech errors can only make Jarvis more careful.
+
+- Confirmation box gains tick boxes per item, up to three alternative
+  actions and "Something else..." (typed, sent back through the gate).
+  Button labels come from the tool call, not the LLM.
