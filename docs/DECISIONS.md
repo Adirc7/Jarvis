@@ -27,6 +27,10 @@ send screen contents with private data; route those requests to Ollama later.
 "hey jarvis" model later (its licence allows non-commercial use only, which is
 fine here).
 **Why:** Simplest, no always-on audio processing, nothing to tune.
+**Update (2026-10-20):** "Hey Jarvis" is planned with the Jarvis window
+(Phase 1.6): Jarvis runs in the background with a tray icon, sleeps
+listening only for its name, and wakes the window with a time-of-day
+greeting. Push-to-talk stays as a backup.
 
 ## D4. Concurrency: threads produce, asyncio consumes (10.3)
 **Decision:** Mic, camera and OS watchers run in their own threads and publish

@@ -150,3 +150,7 @@ Future you (and anyone reading the repo) will thank you.
 - Study skill: physics and maths in depth (LaTeX typeset with KaTeX,
   per-skill model choice with gpt-oss-120b for hard problems, SymPy, scipy
   and unit checks); other sciences through Research with references.
+- Planned how Jarvis runs: background program with a tray icon, sleeps
+  listening for "Hey Jarvis", window pops up with a time-of-day greeting,
+  back to sleep after silence, quit from the tray. Window design: an orb
+  with the skills around it.
