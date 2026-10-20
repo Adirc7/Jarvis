@@ -228,8 +228,10 @@ spread across features.
 ## D25. Phase 2 safety: a gate, risk tiers, no raw shell
 **Decision:** Every tool call, MCP tools included, passes one gate:
 registered tools only, schema-checked arguments, allowed folders only, and
-four risk tiers (just do it; do and log with undo; ask first with a clear
-yes; never). No raw command shell. Deletes go to a recycle folder. Text
+four risk tiers (just do it; do and log with undo; ask first, confirmed
+only by a click; never). Voice can cancel an "ask first" action but never
+confirm it (2026-10-20, Adhi's idea), so a misheard "no" can't become a
+yes. No raw command shell. Deletes go to a recycle folder. Text
 from outside (web, news, email, files) is untrusted: while it's in the
 turn, anything above "just do it" needs confirmation. LLM-written code runs
 on copies in a scratch folder with a time limit and an import check. Private
