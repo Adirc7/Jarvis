@@ -251,3 +251,8 @@ OpenRouter's `openrouter/free` router instead of one fixed free model.
   the keyboard listener isn't receiving the key. Being diagnosed with
   `scripts/choose_key.py`.
 - 143 tests passing.
+- Voice mystery solved: Adhi's ASUS has a Copilot key where Right Ctrl used
+  to be. It sends Windows + Shift + F23, so Jarvis never saw Right Ctrl. The
+  picker now refuses F23 with an explanation (Windows would open Copilot on
+  every press) and suggests Right Alt; setup asks about "Ctrl to the right of
+  the space bar (not Copilot)".

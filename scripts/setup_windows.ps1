@@ -336,8 +336,8 @@ try {
         Write-Note "Using Right Ctrl. To change it later: uv run python scripts/choose_key.py"
     } else {
         Write-Note "You hold one key while talking to Jarvis; the default is Right Ctrl."
-        Write-Note "Some new laptops have a Copilot key where Right Ctrl used to be."
-        if (Read-YesNo "Does your keyboard have a Right Ctrl key?" $true) {
+        Write-Note "Many new laptops have a Copilot key where Right Ctrl used to be; that one won't work."
+        if (Read-YesNo "Is there a key labelled Ctrl to the right of the space bar (not Copilot)?" $true) {
             & $Uv run --no-sync python scripts/choose_key.py --name ctrl_r
         } else {
             & $Uv run --no-sync python scripts/choose_key.py
