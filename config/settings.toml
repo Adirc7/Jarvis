@@ -81,7 +81,7 @@ dir = "logs"
 [llm]
 # Providers are tried in this order. A provider is skipped when its API key
 # is missing. Fallback happens only before the first word of a reply arrives.
-order = ["gemini", "groq", "openrouter", "ollama"]
+order = ["gemini", "groq", "groq_oss", "openrouter", "ollama"]
 timeout_s = 20
 
 # Model names change often. If the smoke test reports "model not found",
@@ -96,6 +96,16 @@ base_url = "https://api.groq.com/openai/v1"
 api_key_env = "GROQ_API_KEY"
 model = "llama-3.3-70b-versatile"
 
+# OpenAI's open-weight model (Apache-2.0) on Groq's free tier: same key as
+# above, with its own free limits, so it also takes over when the first
+# Groq model is rate-limited. It thinks before answering; "low" keeps that
+# short so speech starts sooner.
+[llm.providers.groq_oss]
+base_url = "https://api.groq.com/openai/v1"
+api_key_env = "GROQ_API_KEY"
+model = "openai/gpt-oss-120b"
+options = { reasoning_effort = "low" }
+
 [llm.providers.openrouter]
 base_url = "https://openrouter.ai/api/v1"
 api_key_env = "OPENROUTER_API_KEY"
@@ -105,3 +115,5 @@ model = "meta-llama/llama-3.3-70b-instruct:free"
 base_url = "http://localhost:11434/v1"
 api_key_env = ""                # local: no key needed
 model = "qwen3:4b"              # fits in 6 GB VRAM next to Whisper small
+# Alternative to compare: "gemma4:e2b-it-qat" (Google Gemma 4, Apache-2.0,
+# about 4.3 GB). Pull it first: ollama pull gemma4:e2b-it-qat

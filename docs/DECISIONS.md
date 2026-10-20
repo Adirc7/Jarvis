@@ -13,6 +13,10 @@ Pro models to paid in 2026), so no single provider is load-bearing.
 ## D2. LLM access through one OpenAI-compatible client with fallback (10.6)
 **Decision:** Gemini, Groq, OpenRouter, Ollama, in that order
 (`[llm].order`). Fallback only before the first word of a reply.
+**Update (2026-10-20):** added OpenAI's open-weight gpt-oss-120b on Groq's
+free tier (`groq_oss`, same key, its own limits). Providers can pass extra
+request fields (`options`). Claude isn't included: it has no free API and no
+open weights; "Claude" models on Hugging Face are other models imitating it.
 **Why:** All four speak the same API, so one class covers them. Switching
 mid-reply would produce a garbled answer.
 **Privacy:** free hosted tiers may use prompts to improve their products. Don't

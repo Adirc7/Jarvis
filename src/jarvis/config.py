@@ -60,6 +60,7 @@ class ProviderConfig:
     base_url: str
     api_key_env: str
     model: str
+    options: dict[str, Any] = field(default_factory=dict)   # extra request fields, e.g. reasoning_effort
 
     @property
     def api_key(self) -> str | None:
@@ -96,7 +97,8 @@ class Settings:
             if name not in table:
                 raise ValueError(f"llm.order names '{name}' but [llm.providers.{name}] is missing")
             p = table[name]
-            out.append(ProviderConfig(name, p["base_url"], p.get("api_key_env", ""), p["model"]))
+            out.append(ProviderConfig(name, p["base_url"], p.get("api_key_env", ""), p["model"],
+                                      dict(p.get("options", {}))))
         return out
 
 

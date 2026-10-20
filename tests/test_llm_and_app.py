@@ -110,3 +110,26 @@ async def test_kill_switch_pauses(settings):
     await app.handle_text("hello again")        # a new request resumes
     assert app.state.mode == Mode.IDLE
     task.cancel()
+
+
+async def test_provider_options_go_in_extra_body():
+    seen = {}
+
+    class Recording(FakeClient):
+        async def create(self, model, messages, stream=False, **kwargs):
+            seen.update(kwargs)
+            return await super().create(model, messages, stream=stream)
+
+    llm = FallbackLLM([Provider("oss", "openai/gpt-oss-120b", Recording(["Hi"]), {"reasoning_effort": "low"})])
+    assert await collect(llm.stream_text([{"role": "user", "content": "x"}], temperature=0.5)) == "Hi"
+    assert seen == {"temperature": 0.5, "extra_body": {"reasoning_effort": "low"}}
+
+
+def test_groq_oss_provider_configured(settings):
+    by_name = {p.name: p for p in settings.providers()}
+    oss = by_name["groq_oss"]
+    assert oss.model == "openai/gpt-oss-120b"
+    assert oss.api_key_env == "GROQ_API_KEY"
+    assert oss.options == {"reasoning_effort": "low"}
+    assert by_name["groq"].options == {}
+    assert [p.name for p in settings.providers()].index("groq_oss") == 2

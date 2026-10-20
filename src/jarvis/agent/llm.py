@@ -1,6 +1,6 @@
 """Free LLM access with automatic fallback.
 
-Gemini, Groq, OpenRouter and Ollama all offer an OpenAI-compatible endpoint, so
+Gemini, Groq (Llama and OpenAI's open gpt-oss models), OpenRouter and Ollama all offer an OpenAI-compatible endpoint, so
 one client class covers every provider. `FallbackLLM` tries them in order and
 moves to the next one when a provider errors, times out or hits a rate limit.
 
@@ -32,6 +32,16 @@ class Provider:
     name: str
     model: str
     client: Any   # openai.AsyncOpenAI or a test double with the same shape
+    options: dict[str, Any] = field(default_factory=dict)   # sent with every request
+
+    def request_kwargs(self, kwargs: dict[str, Any]) -> dict[str, Any]:
+        """Add this provider's options as extra JSON fields (extra_body), so
+        provider-specific settings never trip the client's argument checks."""
+        if not self.options:
+            return kwargs
+        out = dict(kwargs)
+        out["extra_body"] = {**self.options, **kwargs.get("extra_body", {})}
+        return out
 
     @classmethod
     def from_config(cls, cfg: ProviderConfig, timeout_s: float = 20) -> "Provider":
@@ -43,7 +53,7 @@ class Provider:
             timeout=timeout_s,
             max_retries=0,          # we do our own fallback; don't wait on retries
         )
-        return cls(cfg.name, cfg.model, client)
+        return cls(cfg.name, cfg.model, client, dict(cfg.options))
 
 
 def configured_providers(configs: list[ProviderConfig], timeout_s: float = 20) -> list[Provider]:
@@ -69,7 +79,7 @@ class FallbackLLM:
             started = False
             try:
                 stream = await p.client.chat.completions.create(
-                    model=p.model, messages=messages, stream=True, **kwargs
+                    model=p.model, messages=messages, stream=True, **p.request_kwargs(kwargs)
                 )
                 async for chunk in stream:
                     if token is not None and token.cancelled:
@@ -115,7 +125,9 @@ class FallbackLLM:
         for p in self.providers:
             start = time.perf_counter()
             try:
-                resp = await p.client.chat.completions.create(model=p.model, messages=messages, **kwargs)
+                resp = await p.client.chat.completions.create(
+                    model=p.model, messages=messages, **p.request_kwargs(kwargs)
+                )
                 self.last_provider = p.name
                 self.telemetry.log(
                     "llm_complete", provider=p.name, model=p.model,
