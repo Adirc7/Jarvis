@@ -502,6 +502,16 @@ between hotel, restaurant and taxi in one dialogue).
    ([Xiong et al. 2024](https://arxiv.org/abs/2306.13063v2)).
 7. **Several things in one request** ("plot this and email it") become a
    short plan of separate steps (Phase 7), each through the gate.
+8. **Telling you when a conversation gets too long (idea from
+   2026-10-20).** A backup for when threads aren't enough. Jarvis notices
+   the signs: the active thread near its context budget, many topic
+   switches, low router confidence again and again, or repeated "no, I
+   meant...". It then says so once per thread and offers three choices:
+   *summarise and start fresh* (a summary carries the important points
+   into a new thread), *new chat*, or *keep going*. In the window it's a
+   small notice with a context gauge; by voice, one short sentence. The
+   full log stays on the laptop, and facts you allowed it to remember
+   (Phase 2.5) carry over, so starting fresh loses nothing.
 
 **Measure:** routing accuracy, topic-switch detection on scripted test
 conversations that jump between skills, how often Jarvis asked when it
@@ -579,7 +589,9 @@ only what fails.
 - **Intent:** accuracy per language on the JSON test set, pipelines A, B
   and C.
 - **Topics:** routing accuracy and topic-switch detection on scripted
-  conversations, unnecessary questions, and calibration of confidence.
+  conversations, unnecessary questions, and calibration of confidence. Also
+  whether "summarise and start fresh" makes later answers more correct
+  than carrying on in the long thread.
 - **Latency:** p50/p95 of tool turns.
 
 ---

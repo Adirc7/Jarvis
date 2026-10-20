@@ -142,3 +142,5 @@ Future you (and anyone reading the repo) will thank you.
 - Topic switching planned (D26): router with confidence per turn, threads
   parked and resumed, focused context, distress override, and answers
   labelled checked, sourced or general knowledge.
+- Long-conversation notice: once per thread, with "summarise and start
+  fresh", "new chat" or "keep going", and a context gauge in the window.
