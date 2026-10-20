@@ -22,6 +22,10 @@ on 2026-08-16 (its replacement advice: gpt-oss), and OpenRouter's Llama 3.3
 stopped being free. Now: Gemini, Groq gpt-oss-20b (fast), Groq gpt-oss-120b,
 OpenRouter Gemma 4 31B (free), Ollama. Thinking models get
 `reasoning_effort = "low"`: Gemini took 7 s to its first word without it.
+Second run: Groq's gpt-oss-120b and gpt-oss-20b answered in 0.22 and 0.32 s
+with tools, Sinhala and Tamil all working; Gemini returned 503 (overloaded)
+and OpenRouter's Gemma 4 returned 429. New order, fastest first: groq_oss,
+groq, gemini, openrouter (now the `openrouter/free` router), ollama.
 **Why:** All four speak the same API, so one class covers them. Switching
 mid-reply would produce a garbled answer.
 **Privacy:** free hosted tiers may use prompts to improve their products. Don't

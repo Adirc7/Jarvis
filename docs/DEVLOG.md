@@ -217,3 +217,20 @@ longer prints a negative "drop". Two noisy Hugging Face warnings silenced.
 
 **Next:** `git pull`, run the hardware check again, then the first
 conversation and the latency table.
+
+## 2026-10-21: Second hardware check, after the fixes
+
+| Check | Result |
+|---|---|
+| Whisper warm-up | 386 ms (CUDA kernels cached since the first run) |
+| Whisper speed | 151 ms for 6 s of audio (real-time factor 0.03) |
+| Whisper heard | nothing: the recording was very quiet (rms 0.0016, peak 0.01) |
+| Groq gpt-oss-120b | 223 ms to first word; tools, Sinhala and Tamil OK |
+| Groq gpt-oss-20b | 323 ms to first word; tools, Sinhala and Tamil OK |
+| Gemini | 503: "high demand" (the key works; Google's free servers were busy) |
+| OpenRouter | 429: the free Gemma 4 was rate-limited |
+| Hand tracking | 14.4 fps, no drop with Whisper running; hand in 12% of frames |
+| Voices | all PASS |
+
+Decision: order the brains by measured speed (Groq first), and use
+OpenRouter's `openrouter/free` router instead of one fixed free model.

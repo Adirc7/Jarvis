@@ -63,8 +63,8 @@ Phase 2 (tools and safety) and the first skill, Study.
   model and voice.
 - **Interrupt it**: press push-to-talk while it's speaking (barge-in),
   `Ctrl+Alt+M` to mute replies, `Ctrl+Alt+K` to stop everything.
-- **Free LLMs with fallback**: Gemini, Groq (OpenAI's open gpt-oss-20b and
-  gpt-oss-120b), OpenRouter (Gemma 4), local Ollama.
+- **Free LLMs with fallback**: Groq (OpenAI's open gpt-oss-120b and gpt-oss-20b,
+  about 0.2 s to the first word), Gemini, OpenRouter's free router, local Ollama.
 - **Measured from day one**: every stage is timed in `logs/`; scripts to
   record test sentences and score Whisper models (WER/CER).
 
