@@ -30,6 +30,12 @@ Gaps"). No reviewed work combines an acting desktop agent, voice and gesture,
 emotion-aware replies and per-user personalisation, and none studies Sinhala
 or Tamil speakers using an assistant.
 
+**Research scope (2026-10-20):** the dataset, test sets and evaluation
+cover English, Sinhala and Singlish, the languages Adhi can write and check.
+Tamil stays supported in the app (speech, voice, replies) but enters the
+research only if a Tamil-speaking helper writes and checks its examples;
+Tanglish is out.
+
 **Quick wins (do first):**
 
 1. **Verified vs claimed completion** (Phase 2). Every tool reports what it
@@ -71,8 +77,8 @@ or Tamil speakers using an assistant.
    gets an intent label as well as an emotion label: what was asked, and
    how. See "Intent" below and decision D21.
 
-**Later:** code-switching test set (Sinhala–English, Tamil–English
-commands), EmoTa as a Tamil baseline if its licence allows, adaptive voice
+**Later:** Tamil data and EmoTa as a Tamil baseline, only with a
+Tamil-speaking helper to write and check labels (see "Research scope"), adaptive voice
 vs gesture (Phase 4), full-duplex turn-taking.
 
 ## Phase 1.5: Emotion-aware replies
@@ -156,8 +162,9 @@ needs.
    language (Sinhala, Tamil, English, mixed), so one recording trains and
    tests all three. Public sets use basic emotions (anger, happiness, sadness,
    fear, neutral) and miss these.
-3. **Languages:** Sinhala, Tamil, Sri Lankan English; aim for at least 10
-   speakers per language, balanced by gender.
+3. **Languages:** Sinhala, Singlish (Sinhala-English mix) and Sri Lankan
+   English; aim for at least 10 speakers per language, balanced by gender.
+   Tamil only with a Tamil-speaking helper (see "Research scope").
 4. **Speech that sounds real:** short role-play scenarios ("the build failed
    again", "you're late for a lecture") rather than neutral sentences read
    aloud, plus your own consented corrections from daily use.
@@ -290,7 +297,7 @@ needed for this part.
 - **Your setting wins:** reply language "same as mine" (default), "always
   Sinhala/Tamil/English", or "ask"; commands like "speak Sinhala" always
   work.
-- **Mixed speech** (Singlish, Tanglish): reply in your preferred language,
+- **Mixed speech** (Singlish): reply in your preferred language,
   keeping English technical words, as now.
 - **Learns lightly:** counts which language you choose by situation (topic,
   time of day) and uses it to pick the default, like the empathy bandit; no
@@ -331,8 +338,8 @@ only what fails.
 1. **Baseline: LLM tool calling.** Each action is a tool with parameters
    (`show_news(country)`, `set_language(code)`, `set_empathy(mode)`, later
    the Phase 2 tools). The LLM chooses; no training.
-2. **Test set (JSON).** Examples per intent in English, Sinhala, Tamil,
-   Singlish and Tanglish, written by you and consenting friends, plus
+2. **Test set (JSON).** Examples per intent in English, Sinhala and
+   Singlish, written by you and consenting friends, plus
    Jarvis's own mistakes you corrected:
    `{"text": "mata Russia news pennanna", "lang": "si-Latn", "intent": "show_news", "slots": {"country": "Russia"}}`
 3. **Measure:** intent accuracy and slot accuracy per language, typed and
@@ -351,10 +358,10 @@ only what fails.
    romanized Singlish needs transliteration before NLLB, and tone and
    politeness can be lost on the way back.
 4. **A grammar baseline (idea from 2026-10-20).** English puts the action
-   first ("open the file"); Sinhala, Tamil, Singlish and Tanglish put it
-   last, followed by a helper word ("file eka open karanna", "file-a open
-   pannunga"). A hand-written rule (verb at the end, Sinhala or Tamil helper
-   words such as eka, karanna, mata, da, pannunga) is the simple baseline the
+   first ("open the file"); Sinhala and Singlish put it last, followed by a
+   helper word ("file eka open karanna"). A hand-written rule (verb at the
+   end, Sinhala helper words such as eka, karanna, ganna, mata, da) is the
+   simple baseline the
    trained model has to beat, and the check afterwards on what the model
    learned to look at.
 5. **Train where it fails:** a small classifier on a frozen multilingual
@@ -362,10 +369,10 @@ only what fails.
    in milliseconds, so common commands skip the LLM.
 6. **Learn from corrections:** "no, I meant..." adds a labelled example.
 
-**Making the dataset.** Mixed Sinhala-English and Tamil-English data exists
-only as typed social-media text, labelled word by word (about 90-96% word
-accuracy in a 2019 Moratuwa thesis); there is no recorded speech of
-assistant commands. So: text first (examples per intent in all five ways of
-speaking), then a consented recorded subset. LLM-written paraphrases may be
+**Making the dataset.** Mixed Sinhala-English data exists only as typed
+social-media text, labelled word by word (about 90-96% word accuracy in a
+2019 Moratuwa thesis); there is no recorded speech of assistant commands.
+So: text first (examples per intent in English, Sinhala and Singlish), then
+a consented recorded subset. LLM-written paraphrases may be
 added to the *training* data, never to the test set, which stays real and
 human-written.

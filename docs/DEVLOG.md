@@ -108,5 +108,7 @@ Future you (and anyone reading the repo) will thank you.
   maybe: ask once; unsure: stay). Decision D22. Dataset clips get language
   labels too.
 - Grammar baseline for mixed speech: action last plus helper words
-  (karanna, pannunga); the trained model must beat it. Dataset plan: text
+  (karanna, ganna); the trained model must beat it. Dataset plan: text
   first, recorded subset, LLM paraphrases for training only.
+- Research scope narrowed to English, Sinhala and Singlish (D23): Tanglish
+  dropped, Tamil only with a Tamil-speaking helper. Tamil stays in the app.
