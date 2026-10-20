@@ -144,3 +144,6 @@ Future you (and anyone reading the repo) will thank you.
   labelled checked, sourced or general knowledge.
 - Long-conversation notice: once per thread, with "summarise and start
   fresh", "new chat" or "keep going", and a context gauge in the window.
+- Research skill widened to looking things up across the sciences:
+  Wikipedia, Tavily (free), OpenAlex and arXiv; PDFs read page by page and
+  summarised with page references; references shown in the window.

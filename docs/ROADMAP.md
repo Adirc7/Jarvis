@@ -50,7 +50,7 @@ Research, News; Friend grows with Phase 1.5.
 | **Study** | Tutor for the Physical Science degree: hints first, checked maths, quizzes later | SymPy | Used for a week on one subject; every stated maths result checked |
 | **Visualise** | Graphs, 3D surfaces, vector fields, ODE solutions, physics simulations | matplotlib, plotly, SymPy, PhET; Manim later | 15 plot requests drawn correctly, checked by you |
 | **Data** | Excel/CSV analysis, regression, help with Power BI | pandas, numpy, statsmodels | 10 test questions match Excel's own results |
-| **Research** | Find papers, summarise them, keep a reading list | OpenAlex (free key), arXiv | Zero invented references in 20 requests |
+| **Research** | Look things up across the sciences, read PDFs, summarise with page references, keep a reading list | Wikipedia, Tavily, OpenAlex, arXiv, pypdf | Zero invented references in 20 requests |
 | **News** | Spoken summary and a clickable world map, only when asked | GDELT | Summaries grounded in fetched articles, sources named |
 | **Friend** | Warm talk about stress, relationships, love, psychology, with limits | Character sheet, empathy modes | Wellbeing measures in longer trials (quick win 2) |
 
@@ -653,14 +653,34 @@ the exam
 - **Done when:** 10 test questions on your own data give the same results
   as Excel.
 
-## Research
+## Research (and looking things up)
 
-- **Sources:** OpenAlex (free key, about 1,000 searches a day) and arXiv.
-  Find papers, summarise them, keep a reading list.
-- **Rule:** cite only papers that came back from a search, never from the
-  LLM's memory, because LLMs invent references that look real.
-- **Done when:** zero invented references, and every link resolving, across
-  20 research requests.
+**Idea (2026-10-20):** Jarvis explains concepts across maths, physics,
+chemistry, biology and biotechnology from what the LLM already knows, and
+for anything specific, recent or worth citing it looks it up, reads the
+source and shows the references.
+
+- **Where it looks, cheapest first:** Wikipedia (free, no key) for
+  concepts; the web through Tavily (1,000 free searches a month, no card;
+  Brave dropped its free plan in February 2026); papers through OpenAlex
+  (free key, about 1,000 searches a day) and arXiv, including their
+  open-access PDFs.
+- **Reading PDFs:** your own PDFs (lecture notes, papers you saved) and
+  open-access ones. Text is extracted page by page (pypdf; scanned pages
+  need OCR, e.g. Tesseract), the pages that match the question are found
+  with a small local embedding model, and the LLM summarises only those
+  pages, naming the page numbers. Paywalled papers are not fetched.
+- **Showing it:** the Jarvis window lists the references (title, site or
+  journal, date, link) next to the answer; clicking one opens the PDF at
+  the page used. By voice, Jarvis names the main source in one phrase.
+- **Rules:** cite only what was actually found and read, never from the
+  LLM's memory, because LLMs invent references that look real; answers are
+  labelled sourced or general knowledge (D26); web and PDF text is
+  untrusted (Phase 2, piece 6); PDFs in private folders are read only by the
+  local model.
+- **Keeps a reading list** of what you looked up, with summaries.
+- **Done when:** zero invented references and every link resolving across
+  20 requests, and page references correct when spot-checked.
 
 ## News
 
