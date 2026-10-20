@@ -38,6 +38,17 @@ switch_phrases = ["english please"]
 confirm = "Okay, I'll speak English now."
 fillers = ["Mm.", "One moment.", "Let me check.", "Right, one sec.", "Let me think."]
 
+# What Jarvis says when it starts or wakes (see src/jarvis/greeting.py).
+# {address} becomes the form of address from persona.toml ("sir"), or is
+# dropped when that's empty. Add or change lines freely.
+[en.greetings]
+morning = ["Good morning, {address}.", "Morning, {address}. What's first today?"]
+afternoon = ["Good afternoon, {address}.", "Afternoon, {address}. What do you need?"]
+evening = ["Good evening, {address}.", "Evening, {address}. What are we working on?"]
+night = ["Still up, {address}? What do you need?", "Hello, {address}. It's late; what can I do?"]
+pickup = ["Welcome back, {address}.", "Back again, {address}. Where were we?"]
+same_session = ["I'm here, {address}.", "Yes, {address}?"]
+
 [si]
 name = "Sinhala"
 native_name = "සිංහල"
@@ -53,6 +64,15 @@ switch_phrases = ["sinhala please"]
 confirm = "හරි, මම දැන් සිංහලෙන් කතා කරන්නම්."
 fillers = ["හ්ම්.", "පොඩ්ඩක් ඉන්න."]
 
+# Adhi: please check these and rewrite them the way you'd naturally say them.
+[si.greetings]
+morning = ["සුභ උදෑසනක්!"]
+afternoon = ["සුභ දහවලක්!"]
+evening = ["සුභ සන්ධ්‍යාවක්!"]
+night = ["ආයුබෝවන්! කියන්න, මොකද කරන්න ඕනේ?"]
+pickup = ["ආයෙත් ආවද? කියන්න."]
+same_session = ["ඔව්, කියන්න."]
+
 [ta]
 name = "Tamil"
 native_name = "தமிழ்"
@@ -67,3 +87,12 @@ command_words = ["பேசு", "பேசுங்கள்", "பேசவு
 switch_phrases = ["tamil please"]
 confirm = "சரி, இனி நான் தமிழில் பேசுகிறேன்."
 fillers = ["ம்ம்.", "ஒரு நிமிடம்."]
+
+# Not checked by a Tamil speaker yet (see decision D23).
+[ta.greetings]
+morning = ["காலை வணக்கம்!"]
+afternoon = ["மதிய வணக்கம்!"]
+evening = ["மாலை வணக்கம்!"]
+night = ["வணக்கம்! சொல்லுங்கள்."]
+pickup = ["மீண்டும் வணக்கம்! சொல்லுங்கள்."]
+same_session = ["ஆம், சொல்லுங்கள்."]

@@ -172,3 +172,9 @@ Future you (and anyone reading the repo) will thank you.
 - Wake options: "Hey/Hi Jarvis", optional double clap (signal processing,
   no model), double wave later. Gestures use MediaPipe's ready-made Gesture
   Recognizer (palm, thumbs up/down) plus simple motion code for swipes.
+- Built the startup greeting (`src/jarvis/greeting.py`): full greeting the
+  first time each day, a short pick-up after a break, "Yes, sir?" within the
+  same session (15 minutes, `[greeting]` in settings.toml); remembered in
+  `state/presence.json` (not committed). Lines per language in
+  languages.toml (Sinhala lines to be checked by Adhi). The LLM is told it
+  already greeted. 140 tests passing.

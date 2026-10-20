@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from typing import Any, Callable
 
 from .agent.llm import FallbackLLM, LLMUnavailable, configured_providers
@@ -21,6 +22,7 @@ from .config import Settings
 from .events import (
     KillSwitchPressed, LanguageChanged, MuteToggled, PushToTalkPressed, UtteranceCaptured,
 )
+from .greeting import FULL, Greeter, Presence, greeting_kind
 from .killswitch import HotkeyListener, Once
 from .language import LanguageManager, normalize
 from .persona import Persona
@@ -43,6 +45,7 @@ class App:
         transcriber=None,
         recorder=None,
         persona: Persona | None = None,
+        presence: Presence | None = None,
     ):
         self.settings = settings
         self.persona = persona or Persona.load()
@@ -70,6 +73,11 @@ class App:
         self._hotkeys: HotkeyListener | None = None
         self._ptt = None
         self._stt_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="stt")
+        # When you last talked to Jarvis, so greetings follow sessions, not restarts.
+        self.presence = presence if presence is not None else Presence.load(
+            settings.path("general.state_dir", "state") / "presence.json")
+        self.greeter = Greeter()
+        self.greeted_with: str | None = None
 
     # ---- language -------------------------------------------------------
     def _on_language_changed(self, ev: LanguageChanged) -> None:
@@ -82,11 +90,39 @@ class App:
                 self.bus.loop.run_in_executor(None, prepare, self.lang.current)
 
     def system_prompt(self) -> str:
-        return self.persona.system_prompt(
+        prompt = self.persona.system_prompt(
             language_instruction=self.lang.llm_instruction(),
             spoken=self.sink.spoken,
             mode=self.state.empathy,
         )
+        if self.greeted_with:
+            prompt += (f'\n\nYou already said "{self.greeted_with}" when this session started. '
+                       "Don't greet the user again; just carry on.")
+        return prompt
+
+    # ---- greeting -------------------------------------------------------
+    async def greet(self, now: datetime | None = None) -> str | None:
+        """Say the greeting that fits: full once a day, a pick-up after a break,
+        or just "I'm here" within the same session (see greeting.py)."""
+        if not self.settings.get("greeting.enabled", True):
+            return None
+        now = now or datetime.now()
+        kind = greeting_kind(now, self.presence.last_active, self.presence.last_full,
+                             float(self.settings.get("greeting.same_session_minutes", 15)))
+        lang = self.lang.current
+        if not lang.greetings and "en" in self.lang.languages:
+            lang = self.lang.languages["en"]
+        text = self.greeter.pick(kind, now, lang.greetings, self.persona.address)
+        if not text:
+            return None
+        if kind == FULL:
+            self.presence.last_full = now.date()
+        self.presence.touch(now)
+        self.presence.save()
+        self.greeted_with = text
+        self.telemetry.log("greeting", kind=kind, language=lang.code)
+        await self.sink.say(text, lang, self.state.token())
+        return text
 
     # ---- empathy mode ---------------------------------------------------
     def _apply_empathy_voice(self) -> None:
@@ -106,6 +142,8 @@ class App:
     # ---- one request ----------------------------------------------------
     async def handle_text(self, text: str, source: str = "keyboard", turn: Turn | None = None) -> str:
         turn = turn or self.telemetry.turn(source=source)
+        self.presence.touch()
+        self.presence.save()
         if self.state.mode == Mode.PAUSED:
             self.state.mode = Mode.IDLE   # a new request resumes after the kill switch
 
@@ -285,6 +323,10 @@ class App:
         self.out("Commands: /lang <code>, /empathy <mode>, /mute, /stop, /status, /quit")
         self.telemetry.log("session_start", language=self.state.language, providers=names, mode=mode)
         try:
+            await self.greet()
+        except Exception as exc:   # a greeting must never stop Jarvis from starting
+            self.telemetry.log("greeting_failed", error=str(exc)[:300])
+        try:
             while True:
                 line = await loop.run_in_executor(None, input, "\nYou: ")
                 line = line.strip()
@@ -307,6 +349,7 @@ class App:
             if self.recorder is not None and voice:
                 self.recorder.close()
             self.sink.stop()
+            self.presence.save()
             self.telemetry.log("session_end")
             self.out(f"\nLog saved to {self.telemetry.path}")
 

@@ -11,3 +11,4 @@ dist/
 eval/recordings/
 samples/
 config/settings.local.toml
+state/

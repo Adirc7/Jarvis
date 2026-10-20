@@ -128,14 +128,8 @@ class Persona:
 
 
 def time_context(now: datetime) -> str:
-    hour = now.hour
-    if 5 <= hour < 12:
-        part = "morning"
-    elif 12 <= hour < 17:
-        part = "afternoon"
-    elif 17 <= hour < 21:
-        part = "evening"
-    else:
-        part = "night"
+    from .greeting import part_of_day
+
+    part = part_of_day(now.hour)
     clock = now.strftime("%I:%M %p").lstrip("0").lower()
     return f"It's {now.strftime('%A')} {part}, {now.day} {now.strftime('%B %Y')}, {clock} local time."
