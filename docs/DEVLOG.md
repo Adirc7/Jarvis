@@ -139,3 +139,6 @@ Future you (and anyone reading the repo) will thank you.
 - Confirmation box gains tick boxes per item, up to three alternative
   actions and "Something else..." (typed, sent back through the gate).
   Button labels come from the tool call, not the LLM.
+- Topic switching planned (D26): router with confidence per turn, threads
+  parked and resumed, focused context, distress override, and answers
+  labelled checked, sourced or general knowledge.

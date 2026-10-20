@@ -464,6 +464,50 @@ Agent (Nous Research), 2026-10-20:
   Windows, where the microphone, GPU and hotkeys live), and the voice loop,
   Sinhala handling, kill switch and emotion work are this project's core.
 
+### Keeping topics apart: threads, routing and confidence
+
+**Problem:** in one conversation you may jump from study to data to how
+you feel and back. If everything goes to the LLM as one long history, the
+topics bleed into each other: LLMs use the middle of long contexts poorly
+([Liu et al. 2024](https://aclanthology.org/2024.tacl-1.9/)), and a wrong
+guess about the topic gives a confident wrong answer. Research calls this
+dialogue state tracking across domains (as in MultiWOZ, where users switch
+between hotel, restaurant and taxi in one dialogue).
+
+1. **A router on every turn** decides which skill the turn belongs to
+   (Study, Data, Research, News, Visualise, Friend, plain chat, or a
+   command) and how sure it is. Baseline: the LLM picks the skill like a
+   tool; later the small intent classifier, which gives real probabilities.
+   Explicit phrases ("let's switch to data", "back to the Newton thing")
+   always win.
+2. **Threads.** Each topic is a thread with its own recent turns. On a
+   switch, the old thread is parked with a one-line summary; "back to..."
+   resumes it from that summary.
+3. **Focused context.** The LLM receives the character sheet, the active
+   skill's instructions, the active thread's recent turns, one-line
+   summaries of parked threads, and relevant memory: not the whole history.
+4. **Confidence gate** (the same pattern as language, D22, and emotion):
+   above the threshold Jarvis goes ahead; below it, it asks one short
+   question with the two likeliest options ("The Newton-Raphson step or the
+   Power BI chart?"). The threshold is tuned on measurements, starting at
+   70%.
+5. **Distress overrides any skill.** If words or voice suggest real
+   distress, the Friend path takes priority, whatever the current topic.
+6. **Answers say how they know.** Each answer is *checked* (by SymPy,
+   pandas or a tool's verify), *sourced* (from a paper, article or your
+   notes, named), or *from general knowledge*. For the last kind, Jarvis
+   says so when it matters, instead of sounding certain. The LLM's own
+   "I'm 90% sure" is not trusted: LLMs tend to be overconfident when they
+   state their confidence
+   ([Xiong et al. 2024](https://arxiv.org/abs/2306.13063v2)).
+7. **Several things in one request** ("plot this and email it") become a
+   short plan of separate steps (Phase 7), each through the gate.
+
+**Measure:** routing accuracy, topic-switch detection on scripted test
+conversations that jump between skills, how often Jarvis asked when it
+didn't need to, answer correctness per skill, and calibration: whether
+"80% sure" is right about 80% of the time (expected calibration error).
+
 ### Understanding what you ask (intent)
 
 **Problem:** every action depends on Jarvis understanding what you meant.
@@ -518,7 +562,8 @@ only what fails.
 4. The confirmation box (click to confirm; voice can only cancel).
 5. Untrusted-content marking.
 6. Code runner.
-7. Skills loader; the Study skill, level 1, end to end.
+7. Skills loader, router, threads and focused context; the Study skill,
+   level 1, end to end.
 8. MCP client, one server first (files or calendar).
 9. The evaluation run below.
 
@@ -533,6 +578,8 @@ only what fails.
   need to (the usability cost of safety).
 - **Intent:** accuracy per language on the JSON test set, pipelines A, B
   and C.
+- **Topics:** routing accuracy and topic-switch detection on scripted
+  conversations, unnecessary questions, and calibration of confidence.
 - **Latency:** p50/p95 of tool turns.
 
 ---

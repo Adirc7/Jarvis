@@ -243,3 +243,17 @@ test set, plus how often Jarvis asked unnecessarily) turns safety into a
 result.
 **Limits:** the code runner stops accidents, not a determined attacker;
 malware already on the PC is out of scope.
+
+## D26. Topics in threads, a router with a confidence gate, answers that say how they know
+**Decision:** A router assigns every turn to a skill with a confidence;
+each topic is its own thread, parked with a summary when you switch and
+resumed on "back to..."; the LLM sees only the active thread, the skill's
+instructions and short summaries of the rest. Below the confidence
+threshold Jarvis asks one short question. Distress overrides any skill.
+Answers are labelled checked, sourced, or from general knowledge.
+**Why:** One long mixed history makes topics bleed into each other and
+LLMs use long contexts poorly; guessing the topic wrongly gives confident
+wrong answers. The confidence gate is the same pattern as for language and
+emotion, and LLMs' self-reported confidence is overconfident, so certainty
+comes from checks and sources instead.
+**Revisit:** the 70% threshold, once routing is measured.
