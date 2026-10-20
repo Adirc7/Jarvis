@@ -170,3 +170,16 @@ money after short trials and free temporary ones are likely foreign.
 beyond read-only once tools exist.
 **Revisit:** if calling from an ordinary phone line without internet becomes
 a real need.
+
+## D21. Intent: LLM tool calling first, a trained classifier only where it fails
+**Decision:** Jarvis decides what you want through LLM tool calling. A JSON
+test set in English, Sinhala, Tamil and code-mixed speech measures it; a
+small classifier on a frozen multilingual encoder is trained only for the
+intents and languages where the baseline fails, or for speed and offline
+use.
+**Why:** The LLM already handles English intents without training. The
+open question, and the research gap, is Sri Lankan and code-mixed commands:
+prior Sinhala and Tamil intent work covered banking only, with about half an
+hour of speech and no LLMs (Karunanayake et al. 2019). Measuring first keeps
+the result honest and the training small.
+**Revisit:** if the test set shows the LLM failing broadly, train earlier.

@@ -90,3 +90,14 @@ Future you (and anyone reading the repo) will thank you.
   when away), hold-to-talk first, hands-free later. No phone number: not free,
   likely foreign, and phone-line audio hurts Whisper. Decision D20.
 - Starts once voice mode works on the laptop.
+
+## 2026-10-20: Greeting, world news map, and intent
+
+- Next in Phase 1: a short startup greeting (varied, daily, in the last
+  language used).
+- Phase 1.6 now includes the Jarvis window; Phase 1.7: world news on a map
+  from GDELT, opened only when asked, summaries grounded in fetched articles.
+- Research priority 6 and decision D21: measure how well the LLM understands
+  Sri Lankan and code-mixed commands with a JSON test set, then train a
+  small classifier only where it fails. The emotional speech set gets intent
+  labels too.
