@@ -83,3 +83,10 @@ Future you (and anyone reading the repo) will thank you.
   and GPU detection.
 
 **Next:** install on the laptop, then the Phase 1 checks listed on 2026-10-17.
+
+## 2026-10-20: Calling Jarvis from the phone added to the roadmap
+
+- Phase 1.6: an internet call from a page on the phone (WebRTC, Tailscale
+  when away), hold-to-talk first, hands-free later. No phone number: not free,
+  likely foreign, and phone-line audio hurts Whisper. Decision D20.
+- Starts once voice mode works on the laptop.

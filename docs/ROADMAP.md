@@ -2,7 +2,8 @@
 
 Phases follow the implementation plan, plus Phase 1.5 (emotion awareness
 and human-like conversation) and Phase 2.5 (light memory), added on
-2026-10-17. Each phase is done when its evidence exists, not when its code
+2026-10-17, and Phase 1.6 (calling Jarvis from the phone), added on
+2026-10-20. Each phase is done when its evidence exists, not when its code
 exists.
 
 | Phase | What | Status | Done when |
@@ -10,6 +11,7 @@ exists.
 | 0 | Foundations: event bus, telemetry, kill switch, free LLMs, languages | Built, not yet run on the laptop | Smoke test passes on the laptop |
 | 1 | Spoken conversation | Built, not yet run on the laptop | Recorded dialogue tests, WER/CER per language, working mute and barge-in, p50/p95 latency |
 | **1.5** | **Emotion-aware, human-like replies** (the research contribution) | Character sheet, empathy modes and fillers built; feedback bandit next; emotion detection planned | See below |
+| 1.6 | Call Jarvis from your phone (free internet call, no phone number) | Planned: starts once Phase 1 works on the laptop | A hold-to-talk call works on home Wi-Fi and away through Tailscale, private only, with first-audio p50/p95 logged per channel |
 | 2 | Windows and browser tools, verified; allow-list first | Next to build | 20–30 fixed tasks passed or failed by real state checks, with **verified and claimed completion reported side by side** |
 | **2.5** | **Light memory** (an early slice of Phase 6) | Planned | Jarvis recalls facts and recent sessions you allowed it to keep; "forget that" verifiably deletes |
 | 3 | Hand tracking | Later | Gesture accuracy and false activations measured |
@@ -197,3 +199,53 @@ persona + adaptive empathy.
 feels, compared with the same replies without emotion context?* Compare with
 the same tasks and the same LLM, with only the emotion context switched on
 or off, in counterbalanced order.
+
+## Phase 1.6: Call Jarvis from your phone
+
+**Goal:** talk to Jarvis from the phone, anywhere, as if calling it. The
+laptop does all the work (Whisper, LLM, Lewis's voice); the phone is only a
+remote microphone and speaker.
+
+**Not a phone number.** A real number costs money after short trials
+(Twilio's trial: 75 minutes, verified numbers only), free temporary numbers
+are probably foreign (international rates from a Sri Lankan SIM), and phone
+lines carry low-quality audio that hurts Whisper, most of all for Sinhala and
+Tamil. See decision D20.
+
+**Design:** an internet call. Jarvis serves a small "Call Jarvis" page; the
+phone's browser sends and receives audio over WebRTC. On the event bus the
+phone is just another audio source and sink beside the laptop's mic and
+speakers, so the rest of the pipeline doesn't change. Away from home,
+Tailscale (free personal plan) links phone and laptop privately, and
+Tailscale Serve gives the page the HTTPS address phone browsers require
+before they allow the microphone. Library to choose when building: FastRTC
+(voice detection and turn-taking built in, but brings Gradio) or aiortc
+(lower level, lighter).
+
+### Steps
+
+1. **Hold-to-talk call (version 1).** A big button on the page works like
+   Right Ctrl; barge-in by pressing it while Jarvis speaks. Home Wi-Fi first,
+   then through Tailscale.
+2. **Hands-free (version 2).** Voice activity detection decides when you've
+   finished (e.g. Silero VAD); the browser's echo cancellation keeps Jarvis
+   from hearing itself. Shared with hands-free mode on the laptop.
+3. **Home-screen app.** Add the page to the home screen so it opens like an
+   app, with a pairing code entered once.
+4. **Optional, later:** Telegram voice notes as a walkie-talkie fallback that
+   needs no tunnel.
+
+### Rules
+
+- **Private only:** reachable through Tailscale, never a public link; a
+  pairing code on top.
+- **Phone requests are remote control:** once Phase 2 tools exist, anything
+  beyond read-only asked from the phone needs confirmation on the phone.
+- **Same privacy as the laptop:** audio is processed and dropped, never
+  stored.
+
+### Measure
+
+First-audio latency p50/p95 for phone calls next to the laptop numbers
+(telemetry tags each turn with its channel), and whether WER changes with the
+phone's microphone.
