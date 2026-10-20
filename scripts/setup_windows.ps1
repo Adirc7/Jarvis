@@ -191,10 +191,10 @@ try {
         if ($unset.Count -eq 0) {
             Write-Ok "downloads already kept off $($env:SystemDrive) ($($cacheVars['UV_CACHE_DIR']) and others)"
         } else {
-            Write-Note "Jarvis is on $drive but the package cache, Python and Whisper/Ollama models"
+            Write-Note "Jarvis is on $($drive.TrimEnd('\')) but the package cache, Python and Whisper/Ollama models"
             Write-Note "would still download to $($env:SystemDrive) (several GB)."
             $cacheRoot = Split-Path -Parent $cacheVars["UV_CACHE_DIR"]
-            if (Read-YesNo "Keep them on $($drive.TrimEnd('\')) as well, in $cacheRoot?" $true) {
+            if (Read-YesNo "Keep them on $($drive.TrimEnd('\')) as well, in ${cacheRoot}?" $true) {
                 foreach ($name in $unset) { Set-UserVariable $name $cacheVars[$name] }
                 Write-Ok ("set for your user account: " + ($unset -join ", "))
                 if (Get-Process ollama -ErrorAction SilentlyContinue) {
