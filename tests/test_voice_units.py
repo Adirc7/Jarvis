@@ -176,3 +176,23 @@ def test_push_to_talk_ignores_key_repeat_and_other_keys():
     ptt.handle_release("K")
     ptt.handle_release("K")
     assert events == ["down", "up"]
+
+
+def test_latex_is_spoken_in_words():
+    from jarvis.voice.text_split import latex_to_speech
+    assert clean_for_speech(r"The famous one is \(E = mc^2\).") == "The famous one is E equals mc squared ."
+    spoken = clean_for_speech(r"**\(G_{\mu\nu} + \Lambda g_{\mu\nu} = \frac{8\pi G}{c^{4}}\,T_{\mu\nu}\)**")
+    assert "\\" not in spoken and "{" not in spoken
+    assert "8 pi G over c to the power 4" in spoken and "equals" in spoken and "mu nu" in spoken
+    assert latex_to_speech(r"\nabla^{2}\Phi = 4\pi G \rho") == "del squared Phi equals 4 pi G rho"
+    assert latex_to_speech(r"\sqrt{x}") == "the square root of x"
+    assert clean_for_speech("Costs $5 and $10 today") == "Costs $5 and $10 today"   # money, not maths
+    assert clean_for_speech(r"So $x^2 = 4$ here") == "So x squared equals 4 here"
+
+
+def test_honesty_about_current_events_is_in_the_prompt():
+    from jarvis.persona import Persona
+    prompt = Persona.load().system_prompt(language_instruction="Reply in English.", spoken=True, mode="balanced")
+    assert "can't check the latest yet" in prompt
+    assert "search the web or check current news" in prompt
+    assert "Never write maths as symbols or LaTeX" in prompt

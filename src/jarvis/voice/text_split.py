@@ -26,8 +26,47 @@ _MARKDOWN = [
 ]
 
 
+# LaTeX maths, said in words. Models write maths like \(E = mc^2\) even when
+# told not to; the voice would read the backslashes and braces aloud.
+# Single $...$ counts as maths only with maths inside, so "$5 and $10" stays money.
+_MATH_SPANS = re.compile(r"\\\((.+?)\\\)|\\\[(.+?)\\\]|\$\$(.+?)\$\$|\$([^$\n]*[\\^_=][^$\n]*?)\$", re.S)
+_LATEX_WORDS = {
+    "alpha": "alpha", "beta": "beta", "gamma": "gamma", "Gamma": "Gamma", "delta": "delta",
+    "Delta": "Delta", "epsilon": "epsilon", "theta": "theta", "lambda": "lambda", "Lambda": "Lambda",
+    "mu": "mu", "nu": "nu", "pi": "pi", "rho": "rho", "sigma": "sigma", "Sigma": "sum of",
+    "tau": "tau", "phi": "phi", "Phi": "Phi", "omega": "omega", "Omega": "Omega", "psi": "psi",
+    "nabla": "del", "partial": "partial", "infty": "infinity", "sum": "the sum of",
+    "int": "the integral of", "cdot": "times", "times": "times", "approx": "approximately",
+    "neq": "is not equal to", "leq": "is at most", "geq": "is at least", "to": "to",
+    "rightarrow": "goes to", "Rightarrow": "so", "implies": "so", "pm": "plus or minus",
+    "hbar": "h bar", "ln": "log", "log": "log", "sin": "sine", "cos": "cosine", "tan": "tangent",
+}
+
+
+def latex_to_speech(math: str) -> str:
+    r"""'\frac{8\pi G}{c^{4}}' -> '8 pi G over c to the power 4'. Good enough to hear, not exact."""
+    m = math
+    m = re.sub(r"\\(?:left|right|displaystyle|,|;|!|quad|qquad)", " ", m)
+    m = re.sub(r"\\text\{([^{}]*)\}", r" \1 ", m)
+    for _ in range(4):   # innermost first: powers and subscripts, then fractions and roots
+        m = re.sub(r"\^\{2\}|\^2(?!\d)", " squared ", m)
+        m = re.sub(r"\^\{3\}|\^3(?!\d)", " cubed ", m)
+        m = re.sub(r"\^\{([^{}]*)\}", r" to the power \1 ", m)
+        m = re.sub(r"\^(\w)", r" to the power \1 ", m)
+        m = re.sub(r"_\{([^{}]*)\}", r" \1 ", m)
+        m = re.sub(r"_(\w)", r" \1 ", m)
+        m = re.sub(r"\\[dt]?frac\{([^{}]*)\}\{([^{}]*)\}", r" \1 over \2 ", m)
+        m = re.sub(r"\\sqrt\{([^{}]*)\}", r" the square root of \1 ", m)
+    m = re.sub(r"\\([A-Za-z]+)", lambda x: f" {_LATEX_WORDS.get(x.group(1), x.group(1))} ", m)
+    m = m.replace("=", " equals ").replace("+", " plus ").replace("\u2212", " minus ")
+    m = re.sub(r"(?<=\s)-(?=\s)", " minus ", m)
+    m = re.sub(r"[{}\\]", " ", m)
+    return " ".join(m.split())
+
+
 def clean_for_speech(text: str) -> str:
     """Strip markdown and symbols that a TTS voice would read out literally."""
+    text = _MATH_SPANS.sub(lambda m: " " + latex_to_speech(next(g for g in m.groups() if g)) + " ", text)
     for pattern, repl in _MARKDOWN:
         text = pattern.sub(repl, text)
     return " ".join(text.split())
