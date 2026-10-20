@@ -169,3 +169,6 @@ Future you (and anyone reading the repo) will thank you.
 - Phase 3 gesture set: open palm (stop), thumbs up/down (feedback), swipe
   (next/previous), point + "this" (Phase 4), double wave (silent wake);
   held half a second, never for risky actions, hand tracking on the CPU.
+- Wake options: "Hey/Hi Jarvis", optional double clap (signal processing,
+  no model), double wave later. Gestures use MediaPipe's ready-made Gesture
+  Recognizer (palm, thumbs up/down) plus simple motion code for swipes.
