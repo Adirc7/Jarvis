@@ -620,6 +620,27 @@ the exam
 3. **Level 3:** short quizzes a few days later (spaced repetition) and
    tracking which topics you find hard, so they come back more often.
 
+- **Focus (2026-10-20):** physics, pure maths and applied maths get the
+  deepest support (checks and proper equations); other sciences
+  (chemistry, biology, biotechnology) go through looking things up with
+  references (Research skill).
+- **Equations shown properly:** the LLM is told to write maths as LaTeX;
+  the Jarvis window typesets it with KaTeX (free, MIT), line by line for
+  derivations. By voice, Jarvis says the idea ("the error doubles every
+  step"), not the symbols.
+- **The strongest free brain for hard problems:** a skill can choose its
+  own model. Study uses a reasoning model (gpt-oss-120b on Groq, with
+  `reasoning_effort` raised for hard problems), since a few seconds' wait is
+  fine when studying; plain chat keeps the fast model. Maths-specialised
+  open models (Qwen2.5-Math, Mathstral, DeepSeek-Math) are small enough to
+  run locally only in versions weaker than the free hosted ones.
+- **Checks that fit physics and maths:** SymPy for algebra, calculus,
+  series and exact ODE solutions; numpy/scipy for numerical methods and
+  differential equations; units checked with a units library (e.g. pint),
+  which catches many physics mistakes; formal proof checking (Lean) only as
+  a later experiment for pure-maths proofs. No model is reliable at
+  university or PhD level on its own, so answers say whether they were
+  checked (D26).
 - **Language:** explains in Sinhala or Singlish when asked, keeping the
   English technical terms used in lectures.
 - **Research link:** study sessions are the real-life test for detecting

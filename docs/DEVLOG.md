@@ -147,3 +147,6 @@ Future you (and anyone reading the repo) will thank you.
 - Research skill widened to looking things up across the sciences:
   Wikipedia, Tavily (free), OpenAlex and arXiv; PDFs read page by page and
   summarised with page references; references shown in the window.
+- Study skill: physics and maths in depth (LaTeX typeset with KaTeX,
+  per-skill model choice with gpt-oss-120b for hard problems, SymPy, scipy
+  and unit checks); other sciences through Research with references.
