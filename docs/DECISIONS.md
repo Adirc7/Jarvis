@@ -46,6 +46,8 @@ logged; irreversible: confirm first), and treating web page text as untrusted.
 UI. See LANGUAGES.md.
 **Why:** Auto-detecting the language of every short command is unreliable,
 especially for Sinhala. A deterministic rule is testable.
+**Update (2026-10-20):** to be replaced by D22, following the user's
+language only when Whisper is confident.
 
 ## D7. Data handling (10.5)
 **Decision:** No audio or video persisted beyond the current utterance or
@@ -183,3 +185,16 @@ prior Sinhala and Tamil intent work covered banking only, with about half an
 hour of speech and no LLMs (Karunanayake et al. 2019). Measuring first keeps
 the result honest and the training small.
 **Revisit:** if the test set shows the LLM failing broadly, train earlier.
+
+## D22. Reply in the language the user speaks, gated by confidence
+**Decision:** Jarvis replies in the detected language when Whisper is at
+least 80% sure and the utterance is long enough; asks once when a change is
+likely but uncertain (50-80%); otherwise keeps the current language. A user
+setting (same as mine, always one language, or ask) and explicit commands
+override it.
+**Why:** Asking before every answer would be tiring, and switching on every
+guess would flip languages on short words like "ok". A confidence gate
+asks only when it matters, and the user's answers become the data for a
+small preference learner.
+**Revisit:** thresholds after measuring detection accuracy by utterance
+length on the test set.
