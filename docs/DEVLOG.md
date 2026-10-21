@@ -256,3 +256,7 @@ OpenRouter's `openrouter/free` router instead of one fixed free model.
   picker now refuses F23 with an explanation (Windows would open Copilot on
   every press) and suggests Right Alt; setup asks about "Ctrl to the right of
   the space bar (not Copilot)".
+- 2026-10-21 morning: **first spoken conversation works on the laptop**,
+  with Right Alt as the push-to-talk key (saved in settings.local.toml).
+  Still to do for M0: the latency table, Sinhala by voice, barge-in, and
+  recording round 1.
