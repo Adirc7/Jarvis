@@ -287,3 +287,32 @@ def test_cpu_only_onnxruntime_never_asks_for_cuda(monkeypatch, tmp_path):
     monkeypatch.setattr(rt, "get_available_providers", lambda: ["CPUExecutionProvider"])
     tts_mod.kokoro_session(tmp_path / "m.onnx", "cuda")
     assert made["p"] == ["CPUExecutionProvider"]
+
+
+@pytest.mark.skipif(not (KOKORO_DIR / "kokoro-v1.0.onnx").is_file(), reason="Kokoro model not downloaded")
+def test_jarvis_and_friday_share_one_kokoro(settings):
+    pytest.importorskip("kokoro_onnx")
+    from jarvis.voice.tts import KokoroTTS
+    model, voices = KOKORO_DIR / "kokoro-v1.0.onnx", KOKORO_DIR / "voices-v1.0.bin"
+    jarvis = KokoroTTS(model, voices, "bm_lewis", "en-gb", device="cpu")
+    friday = KokoroTTS(model, voices, "bf_emma", "si", device="cpu")
+    assert jarvis._kokoro is friday._kokoro                      # one model in memory
+    audio = friday.synthesize("ආයුබෝවන්, මම ෆ්‍රයිඩේ.")
+    assert 0.5 < len(audio) / friday.sample_rate < 5
+
+
+def test_friday_in_sinhala_jarvis_in_english(settings):
+    from jarvis.persona import Persona
+    p = Persona.load()
+    si = settings.languages["si"]
+    prompt = p.system_prompt(language_instruction="", spoken=True, mode="balanced", assistant_name=si.assistant_name)
+    assert prompt.startswith(f"You are {si.assistant_name}") and "JARVIS and FRIDAY" in prompt
+    assert "two names" not in p.system_prompt(language_instruction="", spoken=True, mode="balanced")
+
+
+def test_asking_for_friday_switches_to_sinhala(settings):
+    lm = LanguageManager(settings.languages, "en")
+    assert lm.detect_switch("talk to Friday") == "si"
+    assert lm.detect_switch("Can I talk to Friday?") == "si"
+    assert lm.detect_switch("Jarvis please") == "en"
+    assert lm.detect_switch("Can you change my meeting to Friday?") is None   # just a weekday

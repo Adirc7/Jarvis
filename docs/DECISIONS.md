@@ -169,6 +169,9 @@ filler started at 1.6 s, and the real first sentence (ready at 1.9 s) had to
 wait for the filler to finish: first audio at 3.2 s instead of about 2 s. Once
 text is arriving, the voice is only a sentence away and a filler only delays
 it.
+**Update (21 Oct, evening):** the threshold is now 1.2 s. With the voice on
+the GPU, replies usually start by 1.4 s, and a filler at 0.7 s still held one
+reply back by 1 s (each played piece also waited an extra 0.2 s, now removed).
 
 ## D18. Research priorities from the literature review
 **Decision:** Do three quick wins first (verified vs claimed completion,

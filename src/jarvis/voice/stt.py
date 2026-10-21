@@ -135,6 +135,7 @@ class Transcriber:
             beam_size=int(self._settings.get("stt.beam_size", 1)),
             vad_filter=bool(self._settings.get("stt.vad_filter", True)),
             initial_prompt=self._settings.get("stt.initial_prompt") or None,
+            temperature=tuple(float(t) for t in self._settings.get("stt.temperatures", [0.0, 0.4])),
         )
         segments = list(segments)                          # transcription runs here
         text = " ".join(s.text.strip() for s in segments).strip()

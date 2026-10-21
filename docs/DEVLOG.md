@@ -532,3 +532,25 @@ exactly what it remembers, and the persona's "can't yet" line was updated.
   the check and the LLM asked to clarify. The telemetry report now shows
   Whisper's confidence per turn, to tune the check on real numbers.
 - Typing Sinhala works well (LLM reply plus the Piper Sinhala voice).
+
+## 2026-10-21 evening: first audio under 1.5 s
+
+`session-20261021-175600` (after the open connection and the GPU voice):
+
+| # | | Whisper | LLM | 1st sentence | first audio |
+|---|---|---|---|---|---|
+| 1 | English voice | 495 | 633 | 200 (25 ch) | **1348** |
+| 2 | English voice | 593 | 700 | 198 (27 ch) | 2506 (filler held it 996 ms) |
+| 3 | English voice | 514 | 519 | 278 (57 ch) | **1359** |
+| 5, 6 | Sinhala voice | 6511, 7234 | | | asked again (confidence -1.16, -1.94) |
+
+- **D8 met for English voice turns: 1.35 s** (it was 3.2 s this morning).
+  Voice on the GPU: 0.2 s for the first sentence instead of 0.6-1.1 s.
+- Fixes: the filler threshold is now 1.2 s (D17); the player no longer waits
+  0.2 s after every piece (also a gap between sentences); Whisper retries
+  at most twice (`[stt] temperatures = [0.0, 0.4]`, default was six), since
+  the six retries on unreadable Sinhala took 6.5-7 s before Jarvis could say
+  it didn't understand.
+- Sinhala now speaks as Friday (Kokoro `bf_emma` with eSpeak's Sinhala
+  pronunciation), Adhi's choice after listening to five women's voices;
+  English stays Jarvis (`bm_lewis`). One Kokoro model serves both.
