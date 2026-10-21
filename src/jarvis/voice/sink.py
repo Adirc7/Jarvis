@@ -13,6 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any, AsyncIterator, Callable
 
 from ..config import Language, Settings
+from ..language import language_by_script
 from ..state import CancelToken
 from ..telemetry import Telemetry, Turn
 from .player import AudioPlayer
@@ -65,6 +66,7 @@ class VoiceSink(TextSink):
         self.player = player
         self.muted = False
         self._tel = telemetry or Telemetry.disabled()
+        self._languages = getattr(settings, "languages", {})
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="tts")
         self._broken: dict[str, str] = {}      # language code -> TTS error, reported once
         self._chunk_cfg = dict(
@@ -216,12 +218,16 @@ class VoiceSink(TextSink):
             chunk = await q.get()
             if chunk is None or (token is not None and token.cancelled):
                 return
+            # A Sinhala sentence is spoken by Friday even in English mode
+            # (Jarvis's English voice can't read Sinhala letters).
+            by_script = language_by_script(chunk, self._languages)
+            voice = self._languages[by_script] if by_script and by_script != lang.code else lang
             try:
-                with self._tel.span("tts", language=lang.code, chars=len(chunk)):
+                with self._tel.span("tts", language=voice.code, chars=len(chunk)):
                     audio, sr = await loop.run_in_executor(
-                        self._executor, self.tts.render, chunk, lang, self.speed_factor)
+                        self._executor, self.tts.render, chunk, voice, self.speed_factor)
             except Exception as exc:
-                self._report_broken(lang, exc)
+                self._report_broken(voice, exc)
                 return
             if token is not None and token.cancelled:
                 return

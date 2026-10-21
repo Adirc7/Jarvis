@@ -15,6 +15,10 @@
 #                Words like "say" and "translate" are left out on purpose, so
 #                "translate this to Tamil" does not switch.
 # switch_phrases Whole utterances that switch to this language.
+# voice_names    The assistant's name in this language (Jarvis for English,
+#                Friday for Sinhala). Saying it alone ("Friday", "hey Friday")
+#                or with talk words ("I need to talk to Friday") switches here;
+#                not when it's the day ("on Friday", "Friday's lecture").
 # confirm        What Jarvis says (in the new language) after switching.
 # fillers        Short sounds Jarvis may say while it's still thinking, only
 #                when the real reply is slow ("mm, one moment"). Pre-recorded
@@ -37,6 +41,7 @@ tts_lang = "en-gb"
 names = ["english", "ඉංග්‍රීසි", "ඉංග්‍රීසියෙන්", "ஆங்கிலம்", "ஆங்கிலத்தில்"]
 command_words = ["speak", "talk", "reply", "answer", "respond", "switch", "change", "prefer"]
 switch_phrases = ["english please", "talk to jarvis", "jarvis please", "can i talk to jarvis"]
+voice_names = ["jarvis", "ජාවිස්", "ජාර්විස්"]
 confirm = "Jarvis here, sir. English it is."
 fillers = ["Mm.", "Hmm.", "Right.", "One moment.", "Let me check."]   # long ones are skipped (filler_max_ms)
 unclear = "Sorry, {address}, I couldn't make that out. Could you say it again, or type it?"
@@ -77,6 +82,7 @@ tts_lang = "si"
 names = ["sinhala", "sinhalese", "singhala", "singala", "singular", "සිංහල", "සිංහලෙන්"]
 command_words = ["කතා", "මාරු"]
 switch_phrases = ["sinhala please", "talk to friday", "friday please", "hey friday", "can i talk to friday"]
+voice_names = ["friday", "ෆ්‍රයිඩේ", "ෆ්‍රයිඩෙ"]
 confirm = "හරි, මම ෆ්‍රයිඩේ. දැන් සිංහලෙන් කතා කරමු."
 fillers = ["හ්ම්.", "පොඩ්ඩක් ඉන්න."]
 # Adhi's wording (21 Oct). Change it any time.

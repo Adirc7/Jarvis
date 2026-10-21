@@ -8,6 +8,11 @@
 For each sentence: press Enter, read it aloud, press Enter again. Recordings go
 to eval/recordings/<set>/ (the language code unless --set is given) with a
 manifest.csv of file -> correct text. Recording again never overwrites a clip.
+Stop any time (q, or a power cut): the next run skips sentences you already
+recorded (--again records them anyway).
+
+Recordings for TRAINING go in their own set, never mixed with the test set:
+    uv run python scripts/record_eval_set.py data/generated/si_reading_list.txt --lang si --set si-train
 They stay on your laptop (the folder is in .gitignore). Only record other
 people if they agree.
 
@@ -65,6 +70,7 @@ def main() -> int:
     ap.add_argument("--lang", required=True, help="Jarvis language code: en, si, ta")
     ap.add_argument("--speaker", default="me", help="label for whoever is reading")
     ap.add_argument("--set", dest="set_name", help="folder under eval/recordings (default: the language code)")
+    ap.add_argument("--again", action="store_true", help="also record sentences already in the manifest")
     args = ap.parse_args()
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -74,11 +80,19 @@ def main() -> int:
     manifest = out_dir / "manifest.csv"
     out_dir.mkdir(parents=True, exist_ok=True)
     existing = manifest.is_file()
+    done: set[tuple[str, str]] = set()
+    if existing and not args.again:
+        with open(manifest, encoding="utf-8") as f:
+            done = {(row["text"], row["speaker"]) for row in csv.DictReader(f)}
+        left = sum((t, args.speaker) not in done for t in sentences)
+        print(f"{len(sentences) - left} of {len(sentences)} already recorded; {left} to go.")
     with open(manifest, "a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         if not existing:
             writer.writerow(["file", "text", "speaker", "lang"])
         for i, text in enumerate(sentences, 1):
+            if (text, args.speaker) in done:
+                continue
             print(f"\n[{i}/{len(sentences)}] {text}")
             cmd = input("   Enter = record, s = skip, q = quit: ").strip().lower()
             if cmd == "q":

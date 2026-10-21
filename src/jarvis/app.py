@@ -179,6 +179,12 @@ class App:
             turn.mark("empathy_switch")
 
         code = self.lang.detect_switch(text)
+        if code == self.lang.current.code and len(normalize(text).split()) > 2:
+            code = None          # "Jarvis, I need help" in English: already Jarvis, just answer
+        if code is None and (by_script := self.lang.script_language(text)) not in (None, self.lang.current.code):
+            # Typed (or heard) in Sinhala script while in English: Friday answers.
+            self.lang.set(by_script, source=f"{source}_script")
+            turn.mark("language_switch")
         if code is not None:
             self.lang.set(code, source=f"{source}_command")
             lang = self.lang.current

@@ -73,3 +73,31 @@ def test_retranscribe_decision(settings):
 def test_llm_instruction_mentions_script(settings):
     lm = LanguageManager(settings.languages, "ta")
     assert "Tamil" in lm.llm_instruction() and "தமிழ்" in lm.llm_instruction()
+
+
+@pytest.mark.parametrize("text, expected", [
+    ("Friday", "si"), ("Friday. Friday. Friday. Friday. Friday.", "si"), ("hey Friday", "si"),
+    ("I need to talk Friday", "si"), ("can I talk to Friday now", "si"), ("Friday ekka katha karanna", "si"),
+    ("ෆ්‍රයිඩේ එක්ක කතා කරන්න", "si"), ("ෆ්රයිඩේ", "si"),
+    ("Jarvis", "en"), ("can I talk to Jarvis now", "en"), ("ජාවිස්", "en"),
+    ("Jarvis, switch to Sinhala", "si"),                         # a language named wins over the name
+])
+def test_calling_the_assistant_by_name_switches(lm, text, expected):
+    assert lm.detect_switch(text) == expected
+
+
+@pytest.mark.parametrize("text", [
+    "What do I have on Friday?", "Can you change my meeting to Friday?", "remind me on Friday",
+    "Friday's lecture is cancelled", "I want the notes by Friday", "Jarvis, what time is it",
+    "Jarvis, open Chrome", "let's talk about Friday",
+])
+def test_the_day_friday_does_not_switch(lm, text):
+    assert lm.detect_switch(text) is None
+
+
+def test_script_language(lm):
+    assert lm.script_language("ඔව්, අපි සිංහලෙන් කතා කරමු") == "si"
+    assert lm.script_language("தமிழில் பேசு") == "ta"
+    assert lm.script_language("mata help ekak one") is None            # Singlish could be either
+    assert lm.script_language("Fourier series එක explain කරන්න") == "si"
+    assert lm.script_language("12 + 7") is None

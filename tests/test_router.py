@@ -260,3 +260,50 @@ def test_settings_language_routes(settings):
     settings.raw["llm"]["language_routes"]["si"]["code"] = ["nope"]
     with pytest.raises(ValueError, match="llm.language_routes.si.code"):
         settings.routes()
+
+
+def test_leaked_reasoning_is_dropped():
+    from jarvis.agent.llm import LeakFilter
+
+    def run(pieces):
+        f = LeakFilter()
+        return "".join(f.feed(p) for p in pieces) + f.flush(), f.dropped
+
+    out, dropped = run(["Sure, sir. What would you like to discuss about Friday?", "User wants to talk Friday.",
+                        "Do you have an appointment?"])              # what Jarvis printed on 21 Oct
+    assert out == "Sure, sir. What would you like to discuss about Friday? Do you have an appointment?"
+    assert dropped == ["User wants to talk Friday."]
+    assert run(["Sure", ", sir. ", "Us", "er wa", "nts to talk Friday.Do you", " have one?"])[0] \
+        == "Sure, sir. Do you have one?"
+    kept = "User accounts are stored in a table. We should check the units first. The user interface is simple."
+    assert run([kept]) == (kept, [])                                   # real sentences that start alike
+
+
+async def test_leak_never_reaches_the_reply():
+    tel_events = []
+
+    class Tel(Telemetry):
+        def __init__(self):
+            super().__init__(None)
+
+        def log(self, event, **fields):
+            tel_events.append((event, fields))
+
+    llm = FallbackLLM([Provider("oss", "m", FakeClient(["We need to respond briefly. ", "Hello, sir."]))], Tel())
+    assert await collect(llm.stream_text([])) == "Hello, sir."
+    assert any(e == "llm_leak_dropped" and "respond briefly" in f["text"] for e, f in tel_events)
+
+
+async def test_sinhala_typed_in_english_mode_switches_to_friday(settings):
+    app = App(settings, Telemetry.disabled(), llm=FallbackLLM([Provider("f", "m", FakeClient(["හරි."]))]),
+              out=lambda *a, **k: None)
+    assert app.lang.current.code == "en"
+    await app.handle_text("ඔයාට සිංහල තේරෙනවද?")
+    assert app.lang.current.code == "si"
+
+
+async def test_saying_the_current_name_with_a_request_just_answers(settings):
+    client = FakeClient(["Of course."])
+    app = App(settings, Telemetry.disabled(), llm=FallbackLLM([Provider("f", "m", client)]), out=lambda *a, **k: None)
+    assert await app.handle_text("Jarvis, I need help") == "Of course."      # no "English it is" confirmation
+    assert client.calls == 1

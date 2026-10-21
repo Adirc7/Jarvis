@@ -28,6 +28,36 @@ from .events import LanguageChanged
 _ZERO_WIDTH = {"​", "‌", "‍", "﻿"}
 MAX_COMMAND_WORDS = 10   # longer utterances are treated as normal requests
 
+# Calling the assistant by name: "Friday", "hey Friday", "I need to talk Friday".
+_NAME_FILLERS = {"hey", "hi", "hello", "ok", "okay", "please", "yes", "oh", "now", "ane", "hari", "අනේ", "හරි"}
+_TALK_WORDS = {"talk", "speak", "switch", "call", "want", "need", "bring", "change", "get", "let",
+               "කතා", "මාරු", "එක්ක", "katha", "ekka", "maru"}
+# ...but not the day: "on Friday", "Friday's lecture", "move my exam to Friday".
+_DAY_WORDS = {"on", "about", "this", "next", "last", "every", "until", "till", "by", "before", "after",
+              "coming", "day", "morning", "evening", "night", "week", "lecture", "lectures", "exam", "exams",
+              "class", "meeting", "deadline", "due", "remind", "reminder", "timetable", "schedule"}
+# Non-Latin letters of each script, by Whisper code: text mostly in one of
+# these is that language whatever mode Jarvis is in.
+_NATIVE_SCRIPT = {"si": (0x0D80, 0x0DFF), "ta": (0x0B80, 0x0BFF)}
+
+
+def language_by_script(text: str, languages: dict[str, Language], min_share: float = 0.25) -> str | None:
+    """The language whose own (non-Latin) script a good share of the letters are in.
+
+    A quarter is enough: Sinhala as people type it mixes in English words
+    ("Fourier series එක explain කරන්න"), and those are Friday's to answer.
+    """
+    letters = [c for c in text if unicodedata.category(c)[0] in "LM"]
+    if not letters:
+        return None
+    best, best_share = None, 0.0
+    for code, lang in languages.items():
+        span = _NATIVE_SCRIPT.get(lang.whisper_code)
+        share = sum(span[0] <= ord(c) <= span[1] for c in letters) / len(letters) if span else 0.0
+        if share > best_share:
+            best, best_share = code, share
+    return best if best_share >= min_share else None
+
 
 def normalize(text: str) -> str:
     """Lowercase, NFC, drop zero-width joiners, turn punctuation into spaces.
@@ -69,6 +99,7 @@ class LanguageManager:
         self._on_change = on_change
         self._by_whisper = {lang.whisper_code: code for code, lang in languages.items()}
         self._command_words = {normalize(w) for lang in languages.values() for w in lang.command_words}
+        self._voice_names = {code: {normalize(n) for n in lang.voice_names} for code, lang in languages.items()}
 
     @property
     def current(self) -> Language:
@@ -83,17 +114,35 @@ class LanguageManager:
         for code, lang in self.languages.items():
             if any(norm == normalize(p) for p in lang.switch_phrases):
                 return code
-        if len(words) > MAX_COMMAND_WORDS:
-            return None
-        if not any(w in self._command_words for w in words):
-            return None
         matches = [
             code for code, lang in self.languages.items()
             if any(_contains_tokens(words, name) for name in lang.names)
         ]
+        if not matches:
+            return self._called_by_name(words)
+        if len(words) > MAX_COMMAND_WORDS:
+            return None
+        if not any(w in self._command_words for w in words):
+            return None
         # Exactly one language named -> switch. Two named ("translate English
         # to Tamil") is ambiguous, so treat it as a normal request.
         return matches[0] if len(matches) == 1 else None
+
+    def _called_by_name(self, words: list[str]) -> str | None:
+        """"Friday" / "hey Friday" / "I need to talk Friday" -> Friday's language."""
+        named = {code for code, names in self._voice_names.items() if any(w in names for w in words)}
+        if len(named) != 1:
+            return None
+        code = named.pop()
+        if all(w in self._voice_names[code] or w in _NAME_FILLERS for w in words):
+            return code
+        if len(words) > MAX_COMMAND_WORDS or any(w in _DAY_WORDS for w in words):
+            return None
+        return code if any(w in _TALK_WORDS for w in words) else None
+
+    def script_language(self, text: str) -> str | None:
+        """A language whose own script the text is written in (Sinhala, Tamil), if any."""
+        return language_by_script(text, self.languages)
 
     def needs_retranscribe(self, detected_whisper_code: str | None, probability: float | None) -> str | None:
         """If Whisper confidently heard another known language, return its code."""
