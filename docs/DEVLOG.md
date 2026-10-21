@@ -420,3 +420,21 @@ per model, laptop in Sri Lanka:
   already running") came from how it cut replies short; it now cancels the
   way barge-in does, and measures each model on a new and an open line.
 - Gemini and OpenRouter stay as fallbacks only; the order is right.
+
+Measured after the fix (`llm_speed.py`, new connection vs open connection):
+
+| Model | New line | Open line |
+|---|---|---|
+| Groq gpt-oss-120b | 828 ms | 608 ms |
+| Groq gpt-oss-20b | 871 ms | 646 ms |
+
+So the open connection saves about 0.22 s per question; the remaining 0.6 s
+is Groq's own time from Sri Lanka. Side effect of testing: Gemini's free
+daily quota ran out (429) and gpt-oss-20b hit its per-minute limit once, so
+the speed script shouldn't be run many times a day.
+
+Estimated English voice turn now: Whisper about 0.5 s + LLM 0.6 s + first
+sentence voice 0.6-0.7 s, about 1.8 s. The voice is the biggest step left:
+`scripts/try_tts_gpu.cmd` times Kokoro on the CPU, the int8 model, and the
+GPU through DirectML (and CUDA, optional), each GPU build in its own test
+environment so Jarvis isn't changed until one clearly wins.
