@@ -15,15 +15,21 @@ from pathlib import Path
 
 
 def nvidia_dll_dirs() -> list[Path]:
+    """Every site-packages/nvidia/<library>/bin (or lib) folder.
+
+    All of them, not a fixed list: onnxruntime also needs cufft and curand,
+    and cuDNN 9 loads helper DLLs (cudnn_engines_tensor_ir64_9.dll ...) by
+    name only when it first runs, so their folder must be searchable.
+    """
     dirs: list[Path] = []
     for entry in sys.path:
         base = Path(entry) / "nvidia"
         if not base.is_dir():
             continue
-        for sub in ("cublas", "cudnn", "cuda_runtime", "cuda_nvrtc"):
+        for sub in sorted(base.iterdir()):
             for folder in ("bin", "lib"):
-                d = base / sub / folder
-                if d.is_dir():
+                d = sub / folder
+                if d.is_dir() and d not in dirs:
                     dirs.append(d)
     return dirs
 

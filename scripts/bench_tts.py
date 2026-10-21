@@ -33,10 +33,17 @@ SENTENCES = [                        # first chunks are 12-60 characters (tts.fi
 
 
 def make_session(model: Path, provider: str):
+    if provider == "CUDAExecutionProvider":
+        # Make the pip-installed CUDA and cuDNN folders searchable, as Jarvis
+        # does for Whisper; without it cuDNN can't find its helper DLLs.
+        sys.path.insert(0, str(ROOT / "src"))
+        from jarvis.gpu import prepare_cuda      # standard library only
+        prepare_cuda()
     import onnxruntime as rt
 
+    rt.set_default_logger_severity(3)           # errors only, no performance chatter
     if provider == "CUDAExecutionProvider" and hasattr(rt, "preload_dlls"):
-        rt.preload_dlls()                       # CUDA and cuDNN DLLs from pip packages
+        rt.preload_dlls()
     available = rt.get_available_providers()
     if provider not in available:
         sys.exit(f"{provider} isn't in this onnxruntime build. Available: {', '.join(available)}")
@@ -66,12 +73,14 @@ def main() -> int:
     t0 = time.perf_counter()
     session = make_session(args.model, args.provider)
     kokoro = Kokoro.from_session(session, str(args.voices))
-    load_ms = (time.perf_counter() - t0) * 1000
-    print(f"onnxruntime {rt.__version__}, model {args.model.name}, asked for {args.provider}")
-    print(f"running on: {', '.join(session.get_providers())}   (load {load_ms:.0f} ms)\n")
-
     for _ in range(2):                          # the first runs are slow everywhere
         kokoro.create(SENTENCES[1], voice=args.voice, speed=1.0, lang="en-gb")
+    load_ms = (time.perf_counter() - t0) * 1000
+    running = kokoro.sess.get_providers()       # after the first runs: a failing GPU falls back here
+    print(f"onnxruntime {rt.__version__}, model {args.model.name}, asked for {args.provider}")
+    print(f"running on: {', '.join(running)}   (load and warm-up {load_ms:.0f} ms)\n")
+    if args.provider not in running:
+        print(f"WARNING: {args.provider} failed and it fell back to the CPU; these are CPU numbers.\n")
 
     print(f"{'chars':>5} {'median ms':>10} {'audio s':>8} {'RTF':>6}   sentence")
     for text in SENTENCES:
