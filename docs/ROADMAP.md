@@ -642,8 +642,22 @@ only what fails.
    on what the model learned to look at.
 5. **Train where it fails:** a small classifier on a frozen multilingual
    encoder, the same pattern as the emotion model. It also runs offline and
-   in milliseconds, so common commands skip the LLM.
-6. **Learn from corrections:** "no, I meant..." adds a labelled example.
+   in milliseconds, so common commands skip the LLM. Adhi's variant
+   (2026-10-21): character n-gram features (robust to Sinhala spelling and
+   Whisper's partial-word errors) with a linear model, a decision tree and
+   gradient boosting, compared on the same test set. Gemini may write
+   variations of each command for *training* (checked by Adhi); the test set
+   stays real.
+6. **Closed-set commands, "multiple choice" (idea from 2026-10-21):** for a
+   fixed list of about 200 command phrases, Whisper doesn't write what it
+   heard; it scores how well each known phrase fits the audio, and Jarvis
+   takes the best one if it's clearly ahead of the second (otherwise it asks
+   again). Choosing from 200 is far easier than open transcription, so this
+   can work for Sinhala before any fine-tuning. Compare it with "transcribe,
+   then classify" on the spoken test set: accuracy, false accepts, and time
+   per utterance (scoring 200 phrases has to stay fast).
+7. **Learn from corrections:** "no, I meant..." adds a labelled example (see
+   "Learning from use").
 
 ### Build steps
 
@@ -844,6 +858,35 @@ needs.
 6. **Use:** train and test the improvement ladder (Phase 1.5), always
    leave-one-speaker-out. Publish features or the dataset only if every
    speaker agreed to that.
+
+## Learning from use (idea from 2026-10-21)
+
+The more you talk to Jarvis, the better it should understand *you*: your
+voice, your Sinhala, your commands. The loop:
+
+1. **You talk;** Jarvis acts on its best guess.
+2. **The right answer comes from you:** a correction ("no, I meant..."), a
+   click in the confirm box, the feedback words, or retyping what it
+   misheard. Only these become labelled examples: if Jarvis trained on its
+   own unchecked guesses, it would learn its own mistakes.
+3. **Saved on the laptop only, opt-in:** with `[learning] keep_examples`
+   on, the clip (or for text, the sentence), what Jarvis heard and the
+   correct label go into a gitignored folder; `/forget` and a folder you can
+   empty yourself. Off by default (D7, D27).
+4. **Retrain in batches,** say weekly, not after every message: the
+   Sinhala speech model (section R), the intent classifier, the emotion
+   model and the empathy bandit (which already learns turn by turn).
+5. **Keep the new version only if it's better** on the fixed test set
+   (real speakers and sentences it never trained on); otherwise keep the old
+   one. Both scores go in the dev log.
+
+What doesn't change: the hosted LLM (Groq, Gemini) can't be retrained by
+us. It improves through what it's told: saved facts and preferences in the
+prompt, like a memory, never through its weights.
+
+Measure: understanding accuracy for Adhi's voice week by week (a learning
+curve), and the same for a held-out friend, to see whether gains are
+personal or general.
 
 ## What exists, and what we make
 
