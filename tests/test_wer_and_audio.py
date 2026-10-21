@@ -60,7 +60,7 @@ def test_turn_rows_explain_each_request(tmp_path):
         {"event": "greeting", "kind": "pickup"},
         {"event": "tts", "ms": 300.0, "chars": 30},                       # the greeting: not a turn
         {"event": "stt", "ms": 884.1, "language": "en", "detected": "en", "probability": 0.97,
-         "retranscribed": False},
+         "retranscribed": False, "logprob": -0.31, "compression": 1.12, "unclear": None, "chars": 18},
         {"event": "llm_first_token", "ms": 588.3, "provider": "groq_oss", "first_chunk_ms": 200.3,
          "thinking_chars": 340},
         {"event": "filler", "index": 2},
@@ -83,3 +83,4 @@ def test_turn_rows_explain_each_request(tmp_path):
     assert second["thinking_ms"] is None                                   # older logs: no thinking data
     text = "\n".join(format_turns([first, second]))
     assert "2.4s" in text and "typed" in text and "410 (18 ch)" in text and "388 (340 ch)" in text
+    assert "-0.31" in text and "1.12" in text and "sent to the LLM" in text
