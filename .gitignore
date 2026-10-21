@@ -12,3 +12,6 @@ eval/recordings/
 samples/
 config/settings.local.toml
 state/
+
+# Generated training data (scripts/make_intent_data.py); rebuild any time
+data/generated/
