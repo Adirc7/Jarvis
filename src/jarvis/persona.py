@@ -95,7 +95,8 @@ class Persona:
 
         parts = [f"You are {self.name}, {self.role}."]
         if self.user_name:
-            parts.append(f"The user's name is {self.user_name}. Use it now and then, not in every reply.")
+            parts.append(f"The user's name is {self.user_name}. Use it now and then, not in every reply, "
+                         "as the name alone (no Mr. or other title).")
         if self.address:
             parts.append(f'Address the user as "{self.address}" now and then (for example "Of course, '
                          f'{self.address}."), not in every sentence.')

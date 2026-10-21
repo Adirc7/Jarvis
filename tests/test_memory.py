@@ -114,3 +114,10 @@ async def test_memory_can_be_switched_off(settings):
     app2, client2, _ = _app(settings, ["Hello."])
     await app2.handle_text("hi")
     assert "Adhi" not in client2.last_messages[0]["content"]
+
+
+def test_misheard_sinhala_still_switches(settings):
+    from jarvis.language import LanguageManager
+    lm = LanguageManager(settings.languages, "en")
+    assert lm.detect_switch("Can we speak in singular language?") == "si"     # Whisper's "Sinhala", 21 Oct
+    assert lm.detect_switch("Is data a singular or plural noun in English grammar?") is None
