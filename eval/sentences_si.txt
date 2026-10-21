@@ -1,46 +1,117 @@
-# Sinhala test sentences: write each one in Sinhala script, the way YOU
-# would really say it to Jarvis (not a word-for-word translation).
+# Sinhala test sentences: each one in Sinhala script, the way YOU would
+# really say it to Jarvis (not a word-for-word translation).
+# Drafted with Claude on 21 Oct 2026 in everyday spoken Sinhala. Adhi: read
+# every line and change any wording you wouldn't use, then say EXACTLY what's
+# written when recording. Numbers and course codes are left out on purpose:
+# Whisper may write "8" for "අට", which would count as an error.
 # Lines starting with # are hints and aren't recorded; empty lines are skipped.
-# Write your sentence on the empty line under each hint. Skip any that feel
-# unnatural, and add your own at the end.
 # Record:  uv run python scripts/record_eval_set.py eval/sentences_si.txt --lang si
 
 # Jarvis, what time is it?
+ජාවිස්, දැන් වෙලාව කීයද?
 
 # Open Google Chrome.
+ගූගල් ක්‍රෝම් එක ඕපන් කරන්න.
 
 # Make this bigger.
+මේක ටිකක් ලොකු කරන්න.
 
 # Move the cube to the left.
+කියුබ් එක වම් පැත්තට ගෙනියන්න.
 
 # Switch to Sinhala.
+සිංහලෙන් කතා කරන්න.
 
 # Pause everything.
+ඔක්කොම ටිකකට නවත්තන්න.
 
 # What's on my calendar tomorrow?
+හෙට මට මොනවද තියෙන්නේ?
 
 # Explain what we can do with this model.
+මේ මොඩල් එකෙන් කරන්න පුළුවන් දේවල් කියලා දෙන්න.
 
 # Export the scene as a file.
+සීන් එක ෆයිල් එකකට එක්ස්පෝට් කරන්න.
 
 # Close the browser window.
+බ්‍රවුසර් එක වහන්න.
 
 # Turn the volume down a little.
+සද්දේ ටිකක් අඩු කරන්න.
 
 # Read me the last message.
+අන්තිමට ආපු මැසේජ් එක කියවලා දෙන්න.
 
 # How much battery do I have left?
+බැටරිය තව කොච්චර තියෙනවද?
 
-# Search for the IT3091 assignment brief.
+# Search for my assignment.
+මගේ ඇසයින්මන්ට් එක හොයලා දෙන්න.
 
-# Open Visual Studio Code in the project folder.
+# Open VS Code in the project folder.
+ප්‍රොජෙක්ට් ෆෝල්ඩර් එකේ වීඑස් කෝඩ් ඕපන් කරන්න.
 
-# Rotate the model ninety degrees.
+# Rotate the model a little.
+මොඩල් එක ටිකක් කරකවන්න.
 
 # Stop talking.
+හරි, දැන් කතා කරන එක නවත්තන්න.
 
-# What did I ask you five minutes ago?
+# What did I ask you a little while ago?
+මම ටිකකට කලින් ඇහුවේ මොකක්ද?
 
-# Set a reminder to submit the report at eight.
+# Remind me tonight to submit the report.
+රිපෝට් එක සබ්මිට් කරන්න රෑට මතක් කරන්න.
 
 # Switch back to English.
+ආයෙත් ඉංග්‍රීසියෙන් කතා කරන්න.
+
+# ---- more everyday requests -------------------------------------------------
+
+# How's the weather today?
+අද කාලගුණය කොහොමද?
+
+# I need a little help with thermodynamics.
+මට තාපගති විද්‍යාව ගැන පොඩි උදව්වක් ඕනේ.
+
+# Explain simply what entropy is.
+එන්ට්‍රොපි කියන්නේ මොකක්ද කියලා සරලව කියන්න.
+
+# Show me how to solve this step by step.
+මේ ප්‍රශ්නය විසඳන විදිය පියවරෙන් පියවර පෙන්නන්න.
+
+# Open the Downloads folder.
+ඩවුන්ලෝඩ්ස් ෆෝල්ඩර් එක ඕපන් කරන්න.
+
+# Play a song on YouTube.
+යූටියුබ් එකේ සින්දුවක් දාන්න.
+
+# I'm a bit tired, remind me to take a short break.
+මට ටිකක් මහන්සියි, පොඩි බ්‍රේක් එකක් ගන්න මතක් කරන්න.
+
+# What's the news in Sri Lanka today?
+ලංකාවේ අද ප්‍රවෘත්ති මොනවද?
+
+# Give me a summary of this PDF.
+මේ පීඩීඑෆ් එකේ සාරාංශයක් දෙන්න.
+
+# Make a chart in the Excel sheet.
+එක්සෙල් ෂීට් එකේ ප්‍රස්තාරයක් හදන්න.
+
+# Can you hear me?
+ඔයාට මාව ඇහෙනවද?
+
+# Never mind, cancel that.
+කමක් නෑ, ඒක අවලංගු කරන්න.
+
+# Wake me up tomorrow morning.
+හෙට උදේ මාව ඇහැරවන්න.
+
+# Put the laptop to sleep.
+ලැප්ටොප් එක ස්ලීප් කරන්න.
+
+# Thank you, Jarvis.
+ස්තූතියි ජාවිස්.
+
+# ---- add your own below -------------------------------------------------------
