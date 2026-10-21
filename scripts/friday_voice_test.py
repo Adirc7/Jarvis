@@ -12,7 +12,8 @@ Three steps, run by scripts/try_friday_voice.cmd:
   --prepare DIR   (Jarvis's environment) Emma's reference speech: Harvard
                   sentences and longer ones in English, plus her eSpeak
                   Sinhala; dilu's Sinhala sentences; today's Friday.
-  --convert DIR   (a test environment with torch) dilu -> Emma with kNN-VC.
+  --convert DIR   (a test environment with torch) dilu -> Emma with kNN-VC,
+                  once per --topk value (default 2, 4 and 8), to compare.
   --finish DIR    (Jarvis's environment) the Jarvis voice effects on all three
                   versions, written to DIR/listen/ to compare.
 """
@@ -131,7 +132,7 @@ def prepare(out: Path) -> None:
           f"by dilu and by today's Friday ({time.perf_counter() - t0:.0f} s, Emma on {emma_en.device})")
 
 
-def convert(out: Path, topk: int) -> None:
+def convert(out: Path, topks: list[int]) -> None:
     import torch
     import torchaudio
 
@@ -149,12 +150,18 @@ def convert(out: Path, topk: int) -> None:
     refs = [load16k(p) for p in sorted((out / "reference").glob("*.wav"))]
     matching = knn_vc.get_matching_set(refs)
     print(f"Emma's matching set: {matching.shape[0]} frames ({time.perf_counter() - t0:.0f} s)")
+    # topk: how many of Emma's closest frames are averaged for each 20 ms.
+    # Fewer = more distinctly Emma but rougher; more = smoother, more of dilu.
     for src in sorted((out / "dilu").glob("*.wav")):
         t = time.perf_counter()
         query = knn_vc.get_features(load16k(src))
-        wav = knn_vc.match(query, matching, topk=topk).cpu().numpy().astype(np.float32)
-        save_wav(out / "converted" / src.name, wav, 16000)
-        print(f"  {src.name}: {len(wav) / 16000:.1f} s of speech in {time.perf_counter() - t:.1f} s")
+        feature_s = time.perf_counter() - t
+        for k in topks:
+            t = time.perf_counter()
+            wav = knn_vc.match(query, matching, topk=k).cpu().numpy().astype(np.float32)
+            save_wav(out / f"converted_k{k}" / src.name, wav, 16000)
+            print(f"  {src.name} k={k}: {len(wav) / 16000:.1f} s of speech in "
+                  f"{feature_s + time.perf_counter() - t:.1f} s")
 
 
 def finish(out: Path) -> None:
@@ -162,7 +169,9 @@ def finish(out: Path) -> None:
     from jarvis.voice.effects import VoiceStyle
 
     style = VoiceStyle.from_dict(load_settings().get("voice_style", {}))
-    names = {"now": "1_friday_now_espeak", "dilu": "2_dilu_original", "converted": "3_friday_converted"}
+    names = {"now": "1_friday_now_espeak", "dilu": "2_dilu_original"}
+    for folder in sorted(out.glob("converted_k*"), key=lambda d: int(d.name.split("_k")[1])):
+        names[folder.name] = f"3_friday_converted_{folder.name.split('_')[1]}"     # 3_friday_converted_k2 ...
     for folder, name in names.items():
         parts, rate = [], None
         for f in sorted((out / folder).glob("*.wav")):
@@ -183,12 +192,13 @@ def main() -> int:
     step.add_argument("--prepare", type=Path, metavar="DIR")
     step.add_argument("--convert", type=Path, metavar="DIR")
     step.add_argument("--finish", type=Path, metavar="DIR")
-    ap.add_argument("--topk", type=int, default=4, help="Emma frames averaged per frame (kNN-VC default 4)")
+    ap.add_argument("--topk", default="2,4,8",
+                    help="Emma frames averaged per 20 ms, comma-separated for several versions (kNN-VC default 4)")
     args = ap.parse_args()
     if args.prepare:
         prepare(args.prepare)
     elif args.convert:
-        convert(args.convert, args.topk)
+        convert(args.convert, [int(k) for k in str(args.topk).split(",")])
     else:
         finish(args.finish)
     return 0

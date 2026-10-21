@@ -570,3 +570,10 @@ environment next to the Jarvis folder; the conversion couldn't be run in
 the cloud workspace (the PyTorch download site is blocked there), so it is
 first run on the laptop. If it wins, the next question is speed: kNN-VC on
 the CPU is for the test only; for live use it needs the GPU.
+- First laptop run: Adhi found the converted Friday better than dilu, but a
+  mix of Emma and dilu, less rich than Emma. Expected: kNN-VC keeps the
+  source's words, rhythm and melody and swaps only the voice colour, frame by
+  frame, from a mostly English matching set; and it outputs 16 kHz, against
+  Kokoro's 24 kHz. Next: compare topk 2, 4 and 8 (`try_friday_voice.cmd
+  again`); if it's still not Emma enough, train an RVC model on Emma's voice
+  (a real fine-tune, on the laptop GPU).
