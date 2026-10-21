@@ -305,3 +305,24 @@ Fixes:
 
 Expected after the fixes: about 0.9 + 0.6 + 0.4 = 1.9 s at p50, and 1.5 s if
 Whisper gets back to its smoke-test speed. To measure next.
+
+Turn-by-turn table for the same session (after `git pull`, on the old log):
+
+| # | Said | Heard | Whisper | LLM | 1st sentence | Filler | First audio |
+|---|---|---|---|---|---|---|---|
+| 1 | 7.3 s | en 0.88 | 2317 | 546 | 1409 (87 chars) | 3023 | 4593 |
+| 2 | 30.0 s | en 0.68 | 884 | 635 | 411 (16 chars) | 1585 | 3186 |
+| 3 | 30.0 s | en 0.85 | 728 | 588 | 350 (12 chars) | 1436 | 3221 |
+
+- Turn 1 is the cold start: Whisper 2.3 s (the new warm-up should fix it),
+  and a long first sentence: 87 characters took Kokoro 1.4 s. From the three
+  turns, Kokoro on the CPU needs about 0.2 s plus 14 ms per character. Groq
+  sends text in big bursts, so the whole first sentence was already there and
+  the chunker never used the comma rule. Fix: a first sentence over 60
+  characters (`first_chunk_max_chars`) is now cut at its first comma.
+- Turns 2 and 3 are exactly 30.0 s, the recording limit. Either the key was
+  held that long or a key release was missed: to check with Adhi. Jarvis now
+  says when a recording reaches the limit. Whisper took only 0.7-0.9 s for
+  30 s of audio because the voice-activity filter removed the silence.
+- In every turn the filler started 0.06-0.16 s *after* the first text, so
+  with the new rule none of these three would have had a filler.

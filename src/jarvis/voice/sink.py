@@ -69,6 +69,7 @@ class VoiceSink(TextSink):
         self._broken: dict[str, str] = {}      # language code -> TTS error, reported once
         self._chunk_cfg = dict(
             first_min_chars=int(settings.get("tts.first_chunk_min_chars", 12)),
+            first_max_chars=int(settings.get("tts.first_chunk_max_chars", 60)),
             min_chars=int(settings.get("tts.chunk_min_chars", 40)),
             max_chars=int(settings.get("tts.chunk_max_chars", 220)),
         )

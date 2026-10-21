@@ -73,8 +73,17 @@ def clean_for_speech(text: str) -> str:
 
 
 class SentenceChunker:
-    def __init__(self, first_min_chars: int = 12, min_chars: int = 40, max_chars: int = 220):
+    """Splits a streamed reply into pieces the voice can say one after another.
+
+    The first piece is kept short, because the listener hears nothing until it
+    has been synthesized: a first sentence longer than `first_max_chars` is
+    cut at its first comma (or semicolon, colon) instead.
+    """
+
+    def __init__(self, first_min_chars: int = 12, min_chars: int = 40, max_chars: int = 220,
+                 first_max_chars: int = 60):
         self.first_min = first_min_chars
+        self.first_max = first_max_chars
         self.min = min_chars
         self.max = max_chars
         self._buf = ""
@@ -99,10 +108,14 @@ class SentenceChunker:
 
     # ------------------------------------------------------------------
     def _take(self) -> str | None:
-        minimum = self.first_min if self._emitted == 0 else self.min
+        first = self._emitted == 0
+        minimum = self.first_min if first else self.min
         cut = self._sentence_cut(minimum)
-        if cut is None and self._emitted == 0 and len(self._buf) >= 60:
-            cut = self._clause_cut(minimum)       # long first sentence: start at a comma
+        long_first = (cut is None and len(self._buf) >= self.first_max) or (cut is not None and cut > self.first_max)
+        if first and long_first:
+            clause = self._clause_cut(minimum)    # long first sentence: start at a comma
+            if clause is not None and (cut is None or clause < cut):
+                cut = clause
         if cut is None and len(self._buf) > self.max:
             cut = self._buf.rfind(" ", 0, self.max)
             cut = cut if cut > 0 else self.max

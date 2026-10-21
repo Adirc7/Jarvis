@@ -52,6 +52,21 @@ def test_long_first_sentence_breaks_at_comma():
     assert out == ["When you open the settings panel on the left side of the window,"]
 
 
+def test_long_first_sentence_breaks_at_comma_even_when_it_arrives_whole():
+    # Groq sends text in big bursts, so the whole first sentence is often already
+    # here. Speaking it as one 87-character chunk took Kokoro 1.4 s on the laptop.
+    c = SentenceChunker(first_min_chars=12, min_chars=40, first_max_chars=60)
+    out = feed_all(c, ["When you open the settings panel on the left side of the window, "
+                       "you will see the list of devices. Pick one."])
+    assert out[0] == "When you open the settings panel on the left side of the window,"
+    assert out[1] == "you will see the list of devices. Pick one."
+
+
+def test_short_first_sentence_is_not_split_at_its_comma():
+    c = SentenceChunker(first_min_chars=12, min_chars=40, first_max_chars=60)
+    assert c.feed("Good evening, sir. All systems are running normally. ")[0] == "Good evening, sir."
+
+
 def test_sinhala_and_tamil_sentences_split():
     c = SentenceChunker(first_min_chars=5, min_chars=5)
     assert feed_all(c, ["ආයුබෝවන්. මම ජාවිස්."]) == ["ආයුබෝවන්.", "මම ජාවිස්."]

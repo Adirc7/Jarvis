@@ -193,6 +193,7 @@ class App:
     async def _voice_task(self) -> None:
         q = self.bus.subscribe(PushToTalkPressed, UtteranceCaptured, name="voice")
         min_s = float(self.settings.get("audio.min_utterance_s", 0.35))
+        max_s = float(self.settings.get("audio.max_utterance_s", 30))
         current: asyncio.Task | None = None
         while True:
             ev = await q.get()
@@ -208,6 +209,11 @@ class App:
                     self.state.mode = Mode.IDLE
                     self.out("(too short: hold the key while you speak)")
                     continue
+                if ev.seconds >= max_s - 0.05:
+                    # The recorder stops keeping audio at the limit but waits for the key.
+                    self.out(f"(the key was held for the {max_s:.0f}-second limit; anything after that "
+                             "was cut off)")
+                    self.telemetry.log("utterance_limit", seconds=round(ev.seconds, 2))
                 current = asyncio.create_task(self.voice_turn(ev.audio, ev.seconds))
 
     async def voice_turn(self, audio, seconds: float) -> str | None:
