@@ -4,7 +4,7 @@ rem sentence three ways and prints a table for each:
 rem   1. on the CPU, as Jarvis runs now
 rem   2. the smaller int8 model on the CPU
 rem   3. on the GPU through DirectML (any DirectX 12 graphics card)
-rem   try_tts_gpu.cmd cuda    also tries NVIDIA CUDA (downloads about 1 GB more)
+rem   try_tts_gpu.cmd cuda    the CPU, then NVIDIA CUDA only (downloads up to 1 GB)
 rem The GPU builds of onnxruntime go into test folders NEXT TO the Jarvis
 rem folder, so Jarvis itself isn't changed. Delete them afterwards with
 rem   rmdir /s /q ..\tts-test-dml ..\tts-test-cuda
@@ -20,6 +20,8 @@ echo.
 echo === 1. CPU, as Jarvis runs now
 uv run python scripts\bench_tts.py
 if errorlevel 1 goto :fail
+
+if /i "%~1"=="cuda" goto :cuda
 
 echo.
 echo === 2. Smaller int8 model, CPU
@@ -37,11 +39,15 @@ uv pip install -q --python "%DML%\Scripts\python.exe" onnxruntime-directml numpy
 uv pip install -q --python "%DML%\Scripts\python.exe" --no-deps kokoro-onnx==0.6.1
 "%DML%\Scripts\python.exe" scripts\bench_tts.py --provider DmlExecutionProvider
 
-if /i not "%~1"=="cuda" goto :done
+goto :done
+
+:cuda
 echo.
 echo === 4. GPU through CUDA
+rem 1.26 is the newest onnxruntime-gpu built for CUDA 12, the CUDA Whisper
+rem already uses; 1.27 and later need CUDA 13 and could clash with it.
 if not exist "%CUDA%\Scripts\python.exe" uv venv "%CUDA%" --python 3.12 -q
-uv pip install -q --python "%CUDA%\Scripts\python.exe" "onnxruntime-gpu[cuda,cudnn]" numpy espeakng-loader "phonemizer>=3.4"
+uv pip install -q --python "%CUDA%\Scripts\python.exe" "onnxruntime-gpu[cuda,cudnn]==1.26.0" numpy espeakng-loader "phonemizer>=3.4"
 uv pip install -q --python "%CUDA%\Scripts\python.exe" --no-deps kokoro-onnx==0.6.1
 "%CUDA%\Scripts\python.exe" scripts\bench_tts.py --provider CUDAExecutionProvider
 

@@ -438,3 +438,20 @@ sentence voice 0.6-0.7 s, about 1.8 s. The voice is the biggest step left:
 `scripts/try_tts_gpu.cmd` times Kokoro on the CPU, the int8 model, and the
 GPU through DirectML (and CUDA, optional), each GPU build in its own test
 environment so Jarvis isn't changed until one clearly wins.
+
+Kokoro on the laptop (`scripts/try_tts_gpu.cmd`, bm_lewis, median of 5):
+
+| Sentence | CPU full | CPU int8 | DirectML |
+|---|---|---|---|
+| 9 chars | 302 ms | 290 ms | failed |
+| 42 chars | 751 ms | 718 ms | |
+| 50 chars | 743 ms | 715 ms | |
+| 72 chars | 1257 ms | 1218 ms | |
+
+- CPU: about 0.2 s plus 14 ms per character (real-time factor 0.26-0.37).
+- int8: only about 4% faster, so not worth the lower quality.
+- DirectML: fails on Kokoro's `ConvTranspose` layer ("The parameter is
+  incorrect"), a DirectML limitation. Dropped.
+- Next: CUDA, pinned to onnxruntime-gpu 1.26.0, the newest build for
+  CUDA 12; from 1.27 it needs CUDA 13, which could clash with the CUDA 12
+  libraries Whisper (CTranslate2) uses in the same process.
