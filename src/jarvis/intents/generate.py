@@ -21,8 +21,8 @@ import itertools
 import random
 import re
 import string
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
-from typing import Iterator
 
 
 @dataclass(frozen=True)
@@ -90,8 +90,10 @@ def expand(pattern: Pattern, vocab: dict[str, list[Choice]], lang: str) -> Itera
 
 
 def generate(languages: dict[str, tuple[dict[str, list[Choice]], list[Pattern]]],
-             per_intent: dict[str, int], seed: int = 21) -> list[Example]:
-    """A balanced, reproducible sample: at most per_intent[lang] examples per intent."""
+             per_intent: dict[str, int] | Callable[[str, str], int], seed: int = 21) -> list[Example]:
+    """A balanced, reproducible sample: at most per_intent[lang] examples per intent
+    (or per_intent(lang, intent), to give some intents more)."""
+    cap = per_intent if callable(per_intent) else (lambda lang, intent: per_intent[lang])
     rng = random.Random(seed)
     out: list[Example] = []
     for lang, (vocab, patterns) in languages.items():
@@ -107,7 +109,7 @@ def generate(languages: dict[str, tuple[dict[str, list[Choice]], list[Pattern]]]
                     if ex is not None and ex.text not in seen:
                         seen.add(ex.text)
                         chosen.append(ex)
-                if len(chosen) >= per_intent[lang]:
+                if len(chosen) >= cap(lang, intent):
                     break
-            out.extend(chosen[:per_intent[lang]])
+            out.extend(chosen[:cap(lang, intent)])
     return out

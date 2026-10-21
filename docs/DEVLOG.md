@@ -606,3 +606,21 @@ RVC for Friday is postponed (power cuts); the kNN-VC comparison is ready
   1,519 English. Sinhala verb forms: polite 1011, for me 664, casual 605,
   question 427, formal 47. Small classes (greeting 10, thanks 8 in Sinhala)
   need class weights.
+
+- Same night, university study at Adhi's request ("study related Singlish
+  is important"): his Kelaniya modules (PMAT infinite series, ODEs, several
+  variables, linear algebra, discrete maths; AMAT vector analysis, numerical
+  methods, scientific computing, mechanics; PHYS labs, solid state and
+  thermodynamics, environmental physics, waves and optics, circuits,
+  properties of matter; MAPS HRM) and the IT data science modules (IT3081
+  to IT4111). One topic table, `STUDY_TOPICS`, holds 307 topics with an id,
+  an area and the Sinhala, Singlish and English names, so all three
+  languages stay in step; course codes are subjects ("pmat 21272 exam
+  ekata..."). Five new intents: derive_proof, check_answer, write_code,
+  debug_code, exam_prep; comparisons ("X saha Y athara wenasa") under
+  explain_concept. Study intents get 360 Sinhala, 300 Singlish and 140
+  English examples each (`examples_per_intent`). Now 43 intents and 15,432
+  examples: 8,276 Sinhala script, 4,677 Singlish (was 1,755), 2,479
+  English. Lecture terms are mostly written as the English word in Sinhala
+  letters (ෆූරියර් සීරීස් එක), as students say them; A/L terms keep their
+  Sinhala names. Adhi to check the Sinhala terms marked in the table.

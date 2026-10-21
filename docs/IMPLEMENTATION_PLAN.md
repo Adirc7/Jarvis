@@ -151,13 +151,19 @@ and Singlish (about 10 intents, 10 examples each), and the safety test set
 (30 risky requests, 10 booby-trapped files).
 
 **Training data for the intent classifier (ready, 21 Oct):**
-`uv run python scripts/make_intent_data.py` writes about 8,800 labelled
-sentences (5,500 in Sinhala script, 1,750 Singlish, 1,500 English) for 38
+`uv run python scripts/make_intent_data.py` writes about 15,400 labelled
+sentences (8,300 in Sinhala script, 4,700 Singlish, 2,500 English) for 43
 intents, from the patterns in `src/jarvis/intents/patterns.py`: Sinhala verb
 forms (polite, casual, for me, question, formal), synonyms, "එක" after
 English words, cases, word order, wake words and two-sentence requests.
-Train on these, test on your real sentences. Some intents have far fewer
-examples (greetings, thanks, the date), so use class weights.
+Twelve study intents get the most examples (explain, solve, derive or prove,
+check my answer, write code, fix code, exam revision, quiz, summarise,
+research papers, data analysis, graphs), over 307 university topics in
+`data/generated/study_topics.tsv`: pure and applied maths, physics,
+statistics, data science, computing, research and management, including the
+Kelaniya PMAT, AMAT and PHYS modules and the IT modules, by course code.
+Train on these, test on your real sentences. Class sizes differ a lot
+(greetings 10, study requests 360 in Sinhala), so use class weights.
 
 **Learn:** JSON schema for tool arguments; what prompt injection is; why
 "verified" and "claimed" differ.
