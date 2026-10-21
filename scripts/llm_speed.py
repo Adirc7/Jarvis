@@ -3,16 +3,17 @@
 Sends Jarvis's real system prompt and a few everyday questions to every
 configured provider and prints, per model (median of all requests):
 
-  server     time until the server sent anything back (network + queue)
-  thinking   reasoning text before the first word (gpt-oss "thinks" first)
-  1st word   time until the first word of the reply: what the voice waits for
+  new line    time to the first word on a brand-new connection: how Jarvis
+              worked until 21 Oct, when the connection closed after 5 s idle
+  open line   the same with the connection already open, as Jarvis now does
+              by connecting while you hold the push-to-talk key
+  thinking    reasoning text before the first word (gpt-oss "thinks" first)
 
-Only the first word is waited for; the rest of each reply is cancelled, so a
-run costs little of the free quota.
+The voice can only start after the first word. Only that is waited for; the
+rest of each reply is cancelled, so a run costs little of the free quota.
 
     uv run python scripts/llm_speed.py
     uv run python scripts/llm_speed.py --runs 3
-    uv run python scripts/llm_speed.py --try groq=openai/gpt-oss-20b
     uv run python scripts/llm_speed.py --try groq=qwen/qwen3-32b,reasoning_effort=none
 
 --try reuses a configured provider's address and key with another model;
@@ -36,6 +37,7 @@ from jarvis.agent.llm import FallbackLLM, Provider  # noqa: E402
 from jarvis.config import ProviderConfig, load_settings  # noqa: E402
 from jarvis.language import LanguageManager  # noqa: E402
 from jarvis.persona import Persona  # noqa: E402
+from jarvis.state import SharedState  # noqa: E402
 from jarvis.telemetry import Telemetry  # noqa: E402
 
 QUESTIONS = [
@@ -70,33 +72,40 @@ def parse_try(spec: str, configs: dict[str, ProviderConfig]) -> ProviderConfig:
 
 
 async def first_word(llm: FallbackLLM, messages: list[dict[str, str]]) -> None:
-    gen = llm.stream_text(messages, max_tokens=1024)
-    try:
-        async for _ in gen:
-            break                                   # the first word is all we time
-    finally:
-        await gen.aclose()
+    """Wait for the first word, then cancel the rest the way Jarvis does on barge-in."""
+    state = SharedState(language="en")
+    async for _ in llm.stream_text(messages, token=state.token(), max_tokens=1024):
+        state.cancel_all()          # stream_text closes the stream at the next chunk
 
 
-async def measure(cfg: ProviderConfig, system: str, runs: int, timeout_s: float) -> dict[str, Any]:
-    tel = Capture()
-    llm = FallbackLLM([Provider.from_config(cfg, timeout_s)], tel)
-    errors = []
+async def measure(cfg: ProviderConfig, system: str, runs: int, timeout_s: float,
+                  keepalive_s: float) -> dict[str, Any]:
+    tels = {"new": Capture(), "open": Capture()}
+    errors: list[str] = []
     for _ in range(runs):
         for q in QUESTIONS:
-            try:
-                await first_word(llm, [{"role": "system", "content": system}, {"role": "user", "content": q}])
-            except Exception as exc:
-                failures = getattr(exc, "failures", None)
-                errors.append(failures[0][1] if failures else f"{type(exc).__name__}: {exc}")
-    firsts = [e for e in tel.events if e["event"] == "llm_first_token"]
+            messages = [{"role": "system", "content": system}, {"role": "user", "content": q}]
+            for line, tel in tels.items():
+                provider = Provider.from_config(cfg, timeout_s, keepalive_s)   # a fresh connection pool
+                llm = FallbackLLM([provider], tel)
+                try:
+                    if line == "open":
+                        await llm.warm()
+                    await first_word(llm, messages)
+                except Exception as exc:
+                    failures = getattr(exc, "failures", None)
+                    errors.append(failures[0][1] if failures else f"{type(exc).__name__}: {exc}")
+                finally:
+                    await provider.client.close()
 
-    def med(key: str) -> float | None:
-        values = [float(e[key]) for e in firsts if e.get(key) is not None]
+    def med(tel: Capture, key: str) -> float | None:
+        values = [float(e[key]) for e in tel.events if e["event"] == "llm_first_token" and e.get(key) is not None]
         return statistics.median(values) if values else None
 
-    return {"name": cfg.name, "model": cfg.model, "n": len(firsts), "server": med("first_chunk_ms"),
-            "thinking": med("thinking_chars"), "first_word": med("ms"), "errors": errors}
+    return {"name": cfg.name, "model": cfg.model,
+            "n": sum(e["event"] == "llm_first_token" for t in tels.values() for e in t.events),
+            "new": med(tels["new"], "ms"), "open": med(tels["open"], "ms"),
+            "thinking": med(tels["open"], "thinking_chars"), "errors": errors}
 
 
 def fmt(v: float | None, unit: str = " ms") -> str:
@@ -121,17 +130,20 @@ async def main() -> int:
     lm = LanguageManager(settings.languages, settings.get("general.default_language", "en"))
     system = Persona.load().system_prompt(language_instruction=lm.llm_instruction(), spoken=True,
                                           mode="balanced")
-    print(f"System prompt: {len(system)} characters. {len(QUESTIONS) * args.runs} requests per model.\n")
-    print(f"{'model':<44} {'n':>3} {'server':>8} {'thinking':>10} {'1st word':>9}")
+    n = len(QUESTIONS) * args.runs
+    print(f"System prompt: {len(system)} characters. {n} requests per model on each kind of line.\n")
+    print(f"{'model':<44} {'n':>3} {'new line':>9} {'open line':>10} {'thinking':>9}")
     for cfg in targets:
-        r = await measure(cfg, system, args.runs, float(settings.get("llm.timeout_s", 20)))
+        r = await measure(cfg, system, args.runs, float(settings.get("llm.timeout_s", 20)),
+                          float(settings.get("llm.keepalive_s", 120)))
         label = f"{r['name']} ({r['model']})" if ":" not in r["name"] else r["name"]
-        print(f"{label[:44]:<44} {r['n']:>3} {fmt(r['server']):>8} {fmt(r['thinking'], ' ch'):>10} "
-              f"{fmt(r['first_word']):>9}")
+        print(f"{label[:44]:<44} {r['n']:>3} {fmt(r['new']):>9} {fmt(r['open']):>10} "
+              f"{fmt(r['thinking'], ' ch'):>9}")
         if r["errors"]:
             print(f"{'':<4}{len(r['errors'])} failed, e.g. {r['errors'][0][:110]}")
-    print("\n'thinking' is reasoning text before the first word; for gpt-oss at low effort it")
-    print("still costs time. The voice can only start after '1st word'.")
+    print("\nBoth columns are the time to the first word, which the voice waits for.")
+    print("'new line' connects first (how every spoken turn worked before); 'open line'")
+    print("is already connected, as Jarvis now is while you hold the key.")
     return 0
 
 
