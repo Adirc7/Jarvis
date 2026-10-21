@@ -64,7 +64,7 @@ real numbers.
    check). If anything failed, paste the end of the output to Claude.
 2. Double-click Jarvis; have a 5-minute conversation in English, then
    Sinhala (`/lang si`).
-3. Latency: `uv run python -m jarvis.telemetry logs\session-XXXX.jsonl`
+3. Latency: `uv run python -m jarvis.telemetry` (summarises the newest session)
    and note p50/p95 for `stt_done`, `first_token`, `first_audio`.
 4. Recording round 1 (`eval/README.md`): write your Sinhala and Singlish
    sentences, record all three files, run `scripts/eval_stt.py` for `small`
