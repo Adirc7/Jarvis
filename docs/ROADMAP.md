@@ -880,9 +880,34 @@ voice, your Sinhala, your commands. The loop:
    (real speakers and sentences it never trained on); otherwise keep the old
    one. Both scores go in the dev log.
 
-What doesn't change: the hosted LLM (Groq, Gemini) can't be retrained by
-us. It improves through what it's told: saved facts and preferences in the
-prompt, like a memory, never through its weights.
+**The LLM can learn too, at four depths** (researched 2026-10-21). The
+hosted copies can't be retrained by us: the Gemini API has had no
+fine-tuning since May 2025, and Groq's LoRA hosting is enterprise-only. Our
+own copy of an open model can.
+
+1. **Memory:** saved facts and preferences in the prompt (works now).
+2. **Your past corrections as examples:** before each request, find the
+   few most similar corrected exchanges and put them in the prompt
+   (retrieval of few-shot examples). No training; helps Sinhala and Singlish
+   commands at once.
+3. **A personal fine-tuned model:** LoRA on a small open model that runs on
+   the laptop through Ollama (Qwen3.5 4B or Gemma 4 E4B; check each one's
+   Sinhala first). Trained on Kaggle with Unsloth (about 10 GB of GPU memory
+   for a 4B model in 16-bit LoRA; 0.8B and 2B fit the laptop), exported to
+   GGUF. It handles everyday turns fast and offline; the router sends hard
+   ones to the big hosted model. SinLlama (Llama-3-8B with Sinhala
+   continued pre-training, University of Moratuwa, 2025) is a Sinhala base
+   worth comparing, though it has no chat version and 8B is tight on 6 GB.
+4. **Preference tuning:** pairs of a reply you liked and one you corrected
+   train the model towards your preferences (DPO; or GRPO with a reward).
+   The deepest "learns from you" level, and the most data-hungry.
+
+Training data can be drafted by a bigger model (distillation): gpt-oss is
+Apache-2.0, so its outputs may be used; Gemini's terms restrict using its
+output to build competing models, so check before using Gemini drafts. Every
+level is judged on the same fixed test set against the hosted LLM:
+understanding accuracy, Sinhala naturalness rated by native speakers, and
+time to first word.
 
 Measure: understanding accuracy for Adhi's voice week by week (a learning
 curve), and the same for a held-out friend, to see whether gains are
