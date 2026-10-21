@@ -34,8 +34,10 @@ def test_sentence_files():
     rec = _load()
     assert rec.read_sentences(PROJECT_ROOT / "eval" / "sentences_singlish.txt") == []   # template, not filled yet
     assert len(rec.read_sentences(PROJECT_ROOT / "eval" / "sentences_en.txt")) == 20
-    si = rec.read_sentences(PROJECT_ROOT / "eval" / "sentences_si.txt")
-    assert len(si) >= 30
     from jarvis.voice.clarity import foreign_script_share
-    assert all(foreign_script_share(s, "si") == 0 for s in si)            # all in Sinhala script
-    assert not any(ch.isdigit() for s in si for ch in s)                  # no numbers (see the file's header)
+    for name, at_least in (("sentences_si.txt", 30), ("sentences_si_study.txt", 50), ("sentences_si_talk.txt", 30)):
+        si = rec.read_sentences(PROJECT_ROOT / "eval" / name)
+        assert len(si) >= at_least, name
+        assert all(foreign_script_share(s, "si") == 0 for s in si), name        # all in Sinhala script
+        assert not any(ch.isdigit() for s in si for ch in s), name              # no numbers (see sentences_si.txt)
+        assert len(set(si)) == len(si), name                                    # no repeats

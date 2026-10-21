@@ -9,7 +9,9 @@ D23).
 | File | What to write |
 |---|---|
 | `sentences_en.txt` | ready |
-| `sentences_si.txt` | each hint in Sinhala script, the way you'd really say it |
+| `sentences_si.txt` | 35 commands in spoken Sinhala (drafted with Claude; check and edit) |
+| `sentences_si_study.txt` | 60 study questions: physics, pure and applied maths, statistics |
+| `sentences_si_talk.txt` | 34 lines: philosophy, logic, feelings, everyday life, short paragraphs |
 | `sentences_singlish.txt` | Sinhala mixed with English, in English letters, e.g. `Chrome eka open karanna` |
 
 Write your own natural version under each hint rather than a word-for-word
@@ -23,6 +25,8 @@ About 10 minutes per file.
 ```
 uv run python scripts/record_eval_set.py eval/sentences_en.txt --lang en
 uv run python scripts/record_eval_set.py eval/sentences_si.txt --lang si
+uv run python scripts/record_eval_set.py eval/sentences_si_study.txt --lang si
+uv run python scripts/record_eval_set.py eval/sentences_si_talk.txt --lang si
 uv run python scripts/record_eval_set.py eval/sentences_singlish.txt --lang si --set singlish
 ```
 

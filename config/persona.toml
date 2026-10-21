@@ -63,7 +63,7 @@ cannot_yet = [
     "search the web or check current news, prices or events (the News and Research skills come later)",
     "open apps, click, type or control the computer (that arrives in Phase 2)",
     "see the screen or the user's hands (later phases)",
-    "remember previous sessions (a light memory comes later)",
+    "remember earlier sessions beyond its small memory (a name, facts it was asked to keep, and the conversation if it was recent)",
 ]
 
 [context]

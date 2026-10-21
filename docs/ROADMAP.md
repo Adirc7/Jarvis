@@ -885,7 +885,9 @@ hosted copies can't be retrained by us: the Gemini API has had no
 fine-tuning since May 2025, and Groq's LoRA hosting is enterprise-only. Our
 own copy of an open model can.
 
-1. **Memory:** saved facts and preferences in the prompt (works now).
+1. **Memory:** saved facts in the prompt. Built 2026-10-21 as a light
+   memory (`jarvis/memory`): the user's name, facts they asked Jarvis to
+   keep, and the recent conversation, in `state/memory.json`.
 2. **Your past corrections as examples:** before each request, find the
    few most similar corrected exchanges and put them in the prompt
    (retrieval of few-shot examples). No training; helps Sinhala and Singlish

@@ -491,3 +491,28 @@ write digits where the text has words). Drafted by Claude at Adhi's request;
 Adhi checks and edits every line before recording, so the reference text is
 what he really says. For the report: say that the sentences were drafted
 with AI help and checked by the speaker.
+
+More Sinhala test sentences, at Adhi's request (covering his subjects and the
+way he speaks, with many English words in Sinhala letters):
+`sentences_si_study.txt` (60: mechanics, thermodynamics, nuclear,
+circuits, waves, quantum, environmental physics, pure and applied maths,
+statistics and data) and `sentences_si_talk.txt` (34: philosophy, logic,
+feelings, everyday life, eight short paragraphs). 129 in all, about 40-50
+minutes to record. Written text alone doesn't train the speech model (it
+needs audio with text); it is the test set once recorded, and text helps
+the intent classifier and a possible language model later.
+
+## 2026-10-21: Jarvis forgot Adhi's name after a restart
+
+Adhi told Jarvis his name, restarted it, and Jarvis asked for it again and
+said it had no access to earlier chats. True: only the time of the last
+conversation was saved (`presence.json`), and history lived in memory.
+
+Fix, a light memory (`src/jarvis/memory`, `state/memory.json`, on the laptop
+only): the name ("my name is ...", "call me ...", "මගේ නම ...", `/name`),
+facts ("remember that ...", "... මතක තියාගන්න", `/remember`), and the
+recent conversation, which carries on after a restart if it ended within
+12 hours (`[memory] continue_hours`). `/memory` shows it, `/forget` clears
+it. Only what the user said is saved (D27). The prompt tells the model
+exactly what it remembers, and the persona's "can't yet" line was updated.
+23 new tests, including the restart case.

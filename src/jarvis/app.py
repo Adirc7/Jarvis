@@ -25,6 +25,7 @@ from .events import (
 from .greeting import FULL, Greeter, Presence, fill, greeting_kind
 from .killswitch import HotkeyListener, Once
 from .language import LanguageManager, normalize
+from .memory import Memory, detect_fact, detect_name
 from .persona import Persona
 from .state import Mode, SharedState
 from .telemetry import Telemetry, Turn
@@ -46,6 +47,7 @@ class App:
         recorder=None,
         persona: Persona | None = None,
         presence: Presence | None = None,
+        memory: Memory | None = None,
     ):
         self.settings = settings
         self.persona = persona or Persona.load()
@@ -79,6 +81,18 @@ class App:
             settings.path("general.state_dir", "state") / "presence.json")
         self.greeter = Greeter()
         self.greeted_with: str | None = None
+        # What Jarvis remembers between sessions (memory.py): your name, facts
+        # you asked it to keep, and the conversation if it was recent.
+        if memory is not None:
+            self.memory = memory
+        elif settings.get("memory.enabled", True):
+            self.memory = Memory.load(settings.path("general.state_dir", "state") / "memory.json")
+        else:
+            self.memory = Memory(None)
+        if self.memory.name:
+            self.persona.user_name = self.memory.name
+        if self.settings.get("memory.keep_conversation", True):
+            self.history = self.memory.recent_if_fresh(float(self.settings.get("memory.continue_hours", 12)))
 
     # ---- language -------------------------------------------------------
     def _on_language_changed(self, ev: LanguageChanged) -> None:
@@ -99,6 +113,8 @@ class App:
         if self.greeted_with:
             prompt += (f'\n\nYou already said "{self.greeted_with}" when this session started. '
                        "Don't greet the user again; just carry on.")
+        if self.memory.enabled:
+            prompt += "\n\n" + self.memory.prompt_block()
         return prompt
 
     # ---- greeting -------------------------------------------------------
@@ -167,6 +183,8 @@ class App:
             self.out(f"Jarvis: {confirm}")
             turn.mark("language_switch")   # longer request: switch AND answer it
 
+        self._learn_from(text)
+
         messages = (
             [{"role": "system", "content": self.system_prompt()}]
             + self.history[-HISTORY_TURNS * 2:]
@@ -186,6 +204,9 @@ class App:
                 self.state.mode = Mode.IDLE
 
         self.history += [{"role": "user", "content": text}, {"role": "assistant", "content": reply}]
+        if self.memory.enabled and self.settings.get("memory.keep_conversation", True):
+            self.memory.set_recent(self.history[-HISTORY_TURNS * 2:])
+            self.memory.save()
         turn.finish(kind="chat", provider=self.llm.last_provider, language=lang.code,
                     chars=len(reply), cancelled=token.cancelled)
         return reply
@@ -343,7 +364,8 @@ class App:
                 f"{self.settings.get('hotkeys.mute')} mutes, {self.settings.get('hotkeys.kill_switch')} stops everything. "
                 "You can also type."
             )
-        self.out("Commands: /lang <code>, /empathy <mode>, /mute, /stop, /status, /quit")
+        self.out("Commands: /lang <code>, /empathy <mode>, /name <name>, /remember <fact>, /memory, /forget, "
+                     "/mute, /stop, /status, /quit")
         self.telemetry.log("session_start", language=self.state.language, providers=names, mode=mode)
         try:
             await self.greet()
@@ -376,6 +398,25 @@ class App:
             self.telemetry.log("session_end")
             self.out(f"\nLog saved to {self.telemetry.path}")
 
+    def _learn_from(self, text: str) -> None:
+        """Keep what the user tells Jarvis to remember (only what they said)."""
+        if not self.memory.enabled:
+            return
+        changed = False
+        name = detect_name(text)
+        if name and name != self.memory.name:
+            self.memory.set_name(name)
+            self.persona.user_name = name
+            self.out(f"[memory] I'll remember your name: {name}  (/memory to see, /forget to clear)")
+            changed = True
+        fact = detect_fact(text)
+        if fact and self.memory.remember(fact):
+            self.out(f"[memory] Remembered: {fact}")
+            changed = True
+        if changed:
+            self.memory.save()
+            self.telemetry.log("memory_saved", name=bool(name), fact=bool(fact))
+
     async def _command(self, line: str) -> bool:
         cmd, _, arg = line.partition(" ")
         if cmd == "/quit":
@@ -400,6 +441,28 @@ class App:
                 self.out(f"Empathy modes: {', '.join(self.persona.modes)} (now: {self.state.empathy})")
             else:
                 self.out(f"[empathy: {arg}]")
+        elif cmd == "/name":
+            if arg.strip():
+                self.memory.set_name(arg.strip())
+                self.persona.user_name = arg.strip()
+                self.memory.save()
+                self.out(f"[memory] Name: {arg.strip()}")
+            else:
+                self.out(f"[memory] Name: {self.memory.name or '(not set)'}. Set it with /name <your name>.")
+        elif cmd == "/remember":
+            if arg.strip() and self.memory.remember(arg.strip()):
+                self.memory.save()
+                self.out(f"[memory] Remembered: {arg.strip()}")
+            else:
+                self.out("Usage: /remember <something to keep between sessions>")
+        elif cmd == "/memory":
+            self.out(self.memory.describe() if self.memory.enabled else "[memory] Memory is off ([memory] enabled).")
+        elif cmd == "/forget":
+            self.memory.forget()
+            self.memory.save()
+            self.history = []
+            self.persona.user_name = ""
+            self.out("[memory] Forgotten: name, facts and the saved conversation.")
         elif cmd == "/status":
             self.out(
                 f"mode={self.state.mode.value} language={self.state.language} "
@@ -407,5 +470,6 @@ class App:
                 f"muted={getattr(self.sink, 'muted', None)}"
             )
         else:
-            self.out("Commands: /lang <code>, /empathy <mode>, /mute, /stop, /status, /quit")
+            self.out("Commands: /lang <code>, /empathy <mode>, /name <name>, /remember <fact>, /memory, /forget, "
+                     "/mute, /stop, /status, /quit")
         return True
