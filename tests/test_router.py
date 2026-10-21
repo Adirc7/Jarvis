@@ -220,3 +220,43 @@ async def test_app_sends_each_request_down_its_route(settings, tmp_path):
     assert seen == ["maths", "code"]
     from jarvis.telemetry import turn_rows
     assert [r["route"] for r in turn_rows(tmp_path / "t.jsonl")] == ["maths", "code"]
+
+
+async def test_a_language_can_have_its_own_order():
+    llm = FallbackLLM([Provider("qwen", "q", FakeClient(["qwen"])), Provider("oss", "o", FakeClient(["oss"]))],
+                      routes={"general": ["oss"], "code": ["qwen", "oss"], "code:si": ["oss", "qwen"]})
+    assert await collect(llm.stream_text([], route="code", lang="en")) == "qwen"
+    assert await collect(llm.stream_text([], route="code", lang="si")) == "oss"     # Sinhala: the better writer
+    assert await collect(llm.stream_text([], route="code")) == "qwen"
+
+
+def test_slow_or_overloaded_models_rest_briefly():
+    from jarvis.agent.llm import SLOW_REST_S, failure_rest
+
+    class Overloaded(Exception):
+        status_code = 503
+
+    class APITimeoutError(Exception):
+        pass
+
+    assert failure_rest(Overloaded()) == SLOW_REST_S
+    assert failure_rest(APITimeoutError("Request timed out.")) == SLOW_REST_S
+    assert failure_rest(TimeoutError()) == SLOW_REST_S
+    assert failure_rest(RateLimited(headers={"retry-after": "30"})) == 30
+    assert failure_rest(ConnectionError("refused")) is None        # fails fast anyway (Ollama not started)
+
+
+async def test_a_timed_out_model_is_skipped_next_turn():
+    slow, fast = FakeClient(error=TimeoutError("timed out")), FakeClient(["fast"])
+    llm = FallbackLLM([Provider("gemini", "g", slow), Provider("groq", "o", fast)])
+    await collect(llm.stream_text([]))
+    await collect(llm.stream_text([]))
+    assert slow.calls == 1
+
+
+def test_settings_language_routes(settings):
+    routes = settings.routes()
+    assert routes["code:si"][0] == "groq_oss" and routes["code"][0] == "groq_qwen"
+    settings.raw["llm"]["language_routes"]["si"]["code"] = ["nope"]
+    with pytest.raises(ValueError, match="llm.language_routes.si.code"):
+        settings.routes()

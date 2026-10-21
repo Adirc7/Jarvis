@@ -99,11 +99,15 @@ class Settings:
         routes = {"general": list(self.get("llm.order", []))}
         if self.get("llm.routing", True):
             routes.update({k: list(v) for k, v in self.get("llm.routes", {}).items()})
+            for lang, table in self.get("llm.language_routes", {}).items():   # "code:si": Sinhala's own order
+                routes.update({f"{k}:{lang}": list(v) for k, v in table.items()})
         table = self.get("llm.providers", {})
         for route, names in routes.items():
             for name in names:
                 if name not in table:
                     where = "llm.order" if route == "general" else f"llm.routes.{route}"
+                    if ":" in route:
+                        where = "llm.language_routes.{1}.{0}".format(*route.split(":"))
                     raise ValueError(f"{where} names '{name}' but [llm.providers.{name}] is missing")
         return routes
 

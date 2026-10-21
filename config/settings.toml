@@ -149,6 +149,19 @@ code = ["groq_qwen", "groq_oss", "openrouter", "ollama"]                    # wr
 long = ["gemini", "gemini_lite", "openrouter", "groq_oss"]  # long documents: Groq's free 8K tokens/minute is too small
 talk = ["groq_oss", "gemini", "groq_qwen", "openrouter", "ollama"]          # life, feelings, society
 
+# A language's own order, where it differs. Sinhala: in the smoke test of
+# 21 Oct only gpt-oss-120b and Gemini wrote clean Sinhala; gpt-oss-20b made
+# up a word, Qwen gave Jarvis a wrong name and OpenRouter's free model mixed
+# in Hindi letters. So Sinhala goes to gpt-oss-120b first. (Maths already
+# does: groq_oss_think is the same model. Long documents stay with Gemini.)
+[llm.language_routes.si]
+general = ["groq_oss", "gemini", "groq", "openrouter", "ollama"]
+command = ["groq_oss", "groq", "gemini_lite", "ollama"]
+quick = ["groq_oss", "groq", "gemini_lite", "ollama"]
+teach = ["groq_oss", "gemini", "groq_qwen", "openrouter", "ollama"]
+code = ["groq_oss", "groq_qwen", "gemini", "openrouter", "ollama"]
+talk = ["groq_oss", "gemini", "groq_qwen", "openrouter", "ollama"]
+
 # Model names change often. If the smoke test reports "model not found",
 # look up the current free model name in that provider's console.
 [llm.providers.gemini]
