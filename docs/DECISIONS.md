@@ -296,8 +296,11 @@ correct answer came from the user (a correction, a click, feedback words,
 retyped text), never its own unchecked guesses. Saving is opt-in and local.
 The small models (Sinhala speech, intent, emotion) retrain in batches, and a
 new version replaces the old only if it scores better on the fixed test set
-of real speakers it never trained on. The hosted LLM is never retrained; it
-gets saved facts and preferences in its prompt.
+of real speakers it never trained on. The hosted LLMs can't be retrained
+(no Gemini API fine-tuning since May 2025; Groq LoRA is enterprise-only), so
+the LLM learns at four depths instead: memory in the prompt, retrieved past
+corrections as examples, a personal LoRA fine-tune of a small open model run
+locally, and preference tuning (DPO) from liked and corrected replies.
 **Why:** Training on its own guesses would teach a model its own mistakes
 (errors that reinforce themselves). Checking every new version against a
 fixed test set means Jarvis can only get better, and gives a week-by-week
