@@ -125,8 +125,12 @@ dir = "logs"
 # Providers are tried in this order. A provider is skipped when its API key
 # is missing. Fallback happens only before the first word of a reply arrives.
 # Ordered by speed measured on the laptop (2026-10-21): Groq's gpt-oss models
-# answered in 0.2-0.3 s; Gemini took 7 s and was often overloaded (503).
-order = ["groq_oss", "groq", "gemini", "openrouter", "ollama"]
+# answered in 0.2-0.3 s; Gemini took 7 s and was often overloaded (503). The
+# same evening Gemini Flash took 19 s and Flash-Lite 9-15 s, or timed out 4
+# times in 6, while Groq took about 1 s; so Gemini comes after OpenRouter (6 s)
+# in the English orders. It stays first for long documents (big context), and
+# before OpenRouter in Sinhala, which it writes best.
+order = ["groq_oss", "groq", "openrouter", "gemini", "ollama"]
 timeout_s = 20
 # Keep the connection to the provider open between turns (the default closes
 # it after 5 s idle, so every spoken question first had to reconnect), and
@@ -144,10 +148,10 @@ routing = true
 command = ["groq", "groq_oss", "gemini_lite", "ollama"]   # open apps, volume...: until Jarvis does these itself
 quick = ["groq", "groq_oss", "gemini_lite", "ollama"]     # hi, thanks, the time: the fastest model
 maths = ["groq_oss_think", "groq_qwen", "gemini", "openrouter", "ollama"]   # solve, derive, prove, check
-teach = ["groq_oss", "groq_qwen", "gemini", "openrouter", "ollama"]         # explain, quiz, exam revision
+teach = ["groq_oss", "groq_qwen", "openrouter", "gemini", "ollama"]         # explain, quiz, exam revision
 code = ["groq_qwen", "groq_oss", "openrouter", "ollama"]                    # write and fix code, data, graphs
 long = ["gemini", "gemini_lite", "openrouter", "groq_oss"]  # long documents: Groq's free 8K tokens/minute is too small
-talk = ["groq_oss", "gemini", "groq_qwen", "openrouter", "ollama"]          # life, feelings, society
+talk = ["groq_oss", "groq_qwen", "openrouter", "gemini", "ollama"]          # life, feelings, society
 
 # A language's own order, where it differs. Sinhala: in the smoke test of
 # 21 Oct only gpt-oss-120b and Gemini wrote clean Sinhala; gpt-oss-20b made
