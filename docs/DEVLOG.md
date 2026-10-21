@@ -670,3 +670,8 @@ job is to beat this on Adhi's real sentences. 250 tests pass.
   Whisper's speed warning (9.5 s for 5 s of noise) is the noise test:
   Whisper keeps inventing text for noise and retries; real turns took
   about 0.5 s. 254 tests pass.
+- 20:30, Gemini Flash-Lite alone (`llm_speed.py --only-try`): 2 of 6
+  answered, first word after 14.6 s on a new connection and 8.8 s on an open
+  one; 4 timed out at 20 s. Groq, from the same laptop, about 1 s. Gemini
+  now comes after OpenRouter in the English orders (general, teach, talk);
+  it stays first for long documents and before OpenRouter in Sinhala.
