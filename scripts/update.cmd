@@ -2,8 +2,15 @@
 rem Update Jarvis: get the latest code, then install any new or changed
 rem packages with the same options setup chose (GPU and Tamil voice only if
 rem they're already installed). Close Jarvis first: Windows locks files in use.
+rem "git pull" may change this very file while it runs, which confuses cmd,
+rem so it runs from a copy in the temp folder.
+if not "%~1"=="--from-temp" (
+    copy /y "%~f0" "%TEMP%\jarvis-update.cmd" >nul
+    call "%TEMP%\jarvis-update.cmd" --from-temp "%~dp0.."
+    exit /b
+)
 setlocal
-cd /d "%~dp0.."
+cd /d "%~2"
 set "PYTHONUTF8=1"
 where uv >nul 2>nul || set "PATH=%USERPROFILE%\.local\bin;%PATH%"
 
