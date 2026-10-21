@@ -65,7 +65,10 @@ real numbers.
 2. Double-click Jarvis; have a 5-minute conversation in English, then
    Sinhala (`/lang si`).
 3. Latency: `uv run python -m jarvis.telemetry` (summarises the newest session)
-   and note p50/p95 for `stt_done`, `first_token`, `first_audio`.
+   and note p50/p95 for `stt_done`, `first_token`, `first_audio`. The
+   turn-by-turn table under it shows which step made a slow turn slow.
+   First result (21 Oct): 3.2 s at p50, mostly a badly timed filler (fixed);
+   measure again after `git pull`.
 4. Recording round 1 (`eval/README.md`): write your Sinhala and Singlish
    sentences, record all three files, run `scripts/eval_stt.py` for `small`
    and `large-v3-turbo`.

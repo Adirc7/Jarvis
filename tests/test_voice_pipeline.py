@@ -30,12 +30,16 @@ class FakeWhisper:
         self.detected = detected
         self.texts = texts or {}
         self.transcribe_languages = []
+        self.transcribe_options = []
+        self.detect_calls = 0
 
     def detect_language(self, audio):
+        self.detect_calls += 1
         return self.detected[0], self.detected[1], []
 
     def transcribe(self, audio, language=None, **kwargs):
         self.transcribe_languages.append(language)
+        self.transcribe_options.append(kwargs)
         text = self.texts.get(language, "")
         return [SimpleNamespace(text=text)], SimpleNamespace(language=language)
 
@@ -113,6 +117,32 @@ def test_models_are_cached_per_name(settings):
     t.transcribe(AUDIO)
     t.transcribe(AUDIO)
     assert loads == [settings.get("stt.model")]
+
+
+def test_warm_up_runs_the_model_once_with_and_without_vad(settings):
+    loads = []
+    w = FakeWhisper()
+    lm = LanguageManager(settings.languages, "en")
+    Transcriber(settings, lm, loader=lambda n: loads.append(n) or w).warm_up()
+    assert loads == [settings.get("stt.model")]                # one model shared by every language
+    assert w.detect_calls == 1
+    assert [o["vad_filter"] for o in w.transcribe_options] == [True, False]
+    assert all(o["max_new_tokens"] <= 8 for o in w.transcribe_options)     # stays quick
+
+
+def test_warm_up_failure_is_logged_not_raised(settings, tmp_path):
+    import json
+
+    class BrokenWhisper(FakeWhisper):
+        def transcribe(self, audio, language=None, **kwargs):
+            raise RuntimeError("cuDNN not found")
+
+    tel = Telemetry(tmp_path / "t.jsonl")
+    lm = LanguageManager(settings.languages, "en")
+    Transcriber(settings, lm, telemetry=tel, loader=lambda n: BrokenWhisper()).warm_up()
+    events = [json.loads(line) for line in (tmp_path / "t.jsonl").read_text(encoding="utf-8").splitlines()]
+    warm = [e for e in events if e["event"] == "stt_warm"]
+    assert len(warm) == 1 and "cuDNN" in warm[0]["error"]
 
 
 # ---- full voice turns -----------------------------------------------------------

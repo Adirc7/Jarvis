@@ -49,3 +49,34 @@ def test_telemetry_cli_picks_newest_session(tmp_path, capsys):
     assert "041323" in capsys.readouterr().out
     assert _main([str(tmp_path / "session-20261021-093512.jsonl")], log_dir=tmp_path) == 1
     assert "041323" in capsys.readouterr().out          # lists the real ones instead of a traceback
+
+
+def test_turn_rows_explain_each_request(tmp_path):
+    import json
+
+    from jarvis.telemetry import format_turns, turn_rows
+    events = [
+        {"event": "session_start"},
+        {"event": "greeting", "kind": "pickup"},
+        {"event": "tts", "ms": 300.0, "chars": 30},                       # the greeting: not a turn
+        {"event": "stt", "ms": 884.1, "language": "en", "detected": "en", "probability": 0.97,
+         "retranscribed": False},
+        {"event": "llm_first_token", "ms": 588.3, "provider": "groq_oss"},
+        {"event": "filler", "index": 2},
+        {"event": "tts", "ms": 410.0, "chars": 18},
+        {"event": "tts", "ms": 1500.0, "chars": 160},
+        {"event": "turn", "source": "voice", "audio_s": 2.4, "kind": "chat",
+         "marks": {"stt_done": 884.6, "first_token": 1520.3, "filler": 1584.8, "first_audio": 3220.7}},
+        {"event": "llm_first_token", "ms": 300.0, "provider": "groq"},
+        {"event": "tts", "ms": 350.0, "chars": 14},
+        {"event": "turn", "source": "text", "kind": "chat", "marks": {"first_audio": 700.0}},
+    ]
+    path = tmp_path / "session-20261021-041323.jsonl"
+    path.write_text("".join(json.dumps(e) + "\n" for e in events), encoding="utf-8")
+    first, second = turn_rows(path)
+    assert (first["stt_ms"], first["heard"], first["p"]) == (884.1, "en", 0.97)
+    assert (first["voice_ms"], first["voice_chars"]) == (410.0, 18)        # not the greeting's
+    assert (first["filler"], first["first_audio"]) == (1584.8, 3220.7)
+    assert second["stt_ms"] is None and second["provider"] == "groq" and second["voice_ms"] == 350.0
+    text = "\n".join(format_turns([first, second]))
+    assert "2.4s" in text and "typed" in text and "410 (18 ch)" in text

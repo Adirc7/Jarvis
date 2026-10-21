@@ -95,16 +95,16 @@ class VoiceSink(TextSink):
         speak = self._can_speak(lang)
         chunker = SentenceChunker(**self._chunk_cfg)
         q: asyncio.Queue = asyncio.Queue()
-        real_audio_started = asyncio.Event()
-        worker = (asyncio.create_task(self._synth_worker(q, lang, token, turn, real_audio_started))
-                  if speak else None)
-        filler = (asyncio.create_task(self._filler_if_slow(lang, token, turn, real_audio_started))
+        reply_started = asyncio.Event()             # the LLM has sent its first text
+        worker = asyncio.create_task(self._synth_worker(q, lang, token, turn)) if speak else None
+        filler = (asyncio.create_task(self._filler_if_slow(lang, token, turn, reply_started))
                   if speak and self.fillers_enabled else None)
         parts: list[str] = []
         try:
             async for piece in pieces:
                 if not parts:
                     turn.mark("first_token")
+                    reply_started.set()
                     self.out("Jarvis: ", end="", flush=True)
                 parts.append(piece)
                 self.out(piece, end="", flush=True)
@@ -169,11 +169,16 @@ class VoiceSink(TextSink):
             self._tel.log("tts_error", language=lang.code, error=str(exc)[:300])
 
     async def _filler_if_slow(self, lang: Language, token: CancelToken, turn: Turn,
-                              real_audio_started: asyncio.Event) -> None:
-        """If the real reply hasn't started in time, say one short filler."""
+                              reply_started: asyncio.Event) -> None:
+        """If the LLM hasn't sent any text in time, say one short filler.
+
+        Once text is arriving, the real voice is only a sentence away; a filler
+        started then plays first and pushes the real reply back by its own
+        length (it cost 1.3 s at p50 in the first laptop test).
+        """
         try:
-            await asyncio.wait_for(real_audio_started.wait(), timeout=self.filler_after_s)
-            return                                  # fast enough: no filler needed
+            await asyncio.wait_for(reply_started.wait(), timeout=self.filler_after_s)
+            return                                  # the reply is on its way: no filler
         except asyncio.TimeoutError:
             pass
         if token.cancelled or self.muted:
@@ -189,7 +194,7 @@ class VoiceSink(TextSink):
         self.player.play(audio, sr, token, on_start=lambda: turn.mark("filler"))
 
     async def _synth_worker(self, q: asyncio.Queue, lang: Language, token: CancelToken | None,
-                            turn: Turn | None, real_audio_started: asyncio.Event | None = None) -> None:
+                            turn: Turn | None) -> None:
         loop = asyncio.get_running_loop()
         first = True
         while True:
@@ -207,8 +212,6 @@ class VoiceSink(TextSink):
                 return
             if turn is not None and first:
                 turn.mark("first_tts")
-            if first and real_audio_started is not None:
-                real_audio_started.set()
             first = False
             on_start = (lambda t=turn: t.mark("first_audio")) if turn is not None else None
             self.player.play(audio, sr, token, on_start=on_start)

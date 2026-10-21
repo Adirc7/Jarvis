@@ -260,3 +260,48 @@ OpenRouter's `openrouter/free` router instead of one fixed free model.
   with Right Alt as the push-to-talk key (saved in settings.local.toml).
   Still to do for M0: the latency table, Sinhala by voice, barge-in, and
   recording round 1.
+
+## 2026-10-21: First latency numbers, and why they were slow
+
+First spoken session on the laptop, 3 turns (`session-20261021-041323`).
+Times are from letting go of the push-to-talk key; the goal (D8) is the
+first sound of the real reply in under 1.5 s.
+
+| Stage | p50 ms | p95 ms |
+|---|---|---|
+| Whisper done (`stt_done`) | 885 | 2318 |
+| LLM first word, Groq gpt-oss-120b (`llm_first_token`, own time) | 588 | 635 |
+| First word arrives (`first_token`) | 1520 | 2864 |
+| Filler starts (`filler`) | 1585 | 3023 |
+| First sentence synthesized (`first_tts`) | 1942 | 4300 |
+| **Real reply starts (`first_audio`)** | **3221** | **4593** |
+
+What the timeline shows (p50):
+
+1. Whisper took 0.9 s, three times its smoke-test time; p95 2.3 s, most
+   likely the cold first turn.
+2. The LLM answered in 0.6 s, so the first word was here at 1.5 s.
+3. The filler timer (0.7 s after the LLM request) fired at 1.6 s, just
+   *after* the reply text had started arriving.
+4. The first sentence was ready at 1.9 s, but it had to queue behind the
+   filler, so the real voice started only at 3.2 s. **The filler cost
+   about 1.3 s.**
+
+Fixes:
+
+- **Filler only when the LLM is slow:** it now waits for the first word of
+  text, not the first sound. If any text has arrived after 0.7 s, there's no
+  filler (D17 updated). New test: a fast LLM with a slow voice gets no
+  filler (fails on the old code).
+- **Whisper warm-up runs a real pass** at start-up (language detection,
+  plus one transcription with and one without the voice-activity filter),
+  not just loading. In the container the voice-activity filter alone took
+  240 ms on its first call and 11 ms after.
+- **Turn-by-turn table** at the end of `python -m jarvis.telemetry`: for each
+  request, the length of speech, language heard (and whether Whisper ran
+  twice), Whisper time, LLM time and provider, first-sentence synthesis time
+  and length, filler and first audio. It works on old logs too, so the next
+  step is to see why Whisper took 0.9 s.
+
+Expected after the fixes: about 0.9 + 0.6 + 0.4 = 1.9 s at p50, and 1.5 s if
+Whisper gets back to its smoke-test speed. To measure next.
