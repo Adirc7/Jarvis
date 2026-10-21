@@ -203,3 +203,54 @@ def test_llm_speed_try_option():
     assert cfg.base_url == groq.base_url and cfg.api_key_env == "GROQ_API_KEY"
     with pytest.raises(SystemExit):
         mod.parse_try("nobody=some-model", {"groq": groq})
+
+
+async def test_warm_opens_the_first_providers_connection():
+    from types import SimpleNamespace as NS
+    calls = []
+
+    async def list_models():
+        calls.append("models")
+        return []
+
+    first = Provider("groq_oss", "m", NS(models=NS(list=list_models)))
+    second = Provider("gemini", "m", NS(models=NS(list=list_models)))
+    await FallbackLLM([first, second]).warm()
+    assert calls == ["models"]                                     # only the first provider
+
+
+async def test_warm_ignores_failures_and_missing_support():
+    from types import SimpleNamespace as NS
+
+    async def broken():
+        raise ConnectionError("offline")
+
+    await FallbackLLM([Provider("p", "m", NS(models=NS(list=broken)))]).warm()   # no exception
+    await FallbackLLM([Provider("p", "m", FakeClient())]).warm()                 # no models.list at all
+    await FallbackLLM([]).warm()
+
+
+def test_provider_keeps_connections_open_between_turns():
+    from jarvis.config import ProviderConfig
+    p = Provider.from_config(ProviderConfig("groq", "https://api.groq.com/openai/v1", "X", "m"), 20, 90)
+    assert p.client._client._transport._pool._keepalive_expiry == 90   # library default is 5 s
+
+
+async def test_pressing_push_to_talk_warms_the_llm(settings):
+    import asyncio
+
+    from jarvis.events import PushToTalkPressed
+    warmed = []
+
+    class CountingLLM(FallbackLLM):
+        async def warm(self, timeout_s=3.0):
+            warmed.append(True)
+
+    app = App(settings, Telemetry.disabled(), llm=CountingLLM([Provider("f", "m", FakeClient())]),
+              out=lambda *a, **k: None)
+    task = asyncio.create_task(app._voice_task())
+    await asyncio.sleep(0)
+    app.bus.publish(PushToTalkPressed())
+    await asyncio.sleep(0.05)
+    task.cancel()
+    assert warmed == [True]

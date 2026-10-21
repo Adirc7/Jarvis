@@ -392,3 +392,31 @@ OpenSLR 52 with free Kaggle GPUs.
   nonsense. This goes away only with a real Sinhala model (section R).
 - Several recordings were long (12-30 s), one again exactly 30.0 s: to
   check with Adhi whether the key release is being missed.
+
+## 2026-10-21: Why the LLM takes a second: the connection, not the thinking
+
+`scripts/llm_speed.py`, Jarvis's real prompt (3,799 characters), 6 requests
+per model, laptop in Sri Lanka:
+
+| Model | Server's first chunk | Thinking | First word |
+|---|---|---|---|
+| Groq gpt-oss-120b | 795 ms | 43 chars | 976 ms |
+| Groq gpt-oss-20b | 795 ms | 28 chars | 849 ms |
+| Gemini flash-latest | 3260 ms | 0 | 3260 ms |
+| OpenRouter free | 1164 ms | 728 chars | 3664 ms |
+| Ollama qwen3:4b | not running | | |
+
+- Thinking costs little (28-43 characters, about 0.05-0.2 s). Most of the
+  wait is before Groq sends anything at all.
+- Cause found in the code: the HTTP library closes an idle connection after
+  5 s, and spoken turns are always further apart than that, so every
+  question first opened a new secure connection to Groq.
+- Fix: connections stay open for 120 s (`[llm] keepalive_s`), and Jarvis
+  opens one while the push-to-talk key is held (`prewarm`), so the question
+  goes out on an open line. Checked against a local test server: after a
+  6 s pause the request reused the warmed connection with the new setting
+  and opened a new one with the old.
+- The script's errors at the end ("aclose(): asynchronous generator is
+  already running") came from how it cut replies short; it now cancels the
+  way barge-in does, and measures each model on a new and an open line.
+- Gemini and OpenRouter stay as fallbacks only; the order is right.

@@ -108,6 +108,11 @@ dir = "logs"
 # answered in 0.2-0.3 s; Gemini took 7 s and was often overloaded (503).
 order = ["groq_oss", "groq", "gemini", "openrouter", "ollama"]
 timeout_s = 20
+# Keep the connection to the provider open between turns (the default closes
+# it after 5 s idle, so every spoken question first had to reconnect), and
+# open it while you're still holding the push-to-talk key.
+keepalive_s = 120
+prewarm = true
 
 # Model names change often. If the smoke test reports "model not found",
 # look up the current free model name in that provider's console.

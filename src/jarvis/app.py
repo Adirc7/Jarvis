@@ -61,7 +61,8 @@ class App:
             on_change=self._on_language_changed,
         )
         self.llm = llm or FallbackLLM(
-            configured_providers(settings.providers(), settings.get("llm.timeout_s", 20)),
+            configured_providers(settings.providers(), settings.get("llm.timeout_s", 20),
+                                 float(settings.get("llm.keepalive_s", 120))),
             telemetry,
         )
         self.sink = sink or TextSink(out)
@@ -204,6 +205,9 @@ class App:
                     self.telemetry.log("barge_in")
                 self.state.mode = Mode.LISTENING
                 self.out("\n[listening... release the key to send]")
+                if self.settings.get("llm.prewarm", True):
+                    # Connect to the LLM while you speak, not after (llm.py, warm).
+                    self._warm_task = asyncio.create_task(self.llm.warm())
             elif isinstance(ev, UtteranceCaptured):
                 if ev.seconds < min_s:
                     self.state.mode = Mode.IDLE

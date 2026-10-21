@@ -11,6 +11,8 @@ the error is raised instead and the caller speaks an error message.
 
 from __future__ import annotations
 
+import asyncio
+import importlib
 import time
 from dataclasses import dataclass, field
 from typing import Any, AsyncIterator
@@ -44,20 +46,31 @@ class Provider:
         return out
 
     @classmethod
-    def from_config(cls, cfg: ProviderConfig, timeout_s: float = 20) -> "Provider":
-        from openai import AsyncOpenAI  # lazy: tests don't need the package
+    def from_config(cls, cfg: ProviderConfig, timeout_s: float = 20, keepalive_s: float = 120) -> "Provider":
+        from openai import AsyncOpenAI, DefaultAsyncHttpxClient  # lazy: tests don't need the package
 
+        # Keep the connection to the provider open between turns. The default
+        # drops it after 5 s idle, so every spoken question (always more than
+        # 5 s apart) paid for a new secure connection before the model started.
+        # The openai package uses httpx or its successor httpx2, depending on
+        # the version: take Limits from whichever its client is built on.
+        http_lib = importlib.import_module(DefaultAsyncHttpxClient.__mro__[1].__module__.split(".")[0])
+        http_client = DefaultAsyncHttpxClient(
+            limits=http_lib.Limits(max_connections=20, max_keepalive_connections=5, keepalive_expiry=keepalive_s),
+        )
         client = AsyncOpenAI(
             base_url=cfg.base_url,
             api_key=cfg.api_key or "missing",
             timeout=timeout_s,
             max_retries=0,          # we do our own fallback; don't wait on retries
+            http_client=http_client,
         )
         return cls(cfg.name, cfg.model, client, dict(cfg.options))
 
 
-def configured_providers(configs: list[ProviderConfig], timeout_s: float = 20) -> list[Provider]:
-    return [Provider.from_config(c, timeout_s) for c in configs if c.is_configured]
+def configured_providers(configs: list[ProviderConfig], timeout_s: float = 20,
+                         keepalive_s: float = 120) -> list[Provider]:
+    return [Provider.from_config(c, timeout_s, keepalive_s) for c in configs if c.is_configured]
 
 
 def _reasoning_text(delta: Any) -> str:
@@ -135,6 +148,27 @@ class FallbackLLM:
                 failures.append((p.name, err))
                 self.telemetry.log("llm_fallback", provider=p.name, error=err)
         raise LLMUnavailable(failures)
+
+    async def warm(self, timeout_s: float = 3.0) -> None:
+        """Open the connection to the first provider before the question is ready.
+
+        Called when push-to-talk is pressed: while you speak, the secure
+        connection gets set up, so the question goes out on an open line.
+        A failure here doesn't matter; the real request reports its own.
+        """
+        if not self.providers:
+            return
+        p = self.providers[0]
+        models = getattr(getattr(p.client, "models", None), "list", None)
+        if models is None:
+            return
+        start = time.perf_counter()
+        ok = True
+        try:
+            await asyncio.wait_for(models(), timeout_s)
+        except Exception:
+            ok = False
+        self.telemetry.log("llm_warm", provider=p.name, ok=ok, ms=round((time.perf_counter() - start) * 1000, 1))
 
     async def complete(
         self,
