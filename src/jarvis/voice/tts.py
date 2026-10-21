@@ -4,7 +4,8 @@
 
 Engines (all free, all local):
   kokoro  Kokoro-82M via kokoro-onnx. Best English quality; British voices
-          bm_george, bm_lewis, bm_daniel, bm_fable. Apache-2.0.
+          bm_george, bm_lewis, bm_daniel, bm_fable. Apache-2.0. Runs on the
+          NVIDIA GPU when there is one ([tts] device), else the CPU.
   piper   Piper ONNX voices. Fast on CPU, many languages, including the
           community Sinhala voice si_LK-dilu-medium.
   mms     Meta MMS-TTS through transformers (Tamil and 1,000+ other
@@ -32,8 +33,37 @@ class TTSEngine(Protocol):
     def synthesize(self, text: str, speed_factor: float = 1.0) -> np.ndarray: ...
 
 
+def kokoro_session(model_path: Path, device: str = "auto"):
+    """An onnxruntime session for Kokoro, on the NVIDIA GPU when there is one.
+
+    device: "auto" (the GPU if there's an NVIDIA card and the GPU build of
+    onnxruntime), "cuda" or "cpu". On the laptop the GPU is about 4x faster
+    (179 vs 770 ms for a 42-character sentence). If CUDA fails while running,
+    onnxruntime falls back to the CPU by itself.
+    """
+    import onnxruntime as rt
+
+    providers = ["CPUExecutionProvider"]
+    if device != "cpu" and "CUDAExecutionProvider" in rt.get_available_providers():
+        from ..gpu import cuda_device_count, prepare_cuda
+
+        if device == "cuda" or cuda_device_count() > 0:
+            prepare_cuda()                       # cuDNN finds its helper DLLs (gpu.py)
+            preload = getattr(rt, "preload_dlls", None)
+            if preload is not None:
+                try:
+                    preload()
+                except Exception:
+                    pass
+            providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+    opts = rt.SessionOptions()
+    opts.log_severity_level = 3                  # errors only
+    return rt.InferenceSession(str(model_path), opts, providers=providers)
+
+
 class KokoroTTS:
-    def __init__(self, model_path: Path, voices_path: Path, voice: str, lang: str = "en-gb", speed: float = 1.0):
+    def __init__(self, model_path: Path, voices_path: Path, voice: str, lang: str = "en-gb", speed: float = 1.0,
+                 device: str = "auto"):
         from kokoro_onnx import Kokoro
 
         if not model_path.is_file() or not voices_path.is_file():
@@ -41,11 +71,16 @@ class KokoroTTS:
                 f"Kokoro files missing ({model_path.name}, {voices_path.name}). "
                 "Run: uv run python scripts/download_models.py"
             )
-        self._kokoro = Kokoro(str(model_path), str(voices_path))
+        self._kokoro = Kokoro.from_session(kokoro_session(model_path, device), str(voices_path))
         if voice not in self._kokoro.get_voices():
             raise ValueError(f"Kokoro has no voice '{voice}'")
         self.voice, self.lang, self.speed = voice, lang or "en-us", speed
         self.sample_rate = 24000
+
+    @property
+    def device(self) -> str:
+        """Where it really runs ("cuda" or "cpu"); after a CUDA failure, "cpu"."""
+        return "cuda" if "CUDAExecutionProvider" in self._kokoro.sess.get_providers() else "cpu"
 
     def synthesize(self, text: str, speed_factor: float = 1.0) -> np.ndarray:
         audio, sr = self._kokoro.create(text, voice=self.voice, speed=self.speed * speed_factor, lang=self.lang)
@@ -104,6 +139,7 @@ def build_engine(lang: Language, settings: Settings) -> TTSEngine:
             settings.path("tts.kokoro_model", "models/kokoro-v1.0.onnx"),
             settings.path("tts.kokoro_voices", "models/voices-v1.0.bin"),
             voice=lang.tts_voice, lang=lang.tts_lang or "en-us", speed=speed,
+            device=str(settings.get("tts.device", "auto")),
         )
     if lang.tts_engine == "piper":
         return PiperTTS(settings.path("tts.piper_dir", "models/piper") / f"{lang.tts_voice}.onnx", speed=speed)

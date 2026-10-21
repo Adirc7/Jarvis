@@ -245,7 +245,7 @@ try {
     }
     if ($gpu) {
         $extras += "gpu"
-        Write-Note "NVIDIA GPU: $($gpu.Name). Installing the CUDA libraries so Whisper runs on it."
+        Write-Note "NVIDIA GPU: $($gpu.Name). Installing the CUDA libraries so Whisper and the English voice run on it."
         $driver = Get-NativeOutput "nvidia-smi" @("--query-gpu=driver_version", "--format=csv,noheader")
         if ($driver) {
             $driver = ([string]($driver | Select-Object -First 1)).Trim()

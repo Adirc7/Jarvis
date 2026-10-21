@@ -61,6 +61,10 @@ kokoro_model = "models/kokoro-v1.0.onnx"
 kokoro_voices = "models/voices-v1.0.bin"
 piper_dir = "models/piper"
 speed = 1.0                     # 0.9 = slower and calmer
+# Where Kokoro (English) runs: "auto" = the NVIDIA GPU if there is one, else
+# the CPU; or "cuda" / "cpu". GPU: 0.18 s for a 42-character sentence on the
+# laptop, CPU: 0.77 s. Piper (Sinhala) is fast enough on the CPU.
+device = "auto"
 # Start speaking as soon as the first short sentence is ready.
 first_chunk_min_chars = 12
 # A longer first sentence is cut at its first comma, so the voice starts sooner

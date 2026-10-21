@@ -140,14 +140,22 @@ class VoiceSink(TextSink):
     def busy(self) -> bool:
         return self.player.busy
 
-    def warm_up(self, lang: Language) -> None:
-        """Load the voice for `lang` and run it once (first inference is slow)."""
+    def warm_up(self, lang: Language) -> str | None:
+        """Load the voice for `lang` and run it once (first inference is slow).
+
+        Returns where it runs ("cuda" or "cpu") if the engine says, else None.
+        """
         try:
             self.tts.render("Ready.", lang)
         except Exception as exc:
             self._report_broken(lang, exc)
-            return
+            return None
         self.prepare_fillers(lang)
+        engine = getattr(self.tts, "engine", None)
+        device = getattr(engine(lang), "device", None) if engine is not None else None
+        if device:
+            self._tel.log("tts_device", language=lang.code, device=device)
+        return device
 
     def prepare_fillers(self, lang: Language) -> None:
         """Pre-render this language's fillers so they can play instantly (blocking)."""

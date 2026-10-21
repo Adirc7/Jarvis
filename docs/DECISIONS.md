@@ -91,6 +91,13 @@ the setup one command.
 MMS cover the languages Kokoro doesn't.
 **Not doing:** cloning a real actor's voice. Jarvis gets its own voice plus an
 effects chain (D11).
+**Update (2026-10-21):** Kokoro runs on the NVIDIA GPU when there is one
+(`[tts] device = "auto"`): 179 ms instead of 770 ms for a 42-character
+sentence on the laptop. On 64-bit Windows the GPU build of onnxruntime
+(1.26.0, the newest for CUDA 12, the CUDA Whisper's CTranslate2 uses)
+replaces the CPU build, because both install the same Python module; it also
+runs on the CPU, so machines without an NVIDIA card still work. DirectML
+was tried and fails on Kokoro's ConvTranspose layer.
 
 ## D11. A "Jarvis feel" through production, not imitation
 **Decision:** Every reply goes through a light chain (high-pass, warmth,
