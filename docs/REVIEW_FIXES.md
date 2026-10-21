@@ -80,3 +80,21 @@ more `play` calls; barge-in, with the old reply not saved.
   (`bus.py`, around line 71).
 - Licences (GPL dependencies, the non-commercial Tamil voice) if Jarvis is
   ever published; `requires-python` says 3.11 but only 3.12 is tested.
+
+## After groups 1-2: the first tool, "open Bing and search" (Adhi, 22 Oct)
+
+Low risk (it only opens a page), so no confirmation needed.
+- "open Bing" / "bing eka open karanna" / "බිං එක ඕපන් කරන්න": open
+  https://www.bing.com in Edge (`start msedge <url>` on Windows; otherwise
+  the default browser via `webbrowser`), then ask "What should I search for?"
+  and treat the next utterance as the search words (a short waiting state,
+  cleared after one reply, about 60 s, or "cancel").
+- "search Bing for X" / "X bing eke hoyanna": one step.
+- URL: `https://www.bing.com/search?q=` + `urllib.parse.quote(words)`, so
+  Sinhala works.
+- Add "bing" to the keyword router's web words and to the intent patterns
+  (search_web, open_app with a `site` slot); log the tool call in telemetry.
+- Reading results aloud: not now (Bing's search API for programs closed in
+  2025); later with the News and Research skills.
+- Tests: the URL for English and Sinhala words; the waiting state takes the
+  next utterance once; "cancel" clears it; nothing else opens a browser.
