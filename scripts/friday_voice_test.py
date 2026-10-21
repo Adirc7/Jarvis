@@ -83,6 +83,21 @@ LONGER = [
     "I couldn't find that file, but there is a similar one from last week in the downloads folder.",
     "Quantum mechanics describes particles with wave functions that give the chance of each result.",
     "That was a good session. Shall I note down what we covered, so we can pick it up tomorrow?",
+    "Momentum is conserved in every collision, even when some of the kinetic energy turns into heat.",
+    "The derivative tells us how fast a quantity changes, and the integral adds up all those changes.",
+    "Sound travels faster in water than in air, because the molecules are packed much more closely.",
+    "A good way to revise is to explain each idea out loud, as if you were teaching it to a friend.",
+    "The train to Colombo leaves in half an hour, and the next one is not until the evening.",
+    "Your battery is getting low, so it might be a good moment to plug in the charger.",
+    "Electric and magnetic fields are two sides of the same thing, as Maxwell's equations show.",
+    "I've drafted a reply to the email, but you might want to change the second paragraph.",
+    "Gravity bends the path of light, which is why distant galaxies can look stretched and doubled.",
+    "Standard deviation tells you how far the values usually sit from the average, in the same units.",
+    "Before we solve the equation, let's check the units on both sides, to catch any mistakes early.",
+    "Heat always flows from the hotter object to the colder one, unless some work is done to reverse it.",
+    "The experiment went well overall, though the last two readings look a little suspicious.",
+    "If you're feeling tired, a short walk outside might help more than another cup of coffee.",
+    "Good night. Everything is saved, and I'll be right here when you need me tomorrow.",
 ]
 
 
