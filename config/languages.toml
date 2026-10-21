@@ -61,12 +61,13 @@ stt_model = "default"
 tts_engine = "piper"
 # Community voice, MIT licence: https://huggingface.co/chaturadilan/dilu-tts
 tts_voice = "si_LK-dilu-medium"
-# To try Jarvis's English voice speaking Sinhala instead (Kokoro reads the
-# Sinhala pronunciation that eSpeak makes; Kokoro was never trained on
-# Sinhala, so listen for the accent), put # before the two lines above and
-# remove it from these three:
+# To try a Kokoro voice speaking Sinhala instead (Kokoro reads the Sinhala
+# pronunciation that eSpeak makes; it was never trained on Sinhala, so listen
+# for the accent), put # before the two lines above and remove it from these
+# three. tts_voice: bm_lewis (Jarvis's English voice), or a woman's voice:
+# bf_emma, bf_isabella, bf_alice, bf_lily, af_heart.
 # tts_engine = "kokoro"
-# tts_voice = "bm_lewis"
+# tts_voice = "bf_emma"
 # tts_lang = "si"
 # "singular": how Whisper heard "Sinhala" from Adhi (21 Oct). It only switches
 # with a command word in a short sentence ("can we speak in singular language").
