@@ -120,3 +120,22 @@ Builds on the Bing tool's waiting state (one follow-up answer, ~60 s, "cancel").
   English patterns.
 - Tests: URLs for English and Sinhala; choosing "the second one"; pause then
   "anything else?"; the back stack; no API key -> results page.
+
+## Then: "search and read" (Adhi, 22 Oct)
+
+After a Bing search, Jarvis names the top results and asks which to read.
+- Bing opens in the browser for Adhi to see; Jarvis's own list comes from a
+  search API that allows programs (e.g. Brave Search or Tavily, free monthly
+  quotas: check current limits; key in .env). Don't scrape Bing's page (its
+  terms; its programs API closed in 2025).
+- Read the top 3-5 aloud as "site: title"; ask "Which one should I read, sir?";
+  "the second one" opens it and fetches the page (plain HTTP like a browser,
+  honest user agent, respect robots.txt and paywalls), keeps the main text
+  (trafilatura, Apache-2.0) and summarises with sources (long pages: route
+  "long", Gemini). "read more" continues section by section; Friday can
+  summarise in Sinhala.
+- Safety: page text is untrusted data, never instructions: quote it in the
+  prompt as content, never let it trigger tools, cap its length.
+- Tests: result list read-out and choice by number; extraction on saved
+  sample pages; a page containing "ignore previous instructions" changes
+  nothing; no key -> just open Bing.
