@@ -73,6 +73,9 @@ chunk_max_chars = 220
 # filler would only delay it. Once per turn at most.
 fillers = true
 filler_after_ms = 700
+# Fillers longer than this are skipped (if none is short enough, the shortest
+# is kept), because the real reply has to wait until the filler ends.
+filler_max_ms = 700
 
 # The "Jarvis feel": a light studio chain applied to every reply.
 # Set enabled = false to hear the raw voice.

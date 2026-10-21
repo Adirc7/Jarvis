@@ -144,8 +144,10 @@ def turn_rows(path: Path) -> list[dict[str, Any]]:
             "heard": stt.get("language"), "p": stt.get("probability"),
             "retranscribed": bool(stt.get("retranscribed")), "stt_ms": stt.get("ms"),
             "llm_ms": llm.get("ms"), "provider": llm.get("provider"),
+            "thinking_ms": _thinking_ms(llm), "thinking_chars": llm.get("thinking_chars"),
             "voice_ms": tts.get("ms"), "voice_chars": tts.get("chars"),
             "filler": marks.get("filler"), "first_audio": marks.get("first_audio"),
+            "held_back": _held_back(marks),
         })
         pending = []
     return rows
@@ -155,15 +157,31 @@ def _first(events: list[dict[str, Any]], name: str) -> dict[str, Any]:
     return next((e for e in events if e.get("event") == name), {})
 
 
+def _held_back(marks: dict[str, Any]) -> float | None:
+    """How long the ready first sentence waited to be played (behind a filler)."""
+    if marks.get("first_tts") is None or marks.get("first_audio") is None:
+        return None
+    return max(0.0, float(marks["first_audio"]) - float(marks["first_tts"]))
+
+
+def _thinking_ms(llm: dict[str, Any]) -> float | None:
+    """Time between the server's first chunk and the first word of the reply."""
+    if not llm.get("thinking_chars") or llm.get("first_chunk_ms") is None or llm.get("ms") is None:
+        return None
+    return float(llm["ms"]) - float(llm["first_chunk_ms"])
+
+
 def format_turns(rows: list[dict[str, Any]]) -> list[str]:
     def ms(v: Any) -> str:
         return "-" if v is None else f"{float(v):.0f}"
 
     lines = [
         "Turn by turn: 'filler' and 'first audio' count from letting go of the key (or pressing Enter);",
-        "'speech', 'LLM' and '1st sentence' are how long that one step took.",
-        (f"{'#':>3} {'said':>6} {'heard':<11} {'speech':>7} {'LLM':>6} {'provider':<11} "
-         f"{'1st sentence':>13} {'filler':>7} {'first audio':>12}"),
+        "'speech', 'LLM' and '1st sentence' are how long that one step took; 'of it thinking' is",
+        "the part of 'LLM' the model spent reasoning before its first word; 'held back' is how long",
+        "the ready first sentence waited for a filler to finish.",
+        (f"{'#':>3} {'said':>6} {'heard':<11} {'speech':>7} {'LLM':>6} {'of it thinking':>15} {'provider':<11} "
+         f"{'1st sentence':>13} {'filler':>7} {'held back':>10} {'first audio':>12}"),
     ]
     for i, r in enumerate(rows, 1):
         said = f"{r['audio_s']:.1f}s" if r["audio_s"] is not None else "typed"
@@ -171,9 +189,11 @@ def format_turns(rows: list[dict[str, Any]]) -> list[str]:
         if r["heard"]:
             heard = r["heard"] + (f" {r['p']:.2f}" if r["p"] is not None else "") + ("*" if r["retranscribed"] else "")
         voice = "-" if r["voice_ms"] is None else f"{ms(r['voice_ms'])} ({r['voice_chars']} ch)"
+        think = "-" if r["thinking_ms"] is None else f"{ms(r['thinking_ms'])} ({r['thinking_chars']} ch)"
         lines.append(
-            f"{i:>3} {said:>6} {heard:<11} {ms(r['stt_ms']):>7} {ms(r['llm_ms']):>6} {r['provider'] or '-':<11} "
-            f"{voice:>13} {ms(r['filler']):>7} {ms(r['first_audio']):>12}"
+            f"{i:>3} {said:>6} {heard:<11} {ms(r['stt_ms']):>7} {ms(r['llm_ms']):>6} {think:>15} "
+            f"{r['provider'] or '-':<11} "
+            f"{voice:>13} {ms(r['filler']):>7} {ms(r['held_back']):>10} {ms(r['first_audio']):>12}"
         )
     if any(r["retranscribed"] for r in rows):
         lines.append("* heard in another language, so Whisper ran a second time")
