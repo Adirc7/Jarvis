@@ -481,3 +481,13 @@ Kokoro on the laptop (`scripts/try_tts_gpu.cmd`, bm_lewis, median of 5):
   pulls and re-installs with the extras already chosen at setup.
   Expected English voice turn: about 0.5 + 0.6 + 0.2 = 1.3 s, under the 1.5 s
   target. To measure.
+
+## 2026-10-21: Sinhala test sentences drafted
+
+35 test sentences in `eval/sentences_si.txt`: the 20 original hints plus 15
+everyday requests (study help, files, media, reminders), in spoken Sinhala,
+English loanwords in Sinhala script, no numbers or course codes (Whisper may
+write digits where the text has words). Drafted by Claude at Adhi's request;
+Adhi checks and edits every line before recording, so the reference text is
+what he really says. For the report: say that the sentences were drafted
+with AI help and checked by the speaker.

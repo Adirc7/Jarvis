@@ -30,8 +30,12 @@ def test_clip_names_are_unique(tmp_path):
     assert rec.clip_name(tmp_path, "friend1", sentences, 3) == "friend1_sentences_si_003.wav"
 
 
-def test_templates_record_nothing_until_filled():
+def test_sentence_files():
     rec = _load()
-    for name in ("sentences_si.txt", "sentences_singlish.txt"):
-        assert rec.read_sentences(PROJECT_ROOT / "eval" / name) == []
+    assert rec.read_sentences(PROJECT_ROOT / "eval" / "sentences_singlish.txt") == []   # template, not filled yet
     assert len(rec.read_sentences(PROJECT_ROOT / "eval" / "sentences_en.txt")) == 20
+    si = rec.read_sentences(PROJECT_ROOT / "eval" / "sentences_si.txt")
+    assert len(si) >= 30
+    from jarvis.voice.clarity import foreign_script_share
+    assert all(foreign_script_share(s, "si") == 0 for s in si)            # all in Sinhala script
+    assert not any(ch.isdigit() for s in si for ch in s)                  # no numbers (see the file's header)
