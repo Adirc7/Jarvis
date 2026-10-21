@@ -597,3 +597,12 @@ small share of the Whisper training (TRAINING_SINHALA.md).
 
 RVC for Friday is postponed (power cuts); the kNN-VC comparison is ready
 (`try_friday_voice.cmd again`).
+- Same night, more variety at Adhi's request: 21 new intents (messages to
+  family and friends, timetable, screenshots, graphs, Excel and Power BI
+  data work, research papers, translation, date, timers, alarms, greetings,
+  thanks, questions about Jarvis, computer power, brightness up and down,
+  Wi-Fi and similar settings, notes, "remember that", quizzes, web search).
+  Now 38 intents and 8,770 examples: 5,496 Sinhala script, 1,755 Singlish,
+  1,519 English. Sinhala verb forms: polite 1011, for me 664, casual 605,
+  question 427, formal 47. Small classes (greeting 10, thanks 8 in Sinhala)
+  need class weights.
