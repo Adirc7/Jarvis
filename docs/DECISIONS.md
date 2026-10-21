@@ -69,6 +69,10 @@ language only when Whisper is confident.
 ## D7. Data handling (10.5)
 **Decision:** No audio or video persisted beyond the current utterance or
 frame. Gesture datasets store landmark numbers, not video.
+**Exception (2026-10-21, D27):** with `[learning] keep_examples` turned on
+by the user, corrected examples are kept on the laptop for retraining.
+Off by default; recording rounds keep their own consented clips in
+`eval/recordings/`.
 
 ## D8. Latency target (10.1)
 **Decision:** Under 1.5 s from end of speech to the first audio of the reply,
@@ -285,3 +289,17 @@ comes from checks and sources instead.
 or confused, Jarvis says so once and offers to summarise and start fresh,
 start a new chat, or keep going.
 **Revisit:** the 70% threshold, once routing is measured.
+
+## D27. Learning from use: only confirmed examples, retrain in batches, keep only improvements
+**Decision:** Jarvis improves from everyday use by saving examples whose
+correct answer came from the user (a correction, a click, feedback words,
+retyped text), never its own unchecked guesses. Saving is opt-in and local.
+The small models (Sinhala speech, intent, emotion) retrain in batches, and a
+new version replaces the old only if it scores better on the fixed test set
+of real speakers it never trained on. The hosted LLM is never retrained; it
+gets saved facts and preferences in its prompt.
+**Why:** Training on its own guesses would teach a model its own mistakes
+(errors that reinforce themselves). Checking every new version against a
+fixed test set means Jarvis can only get better, and gives a week-by-week
+learning curve for the report.
+**Idea:** Adhi, 2026-10-21.
