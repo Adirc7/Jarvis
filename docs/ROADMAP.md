@@ -961,3 +961,14 @@ Jarvis (or Friday, in Sinhala) reads a short summary of the top stories.
   says where each came from; links open in the browser.
 - Measure: time from the request to the map plus first spoken headline, and
   whether the summary matches its sources (spot-check 20).
+
+## The orb (Adhi's style choice, 22 Oct 2026; for the M6 window and mini orb)
+
+A glowing particle sphere: a bright core, light rays, rings of sparks.
+Jarvis gold; Friday her own colour (teal or rose) so you know who speaks.
+States: idle (small, dim, slow); listening (rings pulse with your voice
+level); thinking (rings spin, sparks orbit, no rays); speaking (bright core,
+rays follow the loudness of the voice being played, word by word); after a
+question, straight back to listening. Always a small text label too
+("Listening..."). Budget: canvas or WebGL, about 1,000-2,000 particles,
+30 fps, paused when hidden: the GPU also runs Whisper and the voices.
