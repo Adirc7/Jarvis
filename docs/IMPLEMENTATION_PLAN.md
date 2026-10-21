@@ -150,6 +150,15 @@ Follow the nine build steps in ROADMAP.md, "Phase 2".
 and Singlish (about 10 intents, 10 examples each), and the safety test set
 (30 risky requests, 10 booby-trapped files).
 
+**Training data for the intent classifier (ready, 21 Oct):**
+`uv run python scripts/make_intent_data.py` writes about 4,500 labelled
+sentences (2,700 in Sinhala script, 1,000 Singlish, 800 English) for 17
+intents, from the patterns in `src/jarvis/intents/patterns.py`: Sinhala verb
+forms (polite, casual, for me, question, formal), synonyms, "එක" after
+English words, cases, word order, wake words and two-sentence requests.
+Train on these, test on your real sentences. Some intents have fewer
+examples (asking the time, stop), so use class weights.
+
 **Learn:** JSON schema for tool arguments; what prompt injection is; why
 "verified" and "claimed" differ.
 

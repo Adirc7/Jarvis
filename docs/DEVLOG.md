@@ -577,3 +577,23 @@ the CPU is for the test only; for live use it needs the GPU.
   Kokoro's 24 kHz. Next: compare topk 2, 4 and 8 (`try_friday_voice.cmd
   again`); if it's still not Emma enough, train an RVC model on Emma's voice
   (a real fine-tune, on the laptop GPU).
+
+## 2026-10-21 night: thousands of Sinhala patterns for the intent classifier
+
+Adhi asked for thousands of Sinhala sentences covering grammar and
+combinations. Text alone can't teach Whisper to hear (it needs audio), but
+it is exactly what the intent classifier (his trees or boosting idea) needs.
+`src/jarvis/intents/` holds the patterns and a generator;
+`scripts/make_intent_data.py` writes 4,480 labelled examples (2,716 Sinhala
+script, 978 Singlish, 786 English) for 17 intents, each with its intent,
+slots (app = chrome, time = tomorrow_morning ...) and the Sinhala verb form
+(polite 611, for me 418, casual 395, question 265, formal 47). Grammar
+covered: politeness forms, synonyms (ඕපන් කරන්න / අරින්න / විවෘත කරන්න),
+"එක" after English words, cases (ලංකාවේ / ලංකාව), word order, wake words
+and two-sentence requests. Balanced by sampling round-robin over patterns;
+reproducible (seed 21). Training only; the test set is Adhi's real
+sentences. Possible extra: some of these sentences as synthetic speech, a
+small share of the Whisper training (TRAINING_SINHALA.md).
+
+RVC for Friday is postponed (power cuts); the kNN-VC comparison is ready
+(`try_friday_voice.cmd again`).

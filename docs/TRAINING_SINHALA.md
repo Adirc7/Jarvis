@@ -33,7 +33,13 @@ These recordings are the test set: they never go into training, and they
 stay on the laptop. Note the CER: it is the "before" number.
 
 Written sentences on their own can't teach the speech model: it learns
-from audio and its text together. Your recordings are the test set; the
+from audio and its text together. One experiment can bridge the two: turn
+some of the 2,700 generated Sinhala sentences
+(`data/generated/sinhala_sentences.txt`, from `scripts/make_intent_data.py`)
+into speech with the Sinhala voices and add that to training as a small
+share (say 10%) of OpenSLR 52. Synthetic speech teaches the words and topics
+you use, but a model trained mostly on it learns the synthetic voice, so
+keep it small and always test on real recordings. Your recordings are the test set; the
 training audio is OpenSLR 52. Text alone helps elsewhere: the intent
 classifier, a word list for Whisper's prompt, and (an option from the 2026
 study) a Sinhala language model to rescore Whisper's guesses.
