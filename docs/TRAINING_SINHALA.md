@@ -19,14 +19,24 @@ to Claude at any step.
 
 ## Stage 1: test set and "before" score (laptop, about 40 minutes)
 
-1. `notepad eval\sentences_si.txt`: write your Sinhala sentence under each
-   hint, the way you'd really say it, and add your own. Aim for 30 or more.
-2. Record them: `uv run python scripts/record_eval_set.py eval/sentences_si.txt --lang si`
+1. Check the three Sinhala files (129 sentences, drafted with Claude):
+   `eval\sentences_si.txt` (commands), `eval\sentences_si_study.txt`
+   (physics and maths), `eval\sentences_si_talk.txt` (conversation and short
+   paragraphs). Change any wording you wouldn't use; add your own.
+2. Record each file, as many sittings as you like:
+   `uv run python scripts/record_eval_set.py eval/sentences_si_study.txt --lang si`
+   (and the same for the other two). They all go into one Sinhala test set.
 3. Score today's models:
    `uv run python scripts/eval_stt.py --lang si --model small --model large-v3-turbo`
 
 These recordings are the test set: they never go into training, and they
 stay on the laptop. Note the CER: it is the "before" number.
+
+Written sentences on their own can't teach the speech model: it learns
+from audio and its text together. Your recordings are the test set; the
+training audio is OpenSLR 52. Text alone helps elsewhere: the intent
+classifier, a word list for Whisper's prompt, and (an option from the 2026
+study) a Sinhala language model to rescore Whisper's guesses.
 
 ## Stage 2: accounts (about 10 minutes)
 
