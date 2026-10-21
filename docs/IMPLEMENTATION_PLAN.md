@@ -256,8 +256,17 @@ the most useful thing this project can add.
      `stt_model` under `[si]`). Later, compare a CTC model (Wav2Vec2-BERT):
      a 2026 study got 4.6% CER from 60 hours of OpenSLR 52 without a
      language model ([arXiv 2607.06289](https://arxiv.org/abs/2607.06289)).
-   - Compute: Kaggle notebooks (free T4 or P100, 12-hour sessions, about 30
-     GPU hours a week). Save checkpoints so the next session can resume.
+   - Compute: Kaggle for long runs (free T4 or P100, 12-hour sessions,
+     about 30 GPU hours a week; "Save & Run All" keeps training with the
+     browser closed), Colab for quick tests (needs the tab open; free limits
+     unpublished). Also ask the department whether students can use a
+     university GPU server.
+   - Storage: download the data subset straight into the cloud machine from
+     OpenSLR, prepare it once, and keep the prepared subset and checkpoints
+     in Google Drive (mounted in Colab; 15 GB free, shared with Gmail) or a
+     private Hugging Face repo (works from Kaggle, Colab and the laptop).
+     Save a checkpoint every 30 minutes and resume from the last one.
+     Recordings of your voice stay on the laptop; testing runs there.
    - Measure: CER and WER on your round-1 recordings, and Whisper time on
      the laptop, before and after.
 4. **Round 2:** the intent examples, partly recorded.
