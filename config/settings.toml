@@ -56,6 +56,9 @@ piper_dir = "models/piper"
 speed = 1.0                     # 0.9 = slower and calmer
 # Start speaking as soon as the first short sentence is ready.
 first_chunk_min_chars = 12
+# A longer first sentence is cut at its first comma, so the voice starts sooner
+# (Kokoro needs about 0.2 s plus 14 ms per character on the laptop's CPU).
+first_chunk_max_chars = 60
 chunk_min_chars = 40
 chunk_max_chars = 220
 # Say a short filler ("Mm, one moment") if the LLM hasn't sent any text this

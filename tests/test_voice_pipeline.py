@@ -85,6 +85,33 @@ def make_voice_app(settings, llm_pieces, whisper):
 AUDIO = np.zeros(16000, np.float32)
 
 
+async def _run_voice_loop(app, out, *events):
+    task = asyncio.create_task(app._voice_task())
+    await asyncio.sleep(0)                                  # let it subscribe
+    for ev in events:
+        app.bus.publish(ev)
+    for _ in range(200):                                    # until the turn has been answered
+        await asyncio.sleep(0.01)
+        if any(line.startswith("You [") for line in out) and app.state.mode.name == "IDLE":
+            break
+    task.cancel()
+
+
+async def test_recording_limit_is_reported(settings):
+    from jarvis.events import UtteranceCaptured
+    app, spoken, backend, out = make_voice_app(settings, ["Sure."], FakeWhisper(texts={"en": "hello"}))
+    await _run_voice_loop(app, out, UtteranceCaptured(audio=np.zeros(30 * 16000, np.float32), seconds=30.0))
+    assert any("30-second limit" in line for line in out)
+
+
+async def test_normal_recording_has_no_limit_note(settings):
+    from jarvis.events import UtteranceCaptured
+    app, spoken, backend, out = make_voice_app(settings, ["Sure."], FakeWhisper(texts={"en": "hello"}))
+    await _run_voice_loop(app, out, UtteranceCaptured(audio=AUDIO, seconds=1.0))
+    assert not any("limit" in line for line in out)
+    assert any("hello" in line for line in out)
+
+
 # ---- Transcriber ----------------------------------------------------------------
 
 def test_transcribes_in_active_language(settings):
