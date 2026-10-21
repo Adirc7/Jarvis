@@ -98,3 +98,25 @@ Low risk (it only opens a page), so no confirmation needed.
   2025); later with the News and Research skills.
 - Tests: the URL for English and Sinhala words; the waiting state takes the
   next utterance once; "cancel" clears it; nothing else opens a browser.
+
+## Then: YouTube by voice (Adhi, 22 Oct)
+
+Builds on the Bing tool's waiting state (one follow-up answer, ~60 s, "cancel").
+- "open YouTube" -> open youtube.com, ask "Which video would you like to watch, sir?"
+- Search with the official YouTube Data API v3 (free key in .env as
+  YOUTUBE_API_KEY; search costs 100 of 10,000 daily units, so about 100
+  searches a day): read the top 3 titles, ask which; "play the first/second
+  one" or "play it" opens https://www.youtube.com/watch?v=<id>.
+- "stop/pause the video" / "video eka nawaththanna": send the media
+  play/pause key (pynput `Key.media_play_pause`; Edge and Chrome pause
+  YouTube even when not focused), then ask "Would you like to search for
+  anything else, sir?"; "play/continue" sends it again.
+- "go back": Jarvis keeps its own stack of pages it opened and reopens the
+  previous one (results, then the YouTube home page); no window focus needed.
+- Without the key: fall back to opening
+  https://www.youtube.com/results?search_query=<words> (no titles read aloud).
+- Intents: play_music already covers "YouTube eke ... danna"; add
+  play_video, pause_media, resume_media, go_back with Sinhala, Singlish and
+  English patterns.
+- Tests: URLs for English and Sinhala; choosing "the second one"; pause then
+  "anything else?"; the back stack; no API key -> results page.
