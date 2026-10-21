@@ -34,7 +34,7 @@ stay on the laptop. Note the CER: it is the "before" number.
 
 Written sentences on their own can't teach the speech model: it learns
 from audio and its text together. One experiment can bridge the two: turn
-some of the 2,700 generated Sinhala sentences
+some of the 8,300 generated Sinhala sentences
 (`data/generated/sinhala_sentences.txt`, from `scripts/make_intent_data.py`)
 into speech with the Sinhala voices and add that to training as a small
 share (say 10%) of OpenSLR 52. Synthetic speech teaches the words and topics
