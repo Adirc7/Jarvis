@@ -22,7 +22,7 @@ from .config import Settings
 from .events import (
     KillSwitchPressed, LanguageChanged, MuteToggled, PushToTalkPressed, UtteranceCaptured,
 )
-from .greeting import FULL, Greeter, Presence, greeting_kind
+from .greeting import FULL, Greeter, Presence, fill, greeting_kind
 from .killswitch import HotkeyListener, Once
 from .language import LanguageManager, normalize
 from .persona import Persona
@@ -235,6 +235,16 @@ class App:
             return None
         heard = self.lang.languages[result.language].name
         note = f", p={result.detected_probability}" if result.detected_probability is not None else ""
+        if result.unclear:
+            # Whisper wrote something, but it looks like nonsense: ask again
+            # rather than let the LLM answer it (voice/clarity.py).
+            self.out(f"You [{heard}{note}, unclear: {result.unclear}]: {result.text}")
+            lang = self.lang.current
+            line = lang.unclear or self.lang.languages["en"].unclear or "Sorry, could you say that again?"
+            await self.sink.say(fill(line, self.persona.address), lang, self.state.token())
+            self.state.mode = Mode.IDLE
+            turn.finish(kind="unclear", reason=result.unclear, heard=result.language)
+            return None
         self.out(f"You [{heard}{note}]: {result.text}")
         if self.settings.get("general.language_mode", "fixed") == "auto" and result.language != self.state.language:
             self.lang.set(result.language, source="auto")

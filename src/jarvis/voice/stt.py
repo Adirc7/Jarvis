@@ -21,6 +21,7 @@ from ..config import PROJECT_ROOT, Language, Settings
 from ..gpu import cuda_device_count
 from ..language import LanguageManager
 from ..telemetry import Telemetry
+from .clarity import compression_ratio, unclear_reason
 
 
 @dataclass(frozen=True)
@@ -31,6 +32,16 @@ class TranscriptResult:
     detected_probability: float | None
     retranscribed: bool           # True if step 2 above kicked in
     ms: float
+    avg_logprob: float | None = None   # Whisper's confidence per token (0 = sure, -1 = guessing)
+    unclear: str | None = None         # why the text looks like nonsense (voice/clarity.py)
+
+
+def _mean_logprob(segments: list[Any]) -> float | None:
+    """Average log-probability over all segments, weighted by their token counts."""
+    pairs = [(s.avg_logprob, len(getattr(s, "tokens", None) or [0])) for s in segments
+             if getattr(s, "avg_logprob", None) is not None]
+    total = sum(n for _, n in pairs)
+    return sum(lp * n for lp, n in pairs) / total if total else None
 
 
 def load_whisper(name: str, device: str = "cuda", compute_type: str = "int8_float16"):
@@ -125,14 +136,27 @@ class Transcriber:
             vad_filter=bool(self._settings.get("stt.vad_filter", True)),
             initial_prompt=self._settings.get("stt.initial_prompt") or None,
         )
+        segments = list(segments)                          # transcription runs here
         text = " ".join(s.text.strip() for s in segments).strip()
+        logprob = _mean_logprob(segments)
+        unclear = None
+        if text and self._settings.get("stt.reject_unclear", True):
+            unclear = unclear_reason(
+                text, target.whisper_code, logprob,
+                max_compression=float(self._settings.get("stt.unclear_max_compression", 2.4)),
+                min_logprob=float(self._settings.get("stt.unclear_min_logprob", -1.0)),
+                max_foreign_share=float(self._settings.get("stt.unclear_max_foreign_script", 0.2)),
+            )
         ms = (time.perf_counter() - start) * 1000
         result = TranscriptResult(
             text=text, language=target_code, detected=detected,
             detected_probability=None if prob is None else round(float(prob), 3),
             retranscribed=target_code != self._lm.current.code, ms=round(ms, 1),
+            avg_logprob=None if logprob is None else round(logprob, 3), unclear=unclear,
         )
         self._tel.log("stt", ms=result.ms, language=target_code, detected=detected,
                       probability=result.detected_probability, retranscribed=result.retranscribed,
-                      audio_s=round(len(audio) / 16000, 2), chars=len(text))
+                      audio_s=round(len(audio) / 16000, 2), chars=len(text),
+                      logprob=result.avg_logprob, compression=round(compression_ratio(text), 2),
+                      unclear=unclear)
         return result

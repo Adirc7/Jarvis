@@ -19,6 +19,8 @@
 # fillers        Short sounds Jarvis may say while it's still thinking, only
 #                when the real reply is slow ("mm, one moment"). Pre-recorded
 #                at start-up so they play instantly.
+# unclear        What Jarvis says when it couldn't make out the words, instead
+#                of answering a nonsense transcript. {address} as in greetings.
 #
 # To add a language, copy a block and change the values.
 
@@ -33,10 +35,11 @@ tts_engine = "kokoro"
 tts_voice = "bm_lewis"           # chosen after listening to all four
 tts_lang = "en-gb"
 names = ["english", "ඉංග්‍රීසි", "ඉංග්‍රීසියෙන්", "ஆங்கிலம்", "ஆங்கிலத்தில்"]
-command_words = ["speak", "talk", "reply", "answer", "respond", "switch", "change"]
+command_words = ["speak", "talk", "reply", "answer", "respond", "switch", "change", "prefer"]
 switch_phrases = ["english please"]
 confirm = "Okay, I'll speak English now."
 fillers = ["Mm.", "One moment.", "Let me check.", "Right, one sec.", "Let me think."]
+unclear = "Sorry, {address}, I couldn't make that out. Could you say it again, or type it?"
 
 # What Jarvis says when it starts or wakes (see src/jarvis/greeting.py).
 # {address} becomes the form of address from persona.toml ("sir"), or is
@@ -58,11 +61,13 @@ stt_model = "default"
 tts_engine = "piper"
 # Community voice, MIT licence: https://huggingface.co/chaturadilan/dilu-tts
 tts_voice = "si_LK-dilu-medium"
-names = ["sinhala", "sinhalese", "සිංහල", "සිංහලෙන්"]
+names = ["sinhala", "sinhalese", "singhala", "singala", "සිංහල", "සිංහලෙන්"]
 command_words = ["කතා", "මාරු"]
 switch_phrases = ["sinhala please"]
 confirm = "හරි, මම දැන් සිංහලෙන් කතා කරන්නම්."
 fillers = ["හ්ම්.", "පොඩ්ඩක් ඉන්න."]
+# Adhi: please check this one too.
+unclear = "සමාවෙන්න, මට ඒක පැහැදිලිව ඇහුණේ නැහැ. ආයෙත් කියන්න, නැත්නම් ටයිප් කරන්න."
 
 # Adhi: please check these and rewrite them the way you'd naturally say them.
 [si.greetings]
@@ -87,6 +92,7 @@ command_words = ["பேசு", "பேசுங்கள்", "பேசவு
 switch_phrases = ["tamil please"]
 confirm = "சரி, இனி நான் தமிழில் பேசுகிறேன்."
 fillers = ["ம்ம்.", "ஒரு நிமிடம்."]
+unclear = "மன்னிக்கவும், எனக்கு அது தெளிவாகக் கேட்கவில்லை. மீண்டும் சொல்லுங்கள், அல்லது தட்டச்சு செய்யுங்கள்."
 
 # Not checked by a Tamil speaker yet (see decision D23).
 [ta.greetings]
