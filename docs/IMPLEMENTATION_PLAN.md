@@ -247,10 +247,12 @@ the most useful thing this project can add.
 2. **Baselines, you run:** `scripts/eval_stt.py` on round 1 with `small`,
    `large-v3-turbo` and one community fine-tune converted for
    faster-whisper (docs/LANGUAGES.md). Note WER and CER.
-3. **Train our own, you (Claude outlines the notebook):**
+3. **Train our own, you (Claude outlines the notebook in
+   [TRAINING_SINHALA.md](TRAINING_SINHALA.md)):**
    - Data: [OpenSLR 52](https://openslr.org/52/) from Google, crowd-sourced,
-     about 185,000 utterances (about 224 hours) with transcripts. Read its
-     LICENSE.txt first. Start with a 30-hour subset.
+     about 185,000 utterances (about 224 hours) with transcripts, CC BY-SA
+     4.0, in 16 parts of about 0.9 GB (about 14 hours each). Start with two
+     parts.
    - Model: fine-tune `whisper-small`, so it drops into the existing
      faster-whisper path (convert with `ct2-transformers-converter`, then set
      `stt_model` under `[si]`). Later, compare a CTC model (Wav2Vec2-BERT):
