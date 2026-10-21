@@ -465,3 +465,19 @@ Kokoro on the laptop (`scripts/try_tts_gpu.cmd`, bm_lewis, median of 5):
   curand), and the voice test uses it and warns when a GPU run fell back
   to the CPU. Loading took 68 s the first time (Windows scanning the new
   DLLs).
+- CUDA, second try (folders fixed): **4x faster**.
+
+  | Sentence | CPU | CUDA |
+  |---|---|---|
+  | 9 chars | 307 ms | 80 ms |
+  | 42 chars | 770 ms | 179 ms |
+  | 50 chars | 744 ms | 173 ms |
+  | 72 chars | 1257 ms | 262 ms |
+
+  Built in: `[tts] device = "auto"` runs Kokoro on CUDA when there's an
+  NVIDIA card; on 64-bit Windows onnxruntime-gpu 1.26.0 replaces onnxruntime
+  (uv override; the CUDA extras go in the `gpu` extra), Linux keeps the CPU
+  build. Jarvis prints where the voice runs at start-up. `scripts/update.cmd`
+  pulls and re-installs with the extras already chosen at setup.
+  Expected English voice turn: about 0.5 + 0.6 + 0.2 = 1.3 s, under the 1.5 s
+  target. To measure.

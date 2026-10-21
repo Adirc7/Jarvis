@@ -252,3 +252,38 @@ def test_real_kokoro_british_voice(settings):
     assert tts.sample_rate == 24000 and 0.4 < len(audio) / 24000 < 3
     styled = VoiceStyle().process(audio, tts.sample_rate)
     assert np.max(np.abs(styled)) <= 1.0
+
+
+def test_kokoro_session_uses_cpu_without_a_gpu(monkeypatch, tmp_path):
+    rt = pytest.importorskip("onnxruntime")
+    from jarvis.voice import tts as tts_mod
+    made = {}
+
+    class FakeSession:
+        def __init__(self, path, opts, providers):
+            made["providers"] = providers
+
+    monkeypatch.setattr(rt, "InferenceSession", FakeSession)
+    monkeypatch.setattr(rt, "get_available_providers", lambda: ["CUDAExecutionProvider", "CPUExecutionProvider"])
+    import jarvis.gpu as gpu
+    monkeypatch.setattr(gpu, "cuda_device_count", lambda: 0)          # GPU build installed, no NVIDIA card
+    tts_mod.kokoro_session(tmp_path / "m.onnx", "auto")
+    assert made["providers"] == ["CPUExecutionProvider"]
+
+    monkeypatch.setattr(gpu, "cuda_device_count", lambda: 1)
+    monkeypatch.setattr(gpu, "prepare_cuda", lambda: [])
+    tts_mod.kokoro_session(tmp_path / "m.onnx", "auto")
+    assert made["providers"] == ["CUDAExecutionProvider", "CPUExecutionProvider"]
+
+    tts_mod.kokoro_session(tmp_path / "m.onnx", "cpu")
+    assert made["providers"] == ["CPUExecutionProvider"]
+
+
+def test_cpu_only_onnxruntime_never_asks_for_cuda(monkeypatch, tmp_path):
+    rt = pytest.importorskip("onnxruntime")
+    from jarvis.voice import tts as tts_mod
+    made = {}
+    monkeypatch.setattr(rt, "InferenceSession", lambda path, opts, providers: made.setdefault("p", providers))
+    monkeypatch.setattr(rt, "get_available_providers", lambda: ["CPUExecutionProvider"])
+    tts_mod.kokoro_session(tmp_path / "m.onnx", "cuda")
+    assert made["p"] == ["CPUExecutionProvider"]

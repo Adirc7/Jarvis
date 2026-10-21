@@ -275,7 +275,10 @@ class App:
         await loop.run_in_executor(self._stt_executor, self.transcriber.warm_up)
         warm = getattr(self.sink, "warm_up", None)
         if warm is not None:
-            await loop.run_in_executor(None, warm, self.lang.current)
+            device = await loop.run_in_executor(None, warm, self.lang.current)
+            if device:
+                where = "the graphics card (CUDA)" if device == "cuda" else "the CPU"
+                self.out(f"{self.lang.current.name} voice runs on {where}.")
         self.recorder.open()
         self._start_push_to_talk()
 
