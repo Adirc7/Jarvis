@@ -157,6 +157,77 @@ def failure_rest(exc: BaseException) -> float | None:
     return None
 
 
+class LeakFilter:
+    """Drops sentences where the model talks to itself instead of to you.
+
+    gpt-oss sometimes lets a line of its private reasoning into the reply
+    ("Sure, sir. ...?User wants to talk Friday.Do you have..." on 21 Oct).
+    Such sentences start in a recognisable way ("User wants", "We need to
+    respond"), so at the start of each sentence a few characters are held
+    back until it's clear whether it is one. Everything else passes through.
+    """
+
+    PREFIXES = tuple(
+        p.lower() for group in (
+            [f"{who} {verb}" for who in ("user", "the user")
+             for verb in ("wants", "asks", "is asking", "said", "says", "requests", "would like", "needs",
+                          "just", "mentioned", "greets", "is greeting", "seems", "might")],
+            [f"we {modal} {verb}" for modal in ("need to", "should", "must", "can")
+             for verb in ("respond", "answer", "reply", "ask", "acknowledge", "comply", "clarify")],
+            ["need to respond", "need to answer", "let's respond", "let's answer", "let's craft",
+             "i should respond", "i should answer", "the assistant should", "assistant should",
+             "so respond", "so answer:", "respond with", "answer in english", "answer in sinhala"],
+        ) for p in group)
+    LONGEST = max(len(p) for p in PREFIXES)
+    ENDS = ".!?\n"
+
+    def __init__(self) -> None:
+        self.buf = ""
+        self.mode = "start"            # start of a sentence | pass | drop
+        self.dropped: list[str] = []
+        self.emitted = False           # anything passed on yet
+        self.space_due = False         # a sentence was cut out: keep the next one apart
+
+    def _end(self, text: str) -> int:
+        return next((i for i, ch in enumerate(text) if ch in self.ENDS), -1)
+
+    def feed(self, text: str) -> str:
+        self.buf += text
+        out: list[str] = []
+        while self.buf:
+            if self.mode == "start":
+                rest = self.buf.lstrip()
+                low = rest.lower()
+                if not rest:
+                    break                                      # only spaces so far: wait
+                if any(low.startswith(p) for p in self.PREFIXES):
+                    self.mode = "drop"
+                    self.dropped.append("")
+                    self.buf = rest
+                elif any(p.startswith(low) for p in self.PREFIXES) and len(rest) < self.LONGEST:
+                    break                                      # could still become one: wait
+                else:
+                    self.mode = "pass"
+                    if self.space_due and self.emitted and not self.buf[0].isspace():
+                        out.append(" ")
+                    self.space_due = False
+            end = self._end(self.buf)
+            piece, self.buf = (self.buf, "") if end < 0 else (self.buf[:end + 1], self.buf[end + 1:])
+            if self.mode == "drop":
+                self.dropped[-1] += piece
+                self.space_due = self.space_due or end >= 0
+            else:
+                out.append(piece)
+                self.emitted = self.emitted or bool(piece.strip())
+            if end >= 0:
+                self.mode = "start"
+        return "".join(out)
+
+    def flush(self) -> str:
+        rest, self.buf = ("" if self.mode == "drop" else self.buf), ""
+        return rest
+
+
 class ThinkFilter:
     """Takes out <think>...</think> that some models (Qwen, DeepSeek) write
     into the reply itself, so Jarvis never reads its thinking aloud. Works on
@@ -268,6 +339,7 @@ class FallbackLLM:
             first_chunk_ms: float | None = None   # anything back from the server
             thinking_chars = 0                    # reasoning text before the first word
             think = ThinkFilter()
+            leak = LeakFilter()
             try:
                 stream = await p.client.chat.completions.create(
                     model=p.model, messages=messages, stream=True, **p.request_kwargs(kwargs)
@@ -285,9 +357,12 @@ class FallbackLLM:
                     delta = getattr(d, "content", None) if d is not None else None
                     if delta:
                         delta, thought = think.feed(delta)
+                        delta = leak.feed(delta)
                         if not started:
                             thinking_chars += thought
-                    if not delta or (not started and not delta.strip()):
+                    if delta and not started:
+                        delta = delta.lstrip()             # no stray space before the first word
+                    if not delta:
                         if d is not None and not started:
                             thinking_chars += len(_reasoning_text(d))
                         continue
@@ -301,9 +376,12 @@ class FallbackLLM:
                             prompt_chars=prompt_chars, messages=len(messages),
                         )
                     yield delta
-                tail = think.flush()
+                tail = leak.feed(think.flush()) + leak.flush()
                 if tail and started:
                     yield tail
+                if leak.dropped:
+                    self.telemetry.log("llm_leak_dropped", provider=p.name, model=p.model,
+                                       text=" | ".join(leak.dropped)[:300])
                 if not started:
                     raise RuntimeError("empty reply")
                 self.telemetry.log(

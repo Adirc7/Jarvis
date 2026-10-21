@@ -50,6 +50,7 @@ class Language:
     names: tuple[str, ...] = ()
     command_words: tuple[str, ...] = ()
     switch_phrases: tuple[str, ...] = ()
+    voice_names: tuple[str, ...] = ()   # the assistant's name in this language: saying it switches here
     confirm: str = ""
     fillers: tuple[str, ...] = ()
     greetings: dict[str, tuple[str, ...]] = field(default_factory=dict)   # see greeting.py
@@ -134,6 +135,7 @@ def parse_languages(table: dict[str, Any]) -> dict[str, Language]:
             names=tuple(v.get("names", [v["name"]])),
             command_words=tuple(v.get("command_words", [])),
             switch_phrases=tuple(v.get("switch_phrases", [])),
+            voice_names=tuple(v.get("voice_names", [])),
             confirm=v.get("confirm", ""),
             fillers=tuple(v.get("fillers", [])),
             greetings={k: tuple(lines) for k, lines in v.get("greetings", {}).items()},

@@ -675,3 +675,32 @@ job is to beat this on Adhi's real sentences. 250 tests pass.
   one; 4 timed out at 20 s. Groq, from the same laptop, about 1 s. Gemini
   now comes after OpenRouter in the English orders (general, teach, talk);
   it stays first for long documents and before OpenRouter in Sinhala.
+
+## 2026-10-21 night: "Friday" switches, leaked notes dropped, Sinhala speech plan
+
+From Adhi's session: saying "Friday" five times was transcribed fine but
+didn't switch (only whole phrases like "talk to Friday" did), and a reply
+contained "User wants to talk Friday.", a line of gpt-oss's private
+reasoning. Fixes:
+- `voice_names` per language (Jarvis, Friday, in both scripts): the name
+  alone, with hey/please, or with a talk word ("I need to talk Friday",
+  "Friday ekka katha karanna") switches; the day doesn't ("on Friday",
+  "Friday's lecture", "by Friday"). A language named still wins
+  ("Jarvis, switch to Sinhala"). Saying the current name with a request
+  ("Jarvis, I need help") just answers.
+- Sinhala typed (or heard) in English mode switches to Friday; a Sinhala
+  sentence is spoken in Friday's voice whatever the mode.
+- `LeakFilter` (agent/llm.py): sentences starting like reasoning ("User
+  wants", "We need to respond") are dropped before they're printed or
+  spoken, and logged as `llm_leak_dropped` to see how often and from which
+  model; at each sentence start at most about 20 characters wait.
+
+Sinhala speech: the base model hears Sinhala but can't write it; that's the
+model, not Jarvis. Two published fine-tunes found on Hugging Face
+(whisper-small, about 10,000 clips, CER 15% on 10 clips; whisper-medium,
+WER 22%). `scripts/get_sinhala_whisper.py` downloads one, converts it to
+CTranslate2 and compares it with today's model on test sentences read by
+the dilu voice (stage 0 in TRAINING_SINHALA.md). Adhi's own recordings:
+`make_intent_data.py --reading-list 300` writes 300 training sentences
+(none from the test set) and `record_eval_set.py` now resumes after a stop
+or power cut. 279 tests pass.

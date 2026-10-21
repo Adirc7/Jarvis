@@ -49,13 +49,13 @@ async def test_no_silent_switch_after_reply_started():
 async def test_cancel_token_stops_stream():
     state = SharedState()
     token = state.token()
-    client = FakeClient(["a", "b", "c", "d"])
+    client = FakeClient(["Hello", " b", " c", " d"])
     llm = llm_with(client)
     got = []
     async for piece in llm.stream_text([], token=token):
         got.append(piece)
         state.cancel_all()                      # kill switch pressed mid-reply
-    assert got == ["a"] and client.last_stream.closed
+    assert got == ["Hello"] and client.last_stream.closed
 
 
 async def test_complete_falls_back():

@@ -8,10 +8,62 @@ were speaking Sinhala (p = 0.95 to 0.99) but wrote nonsense.
 step must do, what to look up, and what to check. Paste errors and numbers
 to Claude at any step.
 
+## Why Jarvis can't write your Sinhala yet
+
+Whisper learned Sinhala from very little audio. It recognises that you are
+speaking Sinhala (p = 0.95 to 0.99) but can't write the words, so Jarvis
+asks you to say it again or type it (voice/clarity.py). Nothing in Jarvis
+is broken: the speech model needs Sinhala training. Two steps: try models
+others have already trained (stage 0, tonight), then train our own (stages
+1 to 4), with your voice in it.
+
+## Stage 0: try what others have trained (laptop, about 20 minutes)
+
+```
+uv run python scripts/get_sinhala_whisper.py
+```
+
+Downloads `hlasith/whisper-sinhala-small` (whisper-small fine-tuned on about
+10,000 Sinhala clips, about 1 GB), converts it for Jarvis, and compares it
+with today's model on 18 test sentences read by the dilu voice. If it's
+better, put the printed `stt_model = ...` line under `[si]` in
+`config/languages.toml` and talk to Friday. `--model medium` tries a bigger
+one (`seniruk/whisper-medium-si-v2`, about 3 GB, about 3x slower).
+
+Limits: their scores come from small or unnamed test sets, and they were
+trained on read Sinhala, so lecture words mixed in (Fourier series එක) may
+come out wrong. The dilu voice is clean and synthetic: your voice will
+score worse. Licences: "research and educational" and none stated, so for
+your own study only.
+
+## Stage 1b: your voice in the training (any time, in sittings)
+
+Your recordings help twice: as the test set (stage 1, never trained on) and,
+separately, as training data, so the model learns *your* voice, accent and
+the words you use. Even 30 to 60 minutes of you, mixed into OpenSLR 52,
+usually helps a single-user assistant more than many more hours of
+strangers.
+
+```
+uv run python scripts/make_intent_data.py --reading-list 300
+uv run python scripts/record_eval_set.py data/generated/si_reading_list.txt --lang si --set si-train
+```
+
+300 sentences (spread over every kind of request, none from the test set),
+about 25 to 30 minutes of speech. Stop any time; the next run continues.
+Tips: the same microphone you use with Jarvis, a quiet room, your normal
+speed; skip (s) anything you'd never say. Add your own sentences freely
+(lecture words, Singlish-style mixing): the more it sounds like you, the
+better.
+
+Privacy: training on Kaggle means uploading these recordings there, as a
+*private* dataset (Kaggle: Datasets, New, Private). They never go to GitHub.
+
 ## The four stages
 
 | Stage | Where | What you get |
 |---|---|---|
+| 0. Ready-made models | laptop | maybe a better Sinhala model tonight |
 | 1. Test set and "before" score | laptop | CER of today's models on *your* voice |
 | 2. Accounts | browser | Kaggle with GPU and internet, a Hugging Face token |
 | 3. Training | Kaggle notebook | a fine-tuned model saved on Hugging Face |
