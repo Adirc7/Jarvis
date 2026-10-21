@@ -152,6 +152,12 @@ never the same one twice in a row, never when muted.
 **Why:** People cover thinking time the same way; silence longer than about a
 second sounds like a broken assistant. Telemetry marks fillers separately so
 `first_audio` still measures the real reply.
+**Update (21 Oct):** the trigger is now "no *text* from the LLM 0.7 s after
+the request", not "no speech". On the laptop the text arrived at 1.5 s, the
+filler started at 1.6 s, and the real first sentence (ready at 1.9 s) had to
+wait for the filler to finish: first audio at 3.2 s instead of about 2 s. Once
+text is arriving, the voice is only a sentence away and a filler only delays
+it.
 
 ## D18. Research priorities from the literature review
 **Decision:** Do three quick wins first (verified vs claimed completion,

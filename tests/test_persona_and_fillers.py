@@ -1,4 +1,5 @@
 import asyncio
+import time
 from datetime import datetime
 
 from conftest import FakeClient
@@ -125,6 +126,24 @@ async def test_no_filler_when_reply_is_fast(settings):
     app.sink.prepare_fillers(app.lang.current)
     await app.handle_text("hi")
     assert len(app.sink.player.backend.played) == 1
+
+
+async def test_no_filler_once_reply_text_is_arriving(settings):
+    # The LLM answers at once but the voice is slow to render: a filler now
+    # would play first and push the real reply back by its own length.
+    app, spoken, engines, client = make_voice_app(settings, ["Here's the answer."])
+    app.sink.filler_after_s = 0.05
+    app.sink.prepare_fillers(app.lang.current)
+    engine = engines["en"]
+    render = engine.synthesize
+
+    def slow_render(text, speed_factor=1.0):
+        time.sleep(0.25)
+        return render(text, speed_factor)
+
+    engine.synthesize = slow_render
+    await app.handle_text("what's the weather like")
+    assert len(app.sink.player.backend.played) == 1           # only the real reply
 
 
 async def test_fillers_do_not_repeat_back_to_back(settings):

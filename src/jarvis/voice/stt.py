@@ -77,15 +77,44 @@ class Transcriber:
                 self._models[name] = self._loader(name)
         return self._models[name]
 
+    def _detects_language(self) -> bool:
+        return bool(self._settings.get("stt.detect_language", True)) and len(self._lm.languages) > 1
+
     def warm_up(self) -> None:
-        """Load the default and active-language models before the first request."""
-        self.model(None)
-        self.model(self._lm.current)
+        """Load the models and run each once, before the first request.
+
+        Loading alone isn't enough: the first pass on the GPU sets up its
+        kernels, and the voice-activity filter loads its own small model on
+        first use, so a cold first request is much slower than the rest.
+        A failure here is only logged; the real request will report it.
+        """
+        silence = np.zeros(16000, np.float32)                  # one second
+        vad_options = (True, False) if self._settings.get("stt.vad_filter", True) else (False,)
+        warmed: set[str] = set()
+        for lang in (None, self._lm.current):
+            name = self._model_name(lang)
+            model = self.model(lang)
+            if name in warmed:
+                continue
+            warmed.add(name)
+            with self._tel.span("stt_warm", model=name) as info:
+                try:
+                    if lang is None and self._detects_language():
+                        model.detect_language(silence)
+                    for vad in vad_options:     # with VAD: loads it; without: runs the encoder and decoder
+                        segments, _ = model.transcribe(
+                            silence, language=self._lm.current.whisper_code, beam_size=1,
+                            vad_filter=vad, max_new_tokens=4, without_timestamps=True,
+                        )
+                        for _ in segments:                     # transcription is lazy until read
+                            pass
+                except Exception as exc:
+                    info["error"] = f"{type(exc).__name__}: {exc}"[:200]
 
     def transcribe(self, audio: np.ndarray) -> TranscriptResult:
         start = time.perf_counter()
         detected, prob = None, None
-        if self._settings.get("stt.detect_language", True) and len(self._lm.languages) > 1:
+        if self._detects_language():
             detected, prob, _ = self.model(None).detect_language(audio)
         target_code = self._lm.needs_retranscribe(detected, prob) or self._lm.current.code
         target = self._lm.languages[target_code]
