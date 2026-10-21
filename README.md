@@ -141,7 +141,7 @@ uv run jarvis                                   # text chat
 uv run python scripts/smoke_test.py --show      # check mic, camera, GPU, models, voices
 uv run python scripts/voice_preview.py --play   # hear the candidate voices
 uv run pytest                                   # unit tests (no hardware needed)
-uv run python -m jarvis.telemetry logs\session-XXXX.jsonl   # latency summary
+uv run python -m jarvis.telemetry                # latency summary of the newest session
 ```
 
 Measuring speech recognition (see `eval/README.md`):

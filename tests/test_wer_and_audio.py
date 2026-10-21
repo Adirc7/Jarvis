@@ -39,3 +39,13 @@ def test_wav_roundtrip_and_resample(tmp_path):
     assert rate == sr and np.max(np.abs(back - audio)) < 1e-3
     down = resample(back, sr, 16000)
     assert len(down) == 16000
+
+
+def test_telemetry_cli_picks_newest_session(tmp_path, capsys):
+    from jarvis.telemetry import _main
+    (tmp_path / "session-20261021-034202.jsonl").write_text('{"event": "turn", "ms": 900}\n', encoding="utf-8")
+    (tmp_path / "session-20261021-041323.jsonl").write_text('{"event": "turn", "ms": 1200}\n', encoding="utf-8")
+    assert _main([], log_dir=tmp_path) == 0
+    assert "041323" in capsys.readouterr().out
+    assert _main([str(tmp_path / "session-20261021-093512.jsonl")], log_dir=tmp_path) == 1
+    assert "041323" in capsys.readouterr().out          # lists the real ones instead of a traceback

@@ -8,7 +8,8 @@ Usage:
     turn.mark("speech_end"); ...; turn.mark("first_audio"); turn.finish()
 
 Summarise a log file (median and p95 per stage):
-    python -m jarvis.telemetry logs/session-....jsonl
+    python -m jarvis.telemetry                 the newest session in logs/
+    python -m jarvis.telemetry logs/session-20261021-041323.jsonl
 """
 
 from __future__ import annotations
@@ -116,11 +117,29 @@ def summarize(path: Path) -> dict[str, dict[str, float]]:
     }
 
 
-def _main(argv: list[str]) -> int:
-    if len(argv) != 1:
-        print("usage: python -m jarvis.telemetry <log.jsonl>")
+def newest_session(log_dir: Path) -> Path | None:
+    sessions = sorted(log_dir.glob("session-*.jsonl"))   # names sort by date and time
+    return sessions[-1] if sessions else None
+
+
+def _main(argv: list[str], log_dir: Path = Path("logs")) -> int:
+    if len(argv) > 1:
+        print("usage: python -m jarvis.telemetry [logs/session-....jsonl]  (default: the newest session)")
         return 2
-    stats = summarize(Path(argv[0]))
+    if argv:
+        path = Path(argv[0])
+        if not path.is_file():
+            print(f"No file {path}. Sessions in {log_dir}:")
+            for f in sorted(log_dir.glob("session-*.jsonl")):
+                print(f"  {f}")
+            return 1
+    else:
+        path = newest_session(log_dir)
+        if path is None:
+            print(f"No session logs in {log_dir} yet: talk to Jarvis first.")
+            return 1
+    print(f"{path}\n")
+    stats = summarize(path)
     print(f"{'event':32} {'n':>5} {'p50 ms':>9} {'p95 ms':>9} {'mean ms':>9}")
     for name, s in stats.items():
         print(f"{name:32} {s['n']:>5} {s['p50']:>9.1f} {s['p95']:>9.1f} {s['mean']:>9.1f}")
