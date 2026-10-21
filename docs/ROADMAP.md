@@ -944,3 +944,20 @@ test set, which stays real and human-written.
 
 Synthetic speech (e.g. the Piper Sinhala voice) is only for testing the
 pipeline: a model trained on it learns what Piper sounds like, not people.
+
+## News map (idea: Adhi, 22 Oct 2026; part of M6 window and M7 News skill)
+
+A world map in the Jarvis window: click a country, or say "what's happening
+in Japan" / "රුසියාවේ අලුත් ප්‍රවෘත්ති මොනවද?", and the map zooms there while
+Jarvis (or Friday, in Sinhala) reads a short summary of the top stories.
+
+- Voice and map share one request: the `news` intent with its `country`
+  slot (already in the generated training data) drives both.
+- Map: country shapes from Natural Earth (public domain), drawn offline in
+  the window (D3 or Leaflet); countries shaded by how much news they have.
+- News, free: GDELT (worldwide, country-coded, updated every 15 minutes, no
+  key) and news sites' RSS feeds per country; check each source's terms.
+- The LLM (teach route) summarises the headlines in the current language and
+  says where each came from; links open in the browser.
+- Measure: time from the request to the map plus first spoken headline, and
+  whether the summary matches its sources (spot-check 20).
