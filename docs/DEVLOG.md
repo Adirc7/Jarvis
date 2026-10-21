@@ -326,3 +326,37 @@ Turn-by-turn table for the same session (after `git pull`, on the old log):
   30 s of audio because the voice-activity filter removed the silence.
 - In every turn the filler started 0.06-0.16 s *after* the first text, so
   with the new rule none of these three would have had a filler.
+
+## 2026-10-21: First Sinhala by voice: Whisper small can't write it
+
+Second voice session, in English mode:
+
+1. Said "I prefer to talk in Sinhala". Whisper wrote "I prefer to now in
+   Singhala", so the switch rule didn't fire (no "talk", and "Singhala"
+   wasn't a known spelling). The LLM replied in Sinhala anyway.
+2. Spoke Sinhala. Whisper was sure it was Sinhala (p = 0.954), re-transcribed
+   in Sinhala, and wrote repeated nonsense syllables
+   ("වකප ලල් පපිනේයියයියය ..."). Jarvis asked him to rephrase, in English.
+3. Spoke Sinhala again: p = 0.987, and the text was "Р說 D ." (Cyrillic and
+   Chinese).
+
+So language *detection* works; Sinhala *transcription* with `small` doesn't.
+This is the gap the roadmap expected (docs/LANGUAGES.md), now seen first-hand.
+
+Fixes today:
+
+- **Nonsense check** (`voice/clarity.py`): before the LLM sees a transcript,
+  Jarvis checks for repetition (zlib compression ratio above 2.4, Whisper's
+  own limit; the first transcript scores 2.45 and real Sinhala sentences
+  1.4-1.7), letters from the wrong alphabet (more than 20% outside the
+  language's script plus Latin; the second scores 0.67), and Whisper's
+  average log-probability (below -1.0). If any fails, Jarvis says "Sorry,
+  sir, I couldn't make that out" in the current language. The log
+  probability and compression ratio are now logged for every utterance, so
+  the thresholds can be tuned on real data.
+- "singhala" and "singala" added as names for Sinhala, and "prefer" as a
+  command word, so "I prefer to talk in Sinhala" switches even when misheard.
+
+Plan: train our own Sinhala model (IMPLEMENTATION_PLAN.md, section R):
+baselines on Adhi's round-1 recordings first, then fine-tune whisper-small on
+OpenSLR 52 with free Kaggle GPUs.

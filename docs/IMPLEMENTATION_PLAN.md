@@ -49,7 +49,7 @@ review**, or **you run**.
 | M6 | Jarvis window, tray, wake word, double clap, phone calls (Phase 1.6) | Claude drafts the window; **you** write the clap detector | planned |
 | M7 | Visualise, Data, Research and News skills; Telegram | together | planned |
 | M8 | Gestures (Phase 3), then the evaluation and report (Phase 8) | **you** | later |
-| R | Recording rounds for the Sri Lankan speech set (runs alongside) | **you** | round 1 ready |
+| R | Recording rounds, then our own Sinhala speech model (runs alongside) | **you** | round 1 ready; training planned |
 
 ---
 
@@ -236,15 +236,41 @@ its tools, through the gate.
   Godspeed and SUS in a small user study (with consent and, if needed,
   ethics approval), and the report.
 
-## R. Recording rounds (alongside everything)
+## R. Recording rounds and our own Sinhala model (alongside everything)
+
+Why this matters: on 21 Oct, Whisper `small` heard Sinhala correctly as a
+language (p = 0.95 to 0.99) but wrote nonsense. A Sinhala model of our own is
+the most useful thing this project can add.
 
 1. **Round 1, you:** English, Sinhala and Singlish test sentences
-   (`eval/`).
-2. **Round 2:** the intent examples, partly recorded.
-3. **Round 3:** friends with written consent (`--speaker friend1`).
-4. **Role-play clips** for emotion: calm, rushed, frustrated, confused.
-5. **Fine-tune Whisper** with LoRA once a few hours of transcribed speech
-   exist.
+   (`eval/`). These are the **test set**: never train on them.
+2. **Baselines, you run:** `scripts/eval_stt.py` on round 1 with `small`,
+   `large-v3-turbo` and one community fine-tune converted for
+   faster-whisper (docs/LANGUAGES.md). Note WER and CER.
+3. **Train our own, you (Claude outlines the notebook):**
+   - Data: [OpenSLR 52](https://openslr.org/52/) from Google, crowd-sourced,
+     about 185,000 utterances (about 224 hours) with transcripts. Read its
+     LICENSE.txt first. Start with a 30-hour subset.
+   - Model: fine-tune `whisper-small`, so it drops into the existing
+     faster-whisper path (convert with `ct2-transformers-converter`, then set
+     `stt_model` under `[si]`). Later, compare a CTC model (Wav2Vec2-BERT):
+     a 2026 study got 4.6% CER from 60 hours of OpenSLR 52 without a
+     language model ([arXiv 2607.06289](https://arxiv.org/abs/2607.06289)).
+   - Compute: Kaggle notebooks (free T4 or P100, 12-hour sessions, about 30
+     GPU hours a week). Save checkpoints so the next session can resume.
+   - Measure: CER and WER on your round-1 recordings, and Whisper time on
+     the laptop, before and after.
+4. **Round 2:** the intent examples, partly recorded.
+5. **Round 3:** friends with written consent (`--speaker friend1`).
+6. **Role-play clips** for emotion: calm, rushed, frustrated, confused.
+
+**Learn:** what fine-tuning changes (start from Whisper's weights, small
+learning rate); train, validation and test splits; why the test speakers and
+sentences must be ones the model never saw; why CER suits Sinhala better
+than WER.
+
+**Done when:** one table (model, CER, WER, ms per utterance on the laptop)
+for `small`, `large-v3-turbo`, a community fine-tune, and ours.
 
 Ask a lecturer early whether recording other people needs ethics approval,
 and whether this can be your final-year research project.

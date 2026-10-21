@@ -53,6 +53,7 @@ class Language:
     confirm: str = ""
     fillers: tuple[str, ...] = ()
     greetings: dict[str, tuple[str, ...]] = field(default_factory=dict)   # see greeting.py
+    unclear: str = ""             # said when the transcript looks like nonsense
 
 
 @dataclass(frozen=True)
@@ -121,6 +122,7 @@ def parse_languages(table: dict[str, Any]) -> dict[str, Language]:
             confirm=v.get("confirm", ""),
             fillers=tuple(v.get("fillers", [])),
             greetings={k: tuple(lines) for k, lines in v.get("greetings", {}).items()},
+            unclear=v.get("unclear", ""),
         )
     return langs
 

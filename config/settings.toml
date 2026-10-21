@@ -48,6 +48,13 @@ detect_language = true
 # probability, Jarvis re-transcribes in that language before checking for a
 # switch command. This is how "switch to English" still works in Sinhala mode.
 retranscribe_threshold = 0.80
+# Ask again instead of answering when the transcript looks like nonsense
+# (src/jarvis/voice/clarity.py): mostly repeats, letters from the wrong
+# alphabet, or Whisper mostly guessing.
+reject_unclear = true
+unclear_max_compression = 2.4       # Whisper's own repetition limit
+unclear_min_logprob = -1.0          # Whisper's own "guessing" limit
+unclear_max_foreign_script = 0.2    # share of letters from other alphabets
 
 [tts]
 kokoro_model = "models/kokoro-v1.0.onnx"
