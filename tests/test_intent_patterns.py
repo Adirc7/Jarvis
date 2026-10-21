@@ -16,7 +16,8 @@ def examples():
 
 def test_thousands_of_examples(examples):
     by_lang = collections.Counter(e.lang for e in examples)
-    assert len(examples) >= 4000 and by_lang["si"] >= 2500
+    assert len(examples) >= 8000 and by_lang["si"] >= 5000
+    assert len({e.intent for e in examples}) >= 38
 
 
 def test_every_intent_in_every_language(examples):
