@@ -36,8 +36,8 @@ tts_voice = "bm_lewis"           # chosen after listening to all four
 tts_lang = "en-gb"
 names = ["english", "ඉංග්‍රීසි", "ඉංග්‍රීසියෙන්", "ஆங்கிலம்", "ஆங்கிலத்தில்"]
 command_words = ["speak", "talk", "reply", "answer", "respond", "switch", "change", "prefer"]
-switch_phrases = ["english please"]
-confirm = "Okay, I'll speak English now."
+switch_phrases = ["english please", "talk to jarvis", "jarvis please", "can i talk to jarvis"]
+confirm = "Jarvis here, sir. English it is."
 fillers = ["Mm.", "Hmm.", "Right.", "One moment.", "Let me check."]   # long ones are skipped (filler_max_ms)
 unclear = "Sorry, {address}, I couldn't make that out. Could you say it again, or type it?"
 
@@ -58,23 +58,26 @@ native_name = "සිංහල"
 whisper_code = "si"
 # Base Whisper is weak at Sinhala. A fine-tune works better: docs/LANGUAGES.md
 stt_model = "default"
-tts_engine = "piper"
-# Community voice, MIT licence: https://huggingface.co/chaturadilan/dilu-tts
-tts_voice = "si_LK-dilu-medium"
-# To try a Kokoro voice speaking Sinhala instead (Kokoro reads the Sinhala
-# pronunciation that eSpeak makes; it was never trained on Sinhala, so listen
-# for the accent), put # before the two lines above and remove it from these
-# three. tts_voice: bm_lewis (Jarvis's English voice), or a woman's voice:
-# bf_emma, bf_isabella, bf_alice, bf_lily, af_heart.
-# tts_engine = "kokoro"
-# tts_voice = "bf_emma"
-# tts_lang = "si"
+# In Sinhala the assistant is Friday (ෆ්‍රයිඩේ), with Kokoro's British woman's
+# voice Emma; in English it's Jarvis (Adhi's choice, 21 Oct, after listening).
+# Kokoro reads the Sinhala pronunciation that eSpeak makes; it was never
+# trained on Sinhala. Other voices to try: bf_isabella, bf_alice, bf_lily,
+# af_heart, or bm_lewis (Jarvis's own voice).
+assistant_name = "ෆ්‍රයිඩේ (Friday)"
+tts_engine = "kokoro"
+tts_voice = "bf_emma"
+tts_lang = "si"
+# The earlier Sinhala voice, trained on real Sinhala speech (MIT licence,
+# https://huggingface.co/chaturadilan/dilu-tts). To go back to it, put # before
+# the three lines above and remove it from these two:
+# tts_engine = "piper"
+# tts_voice = "si_LK-dilu-medium"
 # "singular": how Whisper heard "Sinhala" from Adhi (21 Oct). It only switches
 # with a command word in a short sentence ("can we speak in singular language").
 names = ["sinhala", "sinhalese", "singhala", "singala", "singular", "සිංහල", "සිංහලෙන්"]
 command_words = ["කතා", "මාරු"]
-switch_phrases = ["sinhala please"]
-confirm = "හරි, මම දැන් සිංහලෙන් කතා කරන්නම්."
+switch_phrases = ["sinhala please", "talk to friday", "friday please", "hey friday", "can i talk to friday"]
+confirm = "හරි, මම ෆ්‍රයිඩේ. දැන් සිංහලෙන් කතා කරමු."
 fillers = ["හ්ම්.", "පොඩ්ඩක් ඉන්න."]
 # Adhi's wording (21 Oct). Change it any time.
 unclear = "සමාවෙන්න, මට තේරුණේ නෑ. ආයේ පාරක් කියන්න, නැත්නම් ටයිප් කරන්න."

@@ -109,6 +109,7 @@ class App:
             language_instruction=self.lang.llm_instruction(),
             spoken=self.sink.spoken,
             mode=self.state.empathy,
+            assistant_name=self.lang.current.assistant_name,
         )
         if self.greeted_with:
             prompt += (f'\n\nYou already said "{self.greeted_with}" when this session started. '

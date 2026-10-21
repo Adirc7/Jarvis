@@ -62,6 +62,13 @@ def kokoro_session(model_path: Path, device: str = "auto"):
 
 
 class KokoroTTS:
+    """One Kokoro voice for one language. Every language that uses Kokoro
+    (English as Jarvis, Sinhala as Friday) shares one loaded model, and one
+    lock: eSpeak, which makes the pronunciation, isn't thread-safe."""
+
+    _shared: dict[tuple[str, str, str], object] = {}
+    _lock = threading.Lock()
+
     def __init__(self, model_path: Path, voices_path: Path, voice: str, lang: str = "en-gb", speed: float = 1.0,
                  device: str = "auto"):
         from kokoro_onnx import Kokoro
@@ -71,7 +78,11 @@ class KokoroTTS:
                 f"Kokoro files missing ({model_path.name}, {voices_path.name}). "
                 "Run: uv run python scripts/download_models.py"
             )
-        self._kokoro = Kokoro.from_session(kokoro_session(model_path, device), str(voices_path))
+        key = (str(model_path), str(voices_path), device)
+        with KokoroTTS._lock:
+            if key not in KokoroTTS._shared:
+                KokoroTTS._shared[key] = Kokoro.from_session(kokoro_session(model_path, device), str(voices_path))
+            self._kokoro = KokoroTTS._shared[key]
         if voice not in self._kokoro.get_voices():
             raise ValueError(f"Kokoro has no voice '{voice}'")
         self.voice, self.lang, self.speed = voice, lang or "en-us", speed
@@ -83,7 +94,8 @@ class KokoroTTS:
         return "cuda" if "CUDAExecutionProvider" in self._kokoro.sess.get_providers() else "cpu"
 
     def synthesize(self, text: str, speed_factor: float = 1.0) -> np.ndarray:
-        audio, sr = self._kokoro.create(text, voice=self.voice, speed=self.speed * speed_factor, lang=self.lang)
+        with KokoroTTS._lock:
+            audio, sr = self._kokoro.create(text, voice=self.voice, speed=self.speed * speed_factor, lang=self.lang)
         self.sample_rate = sr
         return np.asarray(audio, dtype=np.float32)
 

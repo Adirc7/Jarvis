@@ -31,7 +31,7 @@ class SoundDeviceBackend:
     def play(self, audio: np.ndarray, sample_rate: int, stop: threading.Event) -> None:
         self._sd.play(audio, sample_rate, device=self._device)
         duration = len(audio) / sample_rate
-        end = time.monotonic() + duration + 0.2
+        end = time.monotonic() + duration     # then sd.wait() for the last buffer; no extra pause
         while time.monotonic() < end:
             if stop.wait(0.02):
                 self._sd.stop()

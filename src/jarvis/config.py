@@ -54,6 +54,7 @@ class Language:
     fillers: tuple[str, ...] = ()
     greetings: dict[str, tuple[str, ...]] = field(default_factory=dict)   # see greeting.py
     unclear: str = ""             # said when the transcript looks like nonsense
+    assistant_name: str = ""      # the assistant's name in this language ("" = persona name)
 
 
 @dataclass(frozen=True)
@@ -123,6 +124,7 @@ def parse_languages(table: dict[str, Any]) -> dict[str, Language]:
             fillers=tuple(v.get("fillers", [])),
             greetings={k: tuple(lines) for k, lines in v.get("greetings", {}).items()},
             unclear=v.get("unclear", ""),
+            assistant_name=v.get("assistant_name", ""),
         )
     return langs
 

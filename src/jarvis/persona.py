@@ -89,11 +89,17 @@ class Persona:
         spoken: bool,
         mode: str,
         now: datetime | None = None,
+        assistant_name: str = "",
     ) -> str:
         def bullets(items: list[str]) -> str:
             return "\n".join(f"- {i}" for i in items)
 
-        parts = [f"You are {self.name}, {self.role}."]
+        name = assistant_name or self.name
+        parts = [f"You are {name}, {self.role}."]
+        if name != self.name:
+            parts.append(f"You are one assistant with two names and voices: {self.name} (a man's voice) when "
+                         f"speaking English, and {name} (a woman's voice) in this language, like Tony Stark's "
+                         f"JARVIS and FRIDAY. Same memory and abilities. Introduce yourself as {name} here.")
         if self.user_name:
             parts.append(f"The user's name is {self.user_name}. Use it now and then, not in every reply, "
                          "as the name alone (no Mr. or other title).")

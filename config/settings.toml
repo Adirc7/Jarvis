@@ -50,6 +50,10 @@ detect_language = true
 # probability, Jarvis re-transcribes in that language before checking for a
 # switch command. This is how "switch to English" still works in Sinhala mode.
 retranscribe_threshold = 0.80
+# When a transcript looks wrong, Whisper tries again at these "temperatures"
+# (more randomness each time). Its default is six tries, which took 6.5-7 s on
+# Sinhala it can't write (21 Oct); two tries is enough for the nonsense check.
+temperatures = [0.0, 0.4]
 # Ask again instead of answering when the transcript looks like nonsense
 # (src/jarvis/voice/clarity.py): mostly repeats, letters from the wrong
 # alphabet, or Whisper mostly guessing.
@@ -78,7 +82,7 @@ chunk_max_chars = 220
 # long after the request. Once text arrives, the real voice is close, and a
 # filler would only delay it. Once per turn at most.
 fillers = true
-filler_after_ms = 700
+filler_after_ms = 1200           # was 700; replies now usually start by 1.4 s (21 Oct)
 # Fillers longer than this are skipped (if none is short enough, the shortest
 # is kept), because the real reply has to wait until the filler ends.
 filler_max_ms = 700
