@@ -211,3 +211,15 @@ def test_honesty_about_current_events_is_in_the_prompt():
     assert "can't check the latest yet" in prompt
     assert "search the web or check current news" in prompt
     assert "Never write maths as symbols or LaTeX" in prompt
+
+
+def test_every_nvidia_library_folder_is_found(tmp_path, monkeypatch):
+    import sys
+
+    from jarvis.gpu import nvidia_dll_dirs
+    for lib in ("cudnn", "cufft", "curand", "cublas"):
+        (tmp_path / "nvidia" / lib / "bin").mkdir(parents=True)
+    (tmp_path / "nvidia" / "cuda_runtime" / "include").mkdir(parents=True)     # no DLL folder
+    monkeypatch.setattr(sys, "path", [str(tmp_path)])
+    names = sorted(d.parent.name for d in nvidia_dll_dirs())
+    assert names == ["cublas", "cudnn", "cufft", "curand"]     # cufft and curand matter for onnxruntime

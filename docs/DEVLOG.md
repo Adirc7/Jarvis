@@ -455,3 +455,13 @@ Kokoro on the laptop (`scripts/try_tts_gpu.cmd`, bm_lewis, median of 5):
 - Next: CUDA, pinned to onnxruntime-gpu 1.26.0, the newest build for
   CUDA 12; from 1.27 it needs CUDA 13, which could clash with the CUDA 12
   libraries Whisper (CTranslate2) uses in the same process.
+- CUDA, first try: onnxruntime 1.26 found the GPU, then cuDNN failed with
+  "Could not locate cudnn_engines_tensor_ir64_9.dll" and onnxruntime fell
+  back to the CPU (so that table was CPU numbers). The DLL is in the
+  nvidia-cudnn-cu12 9.27 wheel (`nvidia/cudnn/bin`, checked from the
+  wheel's file list): cuDNN loads its helpers by name when it first runs,
+  and that folder wasn't searchable. Fix: `gpu.nvidia_dll_dirs()` now adds
+  every `nvidia/<library>/bin` folder (onnxruntime also needs cufft and
+  curand), and the voice test uses it and warns when a GPU run fell back
+  to the CPU. Loading took 68 s the first time (Windows scanning the new
+  DLLs).
