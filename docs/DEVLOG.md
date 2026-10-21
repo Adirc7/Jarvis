@@ -624,3 +624,26 @@ RVC for Friday is postponed (power cuts); the kNN-VC comparison is ready
   English. Lecture terms are mostly written as the English word in Sinhala
   letters (ෆූරියර් සීරීස් එක), as students say them; A/L terms keep their
   Sinhala names. Adhi to check the Sinhala terms marked in the table.
+
+## 2026-10-21 evening: different models for different kinds of request
+
+Adhi's idea: maths, explanations, deep talk and computer commands each to
+their own model, so one model's free limit isn't used up by everything.
+Built (D28): `agent/router.py` decides the route (keyword rules in English,
+Singlish and Sinhala, plus a formula detector); `[llm.routes]` in
+settings.toml gives each route its order of models; new providers
+`groq_oss_think` (gpt-oss-120b, medium thinking, for maths), `groq_qwen`
+(Groq's free Qwen, for code) and `gemini_lite`. `FallbackLLM` takes the
+route, rests a model after a 429 for as long as the provider says
+(retry-after, or "try again in 7m12.5s") and skips it meanwhile; two
+entries with the same model share the rest. Models at one address share
+one connection, so warming up on push-to-talk warms all Groq models.
+Replies that start with `<think>` (Qwen, DeepSeek) have the thinking taken
+out before anything is spoken; an empty reply falls back to the next model.
+The turn table (`python -m jarvis.telemetry`) has a route column.
+
+`scripts/route_check.py` measures the rules on the 15,432 generated
+sentences: 71.7% at first, 95.8% after fixing the clashes it showed ("VS
+Code" counted as code, "Google Chrome" as a web search, "කොහොමද" as "how
+are you"). Generated sentences are easier than real ones; the classifier's
+job is to beat this on Adhi's real sentences. 250 tests pass.

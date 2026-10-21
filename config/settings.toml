@@ -133,6 +133,21 @@ timeout_s = 20
 # open it while you're still holding the push-to-talk key.
 keepalive_s = 120
 prewarm = true
+# Different kinds of request go to different models (src/jarvis/agent/router.py
+# decides the kind; `python -m jarvis.telemetry` shows which route each turn
+# took). Free limits are counted per model, so spreading the work gives more
+# answers per day, and each kind gets a model that suits it. Each route lists
+# providers to try in order; "general" is `order` above. false: always `order`.
+routing = true
+
+[llm.routes]
+command = ["groq", "groq_oss", "gemini_lite", "ollama"]   # open apps, volume...: until Jarvis does these itself
+quick = ["groq", "groq_oss", "gemini_lite", "ollama"]     # hi, thanks, the time: the fastest model
+maths = ["groq_oss_think", "groq_qwen", "gemini", "openrouter", "ollama"]   # solve, derive, prove, check
+teach = ["groq_oss", "groq_qwen", "gemini", "openrouter", "ollama"]         # explain, quiz, exam revision
+code = ["groq_qwen", "groq_oss", "openrouter", "ollama"]                    # write and fix code, data, graphs
+long = ["gemini", "gemini_lite", "openrouter", "groq_oss"]  # long documents: Groq's free 8K tokens/minute is too small
+talk = ["groq_oss", "gemini", "groq_qwen", "openrouter", "ollama"]          # life, feelings, society
 
 # Model names change often. If the smoke test reports "model not found",
 # look up the current free model name in that provider's console.
@@ -143,6 +158,12 @@ model = "gemini-flash-latest"
 # Gemini's newer Flash models think before answering; on the first laptop run
 # that took 7 s before the first word. "low" keeps the thinking short.
 options = { reasoning_effort = "low" }
+
+# Gemini's lighter model: its own free limits, higher than Flash's.
+[llm.providers.gemini_lite]
+base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+api_key_env = "GEMINI_API_KEY"
+model = "gemini-flash-lite-latest"
 
 # Groq retired llama-3.3-70b-versatile on 2026-08-16 and recommends OpenAI's
 # open-weight gpt-oss models (Apache-2.0) instead. Two of them, same key, each
@@ -159,6 +180,23 @@ base_url = "https://api.groq.com/openai/v1"
 api_key_env = "GROQ_API_KEY"
 model = "openai/gpt-oss-120b"
 options = { reasoning_effort = "low" }
+
+# The same model with more thinking, for maths (route "maths"). It shares
+# gpt-oss-120b's free limits; the answer starts later but is more often right.
+[llm.providers.groq_oss_think]
+base_url = "https://api.groq.com/openai/v1"
+api_key_env = "GROQ_API_KEY"
+model = "openai/gpt-oss-120b"
+options = { reasoning_effort = "medium" }
+
+# Groq's free Qwen model (its own limits; Qwen models are strong at code).
+# Listed on Groq's rate-limits page in Oct 2026. If the smoke test says
+# "model not found", copy the current Qwen name from console.groq.com.
+# Its thinking is taken out of the reply automatically (llm.py, ThinkFilter).
+[llm.providers.groq_qwen]
+base_url = "https://api.groq.com/openai/v1"
+api_key_env = "GROQ_API_KEY"
+model = "qwen/qwen3.8-27b"
 
 # Free models come and go and get rate-limited (Gemma 4 returned 429 on the
 # laptop), so this uses OpenRouter's free router, which picks any free model
