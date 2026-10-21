@@ -143,6 +143,8 @@ def turn_rows(path: Path) -> list[dict[str, Any]]:
             "source": rec.get("source", ""), "kind": rec.get("kind", ""), "audio_s": rec.get("audio_s"),
             "heard": stt.get("language"), "p": stt.get("probability"),
             "retranscribed": bool(stt.get("retranscribed")), "stt_ms": stt.get("ms"),
+            "logprob": stt.get("logprob"), "compression": stt.get("compression"),
+            "unclear": stt.get("unclear"), "stt_chars": stt.get("chars"),
             "llm_ms": llm.get("ms"), "provider": llm.get("provider"),
             "thinking_ms": _thinking_ms(llm), "thinking_chars": llm.get("thinking_chars"),
             "voice_ms": tts.get("ms"), "voice_chars": tts.get("chars"),
@@ -197,6 +199,21 @@ def format_turns(rows: list[dict[str, Any]]) -> list[str]:
         )
     if any(r["retranscribed"] for r in rows):
         lines.append("* heard in another language, so Whisper ran a second time")
+    spoken = [(i, r) for i, r in enumerate(rows, 1) if r.get("logprob") is not None or r.get("unclear")]
+    if spoken:
+        lines += [
+            "",
+            "Speech recognition check (voice/clarity.py): 'confidence' is Whisper's average",
+            "log-probability per token (0 = sure, below -1.0 = mostly guessing); 'repeats' is the",
+            "compression ratio (ordinary text 1-1.8, above 2.4 = repeating itself).",
+            f"{'#':>3} {'heard':<11} {'chars':>6} {'confidence':>11} {'repeats':>8}  result",
+        ]
+        for i, r in spoken:
+            heard = (r["heard"] or "-") + ("*" if r["retranscribed"] else "")
+            lp = "-" if r["logprob"] is None else f"{float(r['logprob']):.2f}"
+            comp = "-" if r["compression"] is None else f"{float(r['compression']):.2f}"
+            result = f"asked again ({r['unclear']})" if r["unclear"] else "sent to the LLM"
+            lines.append(f"{i:>3} {heard:<11} {r['stt_chars'] or 0:>6} {lp:>11} {comp:>8}  {result}")
     return lines
 
 
