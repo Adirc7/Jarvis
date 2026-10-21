@@ -516,3 +516,19 @@ recent conversation, which carries on after a restart if it ended within
 it. Only what the user said is saved (D27). The prompt tells the model
 exactly what it remembers, and the persona's "can't yet" line was updated.
 23 new tests, including the restart case.
+
+## 2026-10-21 evening: memory and the nonsense check on the laptop
+
+- Memory works: after a restart Jarvis answered "Your name is Mr. Adithya".
+  The prompt now asks for the name alone, without a title.
+- Sinhala by voice, twice: Whisper wrote gibberish (with Arabic and Chinese
+  letters mixed in), p 0.59; both were caught as "low confidence" and Jarvis
+  asked again in Sinhala. Adhi reworded that line in natural spoken Sinhala.
+- "Can we speak in Sinhala?" was heard as "...singular language?", so the LLM
+  answered about pronouns. Fixes: Whisper's prompt now lists the language
+  names ("Jarvis. Sinhala, English, Tamil."), and "singular" counts as a name
+  for Sinhala in a short switch request.
+- One English-mode turn ("Jarvis, then we'll have a kill", p 0.17) got past
+  the check and the LLM asked to clarify. The telemetry report now shows
+  Whisper's confidence per turn, to tune the check on real numbers.
+- Typing Sinhala works well (LLM reply plus the Piper Sinhala voice).

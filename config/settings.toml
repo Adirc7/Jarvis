@@ -41,7 +41,9 @@ device = "cuda"                 # falls back to "cpu" if CUDA isn't available
 compute_type = "int8_float16"   # use "int8" on CPU
 vad_filter = true
 beam_size = 1                   # 1 is fastest; 5 is a little more accurate
-initial_prompt = "Jarvis"       # words Whisper should expect (names, apps)
+# Words Whisper should expect (names, apps). Listing the languages helps it
+# hear "Sinhala" instead of "singular".
+initial_prompt = "Jarvis. Sinhala, English, Tamil."
 # Check which language was spoken before transcribing (one extra encoder pass).
 detect_language = true
 # If Whisper hears a different language than the current one with at least this

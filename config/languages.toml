@@ -61,13 +61,15 @@ stt_model = "default"
 tts_engine = "piper"
 # Community voice, MIT licence: https://huggingface.co/chaturadilan/dilu-tts
 tts_voice = "si_LK-dilu-medium"
-names = ["sinhala", "sinhalese", "singhala", "singala", "සිංහල", "සිංහලෙන්"]
+# "singular": how Whisper heard "Sinhala" from Adhi (21 Oct). It only switches
+# with a command word in a short sentence ("can we speak in singular language").
+names = ["sinhala", "sinhalese", "singhala", "singala", "singular", "සිංහල", "සිංහලෙන්"]
 command_words = ["කතා", "මාරු"]
 switch_phrases = ["sinhala please"]
 confirm = "හරි, මම දැන් සිංහලෙන් කතා කරන්නම්."
 fillers = ["හ්ම්.", "පොඩ්ඩක් ඉන්න."]
-# Adhi: please check this one too.
-unclear = "සමාවෙන්න, මට ඒක පැහැදිලිව ඇහුණේ නැහැ. ආයෙත් කියන්න, නැත්නම් ටයිප් කරන්න."
+# Adhi's wording (21 Oct). Change it any time.
+unclear = "සමාවෙන්න, මට තේරුණේ නෑ. ආයේ පාරක් කියන්න, නැත්නම් ටයිප් කරන්න."
 
 # Adhi: please check these and rewrite them the way you'd naturally say them.
 [si.greetings]
