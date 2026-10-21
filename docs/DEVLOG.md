@@ -647,3 +647,26 @@ sentences: 71.7% at first, 95.8% after fixing the clashes it showed ("VS
 Code" counted as code, "Google Chrome" as a web search, "කොහොමද" as "how
 are you"). Generated sentences are easier than real ones; the classifier's
 job is to beat this on Adhi's real sentences. 250 tests pass.
+
+- Same evening, first laptop run of the new models (smoke test 20:18):
+  first word after (ms) and Sinhala for "Hello, I am Jarvis, your desktop
+  assistant":
+
+  | provider | model | first word | Sinhala |
+  |---|---|---|---|
+  | groq_qwen | qwen/qwen3.8-27b | 579 | wrong name ("මම වප්සරිය"), a letter missing |
+  | groq_oss_think | gpt-oss-120b, medium | 956 | clean |
+  | groq | gpt-oss-20b | 987 | made-up word (උදව්වන්නෙයි) |
+  | groq_oss | gpt-oss-120b, low | 2077 (new connection) | clean |
+  | openrouter | free router | 6158 | Hindi letters mixed in (ජार්විස්) |
+  | gemini | gemini-flash-latest | 19137 | the most natural |
+  | gemini_lite | gemini-flash-lite-latest | timed out (20 s) | - |
+
+  One sentence each, so only a first sign. Changes: Sinhala gets its own
+  route order (`[llm.language_routes.si]`, gpt-oss-120b first); a model
+  that times out or is overloaded (500-504) now rests two minutes, so a
+  slow Gemini doesn't cost 20 s every turn; the smoke test warns when the
+  first word takes over 5 s and when a reply mixes in another alphabet.
+  Whisper's speed warning (9.5 s for 5 s of noise) is the noise test:
+  Whisper keeps inventing text for noise and retries; real turns took
+  about 0.5 s. 254 tests pass.

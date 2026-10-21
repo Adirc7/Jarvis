@@ -203,8 +203,8 @@ class App:
         self.telemetry.log("route", route=decision.route, reason=decision.reason, intent=decision.intent)
         self.state.mode = Mode.THINKING
         try:
-            reply = await self.sink.stream(self.llm.stream_text(messages, token=token, route=decision.route),
-                                           lang, token, turn)
+            reply = await self.sink.stream(
+                self.llm.stream_text(messages, token=token, route=decision.route, lang=lang.code), lang, token, turn)
         except LLMUnavailable as exc:
             await self.sink.say(LLM_UNAVAILABLE, self.lang.languages["en"] if "en" in self.lang.languages else lang)
             turn.finish(kind="llm_unavailable", failures=exc.failures, route=decision.route)
@@ -356,7 +356,7 @@ class App:
         names = ", ".join(p.name for p in self.llm.chain("general")) or "none (add keys to .env)"
         mode = "voice" if voice else "text"
         self.out(f"Jarvis Phase 1 ({mode} mode). Language: {self.lang.current.name}. LLM order: {names}")
-        routes = [r for r in self.llm.routes if r != "general"]
+        routes = [r for r in self.llm.routes if r != "general" and ":" not in r]
         if routes:
             self.out("Models by kind of request: " + "; ".join(
                 f"{r} {self.llm.chain(r)[0].name}" for r in routes if self.llm.chain(r)))

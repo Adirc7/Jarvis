@@ -399,9 +399,11 @@ async def probe_provider(cfg, settings: Settings, r: Report, tel: Telemetry) -> 
         r.add(f"llm {name}", "WARN" if name == "ollama" else "FAIL", f"{str(exc)[:150]}{hint}")
         return
     total = (time.perf_counter() - t0) * 1000
-    status = "PASS" if text.strip() else "WARN"
+    slow = (first_ms or total) > 5000          # a spoken reply can't wait this long
+    status = "PASS" if text.strip() and not slow else "WARN"
     r.add(f"llm {name}", status, f"{cfg.model}: first token {first_ms or total:.0f} ms, total {total:.0f} ms, "
-          + (f"said {text.strip()[:20]!r}" if text.strip() else "empty reply"))
+          + (f"said {text.strip()[:20]!r}" if text.strip() else "empty reply")
+          + (" (too slow for voice right now)" if slow else ""))
 
     try:
         _, msg = await llm.complete(
@@ -424,9 +426,13 @@ async def probe_provider(cfg, settings: Settings, r: Report, tel: Telemetry) -> 
                 {"role": "user", "content": "Say: Hello, I am Jarvis, your desktop assistant."},
             ], max_tokens=1024):
                 reply += piece
+            from jarvis.voice.clarity import foreign_script_share
             ok = has_script(reply, code)
-            r.add(f"llm {name} {lang.name}", "PASS" if ok else "WARN",
-                  reply.strip().replace("\n", " ")[:70] if ok else f"no {lang.name} script in reply")
+            mixed = ok and foreign_script_share(reply, code) > 0      # e.g. Hindi letters in Sinhala
+            shown = reply.strip().replace("\n", " ")[:70]
+            r.add(f"llm {name} {lang.name}", "PASS" if ok and not mixed else "WARN",
+                  (f"{shown} (mixes in another alphabet)" if mixed else shown) if ok
+                  else f"no {lang.name} script in reply")
         except Exception as exc:
             r.add(f"llm {name} {lang.name}", "WARN", str(exc)[:120])
 

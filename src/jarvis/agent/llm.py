@@ -11,8 +11,10 @@ the error is raised instead and the caller speaks an error message.
 Routes (agent/router.py decides which): each kind of request has its own
 order of providers, e.g. maths to gpt-oss-120b with more thinking, code to
 Qwen. Free limits are counted per model, so spreading the work gives more
-answers per day. A model that hits its limit (HTTP 429) rests until the time
-the provider gives, and is skipped straight away until then.
+answers per day. A language can have its own order ("code:si"), since not
+every model writes good Sinhala. A model that hits its limit (HTTP 429)
+rests until the time the provider gives; one that times out or is
+overloaded rests two minutes. Resting models are skipped straight away.
 """
 
 from __future__ import annotations
@@ -47,8 +49,9 @@ class Provider:
     @property
     def quota_key(self) -> str:
         """Free limits belong to the model at a provider: two entries with the
-        same model (gpt-oss-120b with low and medium thinking) share them."""
-        return f"{self.base_url}|{self.model}"
+        same model (gpt-oss-120b with low and medium thinking) share them.
+        Without an address (test doubles), each entry counts on its own."""
+        return f"{self.base_url}|{self.model}" if self.base_url else f"{self.name}|{self.model}"
 
     def request_kwargs(self, kwargs: dict[str, Any]) -> dict[str, Any]:
         """Add this provider's options as extra JSON fields (extra_body), so
@@ -134,6 +137,26 @@ def rate_limit_wait(exc: BaseException) -> float | None:
     return min(max(wait, 5.0), 6 * 3600.0)
 
 
+SLOW_REST_S = 120.0
+
+
+def failure_rest(exc: BaseException) -> float | None:
+    """How long to leave a model alone after this error, or None to keep trying it.
+
+    Rate limits: as long as the provider says. Timeouts and overload (500,
+    502, 503, 504): two minutes, so a slow provider doesn't cost the full
+    timeout on every turn (Gemini took 19-20 s on 21 Oct).
+    """
+    wait = rate_limit_wait(exc)
+    if wait is not None:
+        return wait
+    if getattr(exc, "status_code", None) in (500, 502, 503, 504):
+        return SLOW_REST_S
+    if isinstance(exc, TimeoutError) or "Timeout" in type(exc).__name__:
+        return SLOW_REST_S
+    return None
+
+
 class ThinkFilter:
     """Takes out <think>...</think> that some models (Qwen, DeepSeek) write
     into the reply itself, so Jarvis never reads its thinking aloud. Works on
@@ -199,10 +222,12 @@ class FallbackLLM:
     last_route: str | None = None
     clock: Any = time.monotonic
 
-    def chain(self, route: str | None = None) -> list[Provider]:
-        """The providers to try for this kind of request, in order. Names
-        without a configured provider (no API key) are left out."""
-        names = self.routes.get(route or "general") or self.routes.get("general")
+    def chain(self, route: str | None = None, lang: str | None = None) -> list[Provider]:
+        """The providers to try for this kind of request (in this language), in
+        order. Names without a configured provider (no API key) are left out."""
+        route = route or "general"
+        names = ((lang and self.routes.get(f"{route}:{lang}")) or self.routes.get(route)
+                 or (lang and self.routes.get(f"general:{lang}")) or self.routes.get("general"))
         if not names:
             return list(self.providers)
         by_name = {p.name: p for p in self.providers}
@@ -213,10 +238,11 @@ class FallbackLLM:
 
     def _note_failure(self, p: Provider, exc: BaseException) -> str:
         err = f"{type(exc).__name__}: {exc}"[:300]
-        wait = rate_limit_wait(exc)
+        wait = failure_rest(exc)
         if wait is not None:
             self.resting[p.quota_key] = self.clock() + wait
-            self.telemetry.log("llm_resting", provider=p.name, model=p.model, seconds=round(wait))
+            self.telemetry.log("llm_resting", provider=p.name, model=p.model, seconds=round(wait),
+                               why=type(exc).__name__)
         return err
 
     async def stream_text(
@@ -224,16 +250,17 @@ class FallbackLLM:
         messages: list[dict[str, Any]],
         token: CancelToken | None = None,
         route: str | None = None,
+        lang: str | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[str]:
         """Yield reply text as it arrives, from the first provider on the route that answers."""
         failures: list[tuple[str, str]] = []
         prompt_chars = sum(len(str(m.get("content") or "")) for m in messages)
         self.last_route = route or "general"
-        for p in self.chain(route):
+        for p in self.chain(route, lang):
             wait = self._resting_for(p)
             if wait > 0:
-                failures.append((p.name, f"resting after its limit ({wait:.0f} s left)"))
+                failures.append((p.name, f"resting after a rate limit or timeout ({wait:.0f} s left)"))
                 self.telemetry.log("llm_skip_resting", provider=p.name, seconds_left=round(wait))
                 continue
             start = time.perf_counter()
@@ -320,15 +347,16 @@ class FallbackLLM:
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
         route: str | None = None,
+        lang: str | None = None,
         **kwargs: Any,
     ) -> tuple[str, Any]:
         """Non-streaming call (used for tool calling). Returns (provider, message)."""
         failures: list[tuple[str, str]] = []
         if tools:
             kwargs["tools"] = tools
-        for p in self.chain(route):
+        for p in self.chain(route, lang):
             if self._resting_for(p) > 0:
-                failures.append((p.name, "resting after its limit"))
+                failures.append((p.name, "resting after a rate limit or timeout"))
                 continue
             start = time.perf_counter()
             try:
