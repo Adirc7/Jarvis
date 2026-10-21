@@ -7,12 +7,19 @@ moves to the next one when a provider errors, times out or hits a rate limit.
 Fallback only happens *before* the first word arrives. Once a reply has started
 streaming, switching provider mid-sentence would produce a garbled answer, so
 the error is raised instead and the caller speaks an error message.
+
+Routes (agent/router.py decides which): each kind of request has its own
+order of providers, e.g. maths to gpt-oss-120b with more thinking, code to
+Qwen. Free limits are counted per model, so spreading the work gives more
+answers per day. A model that hits its limit (HTTP 429) rests until the time
+the provider gives, and is skipped straight away until then.
 """
 
 from __future__ import annotations
 
 import asyncio
 import importlib
+import re
 import time
 from dataclasses import dataclass, field
 from typing import Any, AsyncIterator
@@ -35,6 +42,13 @@ class Provider:
     model: str
     client: Any   # openai.AsyncOpenAI or a test double with the same shape
     options: dict[str, Any] = field(default_factory=dict)   # sent with every request
+    base_url: str = ""
+
+    @property
+    def quota_key(self) -> str:
+        """Free limits belong to the model at a provider: two entries with the
+        same model (gpt-oss-120b with low and medium thinking) share them."""
+        return f"{self.base_url}|{self.model}"
 
     def request_kwargs(self, kwargs: dict[str, Any]) -> dict[str, Any]:
         """Add this provider's options as extra JSON fields (extra_body), so
@@ -46,31 +60,117 @@ class Provider:
         return out
 
     @classmethod
-    def from_config(cls, cfg: ProviderConfig, timeout_s: float = 20, keepalive_s: float = 120) -> "Provider":
-        from openai import AsyncOpenAI, DefaultAsyncHttpxClient  # lazy: tests don't need the package
+    def from_config(cls, cfg: ProviderConfig, timeout_s: float = 20, keepalive_s: float = 120,
+                    client: Any = None) -> Provider:
+        client = client or make_client(cfg, timeout_s, keepalive_s)
+        return cls(cfg.name, cfg.model, client, dict(cfg.options), cfg.base_url)
 
-        # Keep the connection to the provider open between turns. The default
-        # drops it after 5 s idle, so every spoken question (always more than
-        # 5 s apart) paid for a new secure connection before the model started.
-        # The openai package uses httpx or its successor httpx2, depending on
-        # the version: take Limits from whichever its client is built on.
-        http_lib = importlib.import_module(DefaultAsyncHttpxClient.__mro__[1].__module__.split(".")[0])
-        http_client = DefaultAsyncHttpxClient(
-            limits=http_lib.Limits(max_connections=20, max_keepalive_connections=5, keepalive_expiry=keepalive_s),
-        )
-        client = AsyncOpenAI(
-            base_url=cfg.base_url,
-            api_key=cfg.api_key or "missing",
-            timeout=timeout_s,
-            max_retries=0,          # we do our own fallback; don't wait on retries
-            http_client=http_client,
-        )
-        return cls(cfg.name, cfg.model, client, dict(cfg.options))
+
+def make_client(cfg: ProviderConfig, timeout_s: float = 20, keepalive_s: float = 120) -> Any:
+    from openai import (  # lazy: tests don't need the package
+        AsyncOpenAI,
+        DefaultAsyncHttpxClient,
+    )
+
+    # Keep the connection to the provider open between turns. The default
+    # drops it after 5 s idle, so every spoken question (always more than
+    # 5 s apart) paid for a new secure connection before the model started.
+    # The openai package uses httpx or its successor httpx2, depending on
+    # the version: take Limits from whichever its client is built on.
+    http_lib = importlib.import_module(DefaultAsyncHttpxClient.__mro__[1].__module__.split(".")[0])
+    http_client = DefaultAsyncHttpxClient(
+        limits=http_lib.Limits(max_connections=20, max_keepalive_connections=5, keepalive_expiry=keepalive_s),
+    )
+    return AsyncOpenAI(
+        base_url=cfg.base_url,
+        api_key=cfg.api_key or "missing",
+        timeout=timeout_s,
+        max_retries=0,          # we do our own fallback; don't wait on retries
+        http_client=http_client,
+    )
 
 
 def configured_providers(configs: list[ProviderConfig], timeout_s: float = 20,
                          keepalive_s: float = 120) -> list[Provider]:
-    return [Provider.from_config(c, timeout_s, keepalive_s) for c in configs if c.is_configured]
+    """One provider per entry with a key; entries at the same address with
+    the same key share one client, so one open connection serves all the
+    Groq models (and warming it up warms them all)."""
+    clients: dict[tuple[str, str | None], Any] = {}
+    out = []
+    for c in configs:
+        if not c.is_configured:
+            continue
+        key = (c.base_url, c.api_key)
+        if key not in clients:
+            clients[key] = make_client(c, timeout_s, keepalive_s)
+        out.append(Provider.from_config(c, timeout_s, keepalive_s, client=clients[key]))
+    return out
+
+
+def rate_limit_wait(exc: BaseException) -> float | None:
+    """Seconds to rest a model after a rate-limit error (HTTP 429), or None.
+
+    Groq sends a retry-after header and says "Please try again in 7m12.5s";
+    when neither is there, rest a minute (a per-minute limit) or half an
+    hour (a daily one). At most 6 hours: limits reset at least daily.
+    """
+    if getattr(exc, "status_code", None) != 429:
+        return None
+    wait: float | None = None
+    headers = getattr(getattr(exc, "response", None), "headers", None) or {}
+    try:
+        wait = float(headers.get("retry-after"))
+    except (TypeError, ValueError):
+        wait = None
+    message = str(exc)
+    if wait is None:
+        m = re.search(r"try again in (?:(\d+)h)?(?:(\d+)m)?(?:([\d.]+)s)?", message)
+        if m and any(m.groups()):
+            h, mins, secs = (float(g) if g else 0.0 for g in m.groups())
+            wait = h * 3600 + mins * 60 + secs
+    if wait is None:
+        daily = re.search(r"per day|daily|\bTPD\b|\bRPD\b|PerDay", message, re.IGNORECASE)
+        wait = 1800.0 if daily else 60.0
+    return min(max(wait, 5.0), 6 * 3600.0)
+
+
+class ThinkFilter:
+    """Takes out <think>...</think> that some models (Qwen, DeepSeek) write
+    into the reply itself, so Jarvis never reads its thinking aloud. Works on
+    a stream: a tag split across two pieces is held back until it's whole."""
+
+    OPEN, CLOSE = "<think>", "</think>"
+
+    def __init__(self) -> None:
+        self.inside = False
+        self.buf = ""
+
+    def feed(self, text: str) -> tuple[str, int]:
+        """(reply text to pass on, characters of thinking taken out)"""
+        self.buf += text
+        out: list[str] = []
+        thought = 0
+        while True:
+            tag = self.CLOSE if self.inside else self.OPEN
+            i = self.buf.find(tag)
+            if i >= 0:
+                cut, rest = self.buf[:i], self.buf[i + len(tag):]
+            else:
+                keep = next((k for k in range(min(len(tag) - 1, len(self.buf)), 0, -1)
+                             if tag.startswith(self.buf[-k:])), 0)     # maybe the start of a tag
+                cut, rest = self.buf[:len(self.buf) - keep], self.buf[len(self.buf) - keep:]
+            if self.inside:
+                thought += len(cut)
+            else:
+                out.append(cut)
+            self.buf = rest
+            if i < 0:
+                return "".join(out), thought
+            self.inside = not self.inside
+
+    def flush(self) -> str:
+        rest, self.buf = ("" if self.inside else self.buf), ""
+        return rest
 
 
 def _reasoning_text(delta: Any) -> str:
@@ -92,21 +192,55 @@ class FallbackLLM:
     providers: list[Provider]
     telemetry: Telemetry = field(default_factory=Telemetry.disabled)
     last_provider: str | None = None
+    # route name -> provider names to try, in order. A route that isn't
+    # listed (or no routes at all) uses "general", or every provider in order.
+    routes: dict[str, list[str]] = field(default_factory=dict)
+    resting: dict[str, float] = field(default_factory=dict)   # quota key -> when it may be tried again
+    last_route: str | None = None
+    clock: Any = time.monotonic
+
+    def chain(self, route: str | None = None) -> list[Provider]:
+        """The providers to try for this kind of request, in order. Names
+        without a configured provider (no API key) are left out."""
+        names = self.routes.get(route or "general") or self.routes.get("general")
+        if not names:
+            return list(self.providers)
+        by_name = {p.name: p for p in self.providers}
+        return [by_name[n] for n in names if n in by_name]
+
+    def _resting_for(self, p: Provider) -> float:
+        return max(0.0, self.resting.get(p.quota_key, 0.0) - self.clock())
+
+    def _note_failure(self, p: Provider, exc: BaseException) -> str:
+        err = f"{type(exc).__name__}: {exc}"[:300]
+        wait = rate_limit_wait(exc)
+        if wait is not None:
+            self.resting[p.quota_key] = self.clock() + wait
+            self.telemetry.log("llm_resting", provider=p.name, model=p.model, seconds=round(wait))
+        return err
 
     async def stream_text(
         self,
         messages: list[dict[str, Any]],
         token: CancelToken | None = None,
+        route: str | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[str]:
-        """Yield reply text as it arrives, from the first provider that answers."""
+        """Yield reply text as it arrives, from the first provider on the route that answers."""
         failures: list[tuple[str, str]] = []
         prompt_chars = sum(len(str(m.get("content") or "")) for m in messages)
-        for p in self.providers:
+        self.last_route = route or "general"
+        for p in self.chain(route):
+            wait = self._resting_for(p)
+            if wait > 0:
+                failures.append((p.name, f"resting after its limit ({wait:.0f} s left)"))
+                self.telemetry.log("llm_skip_resting", provider=p.name, seconds_left=round(wait))
+                continue
             start = time.perf_counter()
             started = False
             first_chunk_ms: float | None = None   # anything back from the server
             thinking_chars = 0                    # reasoning text before the first word
+            think = ThinkFilter()
             try:
                 stream = await p.client.chat.completions.create(
                     model=p.model, messages=messages, stream=True, **p.request_kwargs(kwargs)
@@ -122,7 +256,11 @@ class FallbackLLM:
                         first_chunk_ms = round((time.perf_counter() - start) * 1000, 1)
                     d = chunk.choices[0].delta if chunk.choices else None
                     delta = getattr(d, "content", None) if d is not None else None
-                    if not delta:
+                    if delta:
+                        delta, thought = think.feed(delta)
+                        if not started:
+                            thinking_chars += thought
+                    if not delta or (not started and not delta.strip()):
                         if d is not None and not started:
                             thinking_chars += len(_reasoning_text(d))
                         continue
@@ -136,6 +274,11 @@ class FallbackLLM:
                             prompt_chars=prompt_chars, messages=len(messages),
                         )
                     yield delta
+                tail = think.flush()
+                if tail and started:
+                    yield tail
+                if not started:
+                    raise RuntimeError("empty reply")
                 self.telemetry.log(
                     "llm_stream", provider=p.name, model=p.model,
                     ms=round((time.perf_counter() - start) * 1000, 1),
@@ -144,21 +287,23 @@ class FallbackLLM:
             except Exception as exc:
                 if started:
                     raise
-                err = f"{type(exc).__name__}: {exc}"[:300]
+                err = self._note_failure(p, exc)
                 failures.append((p.name, err))
                 self.telemetry.log("llm_fallback", provider=p.name, error=err)
         raise LLMUnavailable(failures)
 
-    async def warm(self, timeout_s: float = 3.0) -> None:
+    async def warm(self, timeout_s: float = 3.0, route: str | None = None) -> None:
         """Open the connection to the first provider before the question is ready.
 
         Called when push-to-talk is pressed: while you speak, the secure
         connection gets set up, so the question goes out on an open line.
+        The route isn't known yet, but all Groq models share one connection.
         A failure here doesn't matter; the real request reports its own.
         """
-        if not self.providers:
+        chain = self.chain(route)
+        if not chain:
             return
-        p = self.providers[0]
+        p = chain[0]
         models = getattr(getattr(p.client, "models", None), "list", None)
         if models is None:
             return
@@ -174,13 +319,17 @@ class FallbackLLM:
         self,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
+        route: str | None = None,
         **kwargs: Any,
     ) -> tuple[str, Any]:
         """Non-streaming call (used for tool calling). Returns (provider, message)."""
         failures: list[tuple[str, str]] = []
         if tools:
             kwargs["tools"] = tools
-        for p in self.providers:
+        for p in self.chain(route):
+            if self._resting_for(p) > 0:
+                failures.append((p.name, "resting after its limit"))
+                continue
             start = time.perf_counter()
             try:
                 resp = await p.client.chat.completions.create(
@@ -193,7 +342,7 @@ class FallbackLLM:
                 )
                 return p.name, resp.choices[0].message
             except Exception as exc:
-                err = f"{type(exc).__name__}: {exc}"[:300]
+                err = self._note_failure(p, exc)
                 failures.append((p.name, err))
                 self.telemetry.log("llm_fallback", provider=p.name, error=err)
         raise LLMUnavailable(failures)

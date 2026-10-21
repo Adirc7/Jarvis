@@ -316,3 +316,25 @@ locally, and preference tuning (DPO) from liked and corrected replies.
 fixed test set means Jarvis can only get better, and gives a week-by-week
 learning curve for the report.
 **Idea:** Adhi, 2026-10-21.
+
+## D28. Different models for different kinds of request
+**Decision:** Each turn gets a route (quick, command, maths, teach, code,
+long, talk, general), and each route has its own order of free models in
+`[llm.routes]`: maths to gpt-oss-120b with more thinking, code to Qwen,
+long documents to Gemini, quick chat to gpt-oss-20b. Keyword rules choose
+the route now (`agent/router.py`, 95.8% right on the generated sentences);
+Adhi's intent classifier replaces them through `IntentRouter`, with the
+rules as backup when it's unsure. A model that hits its limit (429) rests
+until the time the provider gives and is skipped meanwhile. Every model
+gets the same persona prompt and history, so Jarvis and Friday sound the
+same whichever model answers.
+**Why:** Free limits are counted per model (Groq: 1,000 requests and 200,000
+tokens a day each, Oct 2026), so spreading the work gives several times the
+answers per day. Groq's free 8,000 tokens a minute can't take a long
+document, so those must go to Gemini. Choosing the route with a local
+classifier costs no request and no time; asking an LLM to choose would cost
+both on every turn.
+**Not chosen:** a "manager" LLM that hands tasks to other LLMs (an extra
+call and about half a second per turn); a second LLM checking maths (Python
+with SymPy checks numbers more reliably, Phase 2 tool).
+**Idea:** Adhi, 2026-10-21.

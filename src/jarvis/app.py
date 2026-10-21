@@ -17,6 +17,7 @@ from datetime import datetime
 from typing import Any, Callable
 
 from .agent.llm import FallbackLLM, LLMUnavailable, configured_providers
+from .agent.router import KeywordRouter, Router
 from .bus import EventBus
 from .config import Settings
 from .events import (
@@ -48,6 +49,7 @@ class App:
         persona: Persona | None = None,
         presence: Presence | None = None,
         memory: Memory | None = None,
+        router: Router | None = None,
     ):
         self.settings = settings
         self.persona = persona or Persona.load()
@@ -66,7 +68,11 @@ class App:
             configured_providers(settings.providers(), settings.get("llm.timeout_s", 20),
                                  float(settings.get("llm.keepalive_s", 120))),
             telemetry,
+            routes=settings.routes(),
         )
+        # Which kind of request, so which models (agent/router.py). Adhi's
+        # intent classifier replaces the keyword rules later (IntentRouter).
+        self.router = router or KeywordRouter(int(settings.get("llm.long_prompt_chars", 12000)))
         self.sink = sink or TextSink(out)
         self.state.empathy = self.persona.default_mode
         self._apply_empathy_voice()
@@ -193,12 +199,15 @@ class App:
         )
         token = self.state.token()
         lang = self.lang.current
+        decision = self.router.route(text, lang.code, sum(len(m["content"]) for m in messages))
+        self.telemetry.log("route", route=decision.route, reason=decision.reason, intent=decision.intent)
         self.state.mode = Mode.THINKING
         try:
-            reply = await self.sink.stream(self.llm.stream_text(messages, token=token), lang, token, turn)
+            reply = await self.sink.stream(self.llm.stream_text(messages, token=token, route=decision.route),
+                                           lang, token, turn)
         except LLMUnavailable as exc:
             await self.sink.say(LLM_UNAVAILABLE, self.lang.languages["en"] if "en" in self.lang.languages else lang)
-            turn.finish(kind="llm_unavailable", failures=exc.failures)
+            turn.finish(kind="llm_unavailable", failures=exc.failures, route=decision.route)
             return LLM_UNAVAILABLE
         finally:
             if self.state.mode in (Mode.THINKING, Mode.SPEAKING):
@@ -208,7 +217,7 @@ class App:
         if self.memory.enabled and self.settings.get("memory.keep_conversation", True):
             self.memory.set_recent(self.history[-HISTORY_TURNS * 2:])
             self.memory.save()
-        turn.finish(kind="chat", provider=self.llm.last_provider, language=lang.code,
+        turn.finish(kind="chat", provider=self.llm.last_provider, route=decision.route, language=lang.code,
                     chars=len(reply), cancelled=token.cancelled)
         return reply
 
@@ -344,9 +353,13 @@ class App:
         tasks = [asyncio.create_task(self._control_task())]
         if enable_hotkey:
             self._start_hotkeys()
-        names = ", ".join(p.name for p in self.llm.providers) or "none (add keys to .env)"
+        names = ", ".join(p.name for p in self.llm.chain("general")) or "none (add keys to .env)"
         mode = "voice" if voice else "text"
         self.out(f"Jarvis Phase 1 ({mode} mode). Language: {self.lang.current.name}. LLM order: {names}")
+        routes = [r for r in self.llm.routes if r != "general"]
+        if routes:
+            self.out("Models by kind of request: " + "; ".join(
+                f"{r} {self.llm.chain(r)[0].name}" for r in routes if self.llm.chain(r)))
         if voice:
             try:
                 await self._prepare_voice()

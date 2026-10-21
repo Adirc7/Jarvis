@@ -93,16 +93,26 @@ class Settings:
         p = Path(self.get(dotted, default))
         return p if p.is_absolute() else PROJECT_ROOT / p
 
-    def providers(self) -> list[ProviderConfig]:
+    def routes(self) -> dict[str, list[str]]:
+        """Provider order for each kind of request (agent/router.py). "general"
+        is llm.order; [llm.routes] adds the others. Empty when routing is off."""
+        routes = {"general": list(self.get("llm.order", []))}
+        if self.get("llm.routing", True):
+            routes.update({k: list(v) for k, v in self.get("llm.routes", {}).items()})
         table = self.get("llm.providers", {})
-        out = []
-        for name in self.get("llm.order", []):
-            if name not in table:
-                raise ValueError(f"llm.order names '{name}' but [llm.providers.{name}] is missing")
-            p = table[name]
-            out.append(ProviderConfig(name, p["base_url"], p.get("api_key_env", ""), p["model"],
-                                      dict(p.get("options", {}))))
-        return out
+        for route, names in routes.items():
+            for name in names:
+                if name not in table:
+                    where = "llm.order" if route == "general" else f"llm.routes.{route}"
+                    raise ValueError(f"{where} names '{name}' but [llm.providers.{name}] is missing")
+        return routes
+
+    def providers(self) -> list[ProviderConfig]:
+        """Every provider used by llm.order or a route, each once."""
+        table = self.get("llm.providers", {})
+        names = list(dict.fromkeys(n for names in self.routes().values() for n in names))
+        return [ProviderConfig(n, table[n]["base_url"], table[n].get("api_key_env", ""), table[n]["model"],
+                               dict(table[n].get("options", {}))) for n in names]
 
 
 def parse_languages(table: dict[str, Any]) -> dict[str, Language]:
