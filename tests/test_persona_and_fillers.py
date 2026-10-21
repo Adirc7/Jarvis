@@ -178,3 +178,21 @@ def test_address_form_only_when_set():
     assert "Greet once per session" in prompt
     p.address = ""
     assert "Address the user" not in p.system_prompt(language_instruction="x", spoken=True, mode="balanced")
+
+
+async def test_long_fillers_are_skipped(settings):
+    # FakeEngine makes 10 samples per character at 16 kHz.
+    app, *_ = make_voice_app(settings, ["x"])
+    sink = app.sink
+    sink.filler_max_s = 4 * 10 / 16000                       # up to 4 characters
+    sink.prepare_fillers(app.lang.current)
+    lengths = [len(a) for a, _ in sink._fillers["en"]]
+    assert lengths and all(n <= 40 for n in lengths)          # "Mm.", "Hmm." kept; "One moment." dropped
+
+
+async def test_shortest_filler_kept_when_none_is_short_enough(settings):
+    app, *_ = make_voice_app(settings, ["x"])
+    sink = app.sink
+    sink.filler_max_s = 0.0
+    sink.prepare_fillers(app.lang.current)
+    assert len(sink._fillers["en"]) == 1 and len(sink._fillers["en"][0][0]) == 30   # "Mm."

@@ -78,6 +78,7 @@ class VoiceSink(TextSink):
         # thinking time when the real reply is slow.
         self.fillers_enabled = bool(settings.get("tts.fillers", True))
         self.filler_after_s = float(settings.get("tts.filler_after_ms", 700)) / 1000
+        self.filler_max_s = float(settings.get("tts.filler_max_ms", 700)) / 1000
         self._fillers: dict[str, list[tuple[Any, int]]] = {}
         self._last_filler: dict[str, int] = {}
         self._rng = random.Random()
@@ -155,9 +156,14 @@ class VoiceSink(TextSink):
         if lang.code in self._broken:
             return
         try:
-            self._fillers[lang.code] = [self.tts.render(t, lang, self.speed_factor) for t in lang.fillers]
+            rendered = [self.tts.render(t, lang, self.speed_factor) for t in lang.fillers]
         except Exception as exc:
             self._report_broken(lang, exc)
+            return
+        # Only short fillers: the real reply can't start until the filler ends,
+        # and "Right, one sec." held replies back by up to 0.9 s on the laptop.
+        short = [(a, sr) for a, sr in rendered if len(a) / sr <= self.filler_max_s]
+        self._fillers[lang.code] = short or [min(rendered, key=lambda x: len(x[0]) / x[1])]
 
     # ---- internals ------------------------------------------------------
     def _can_speak(self, lang: Language) -> bool:

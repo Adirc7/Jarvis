@@ -38,7 +38,7 @@ names = ["english", "ඉංග්‍රීසි", "ඉංග්‍රීසි�
 command_words = ["speak", "talk", "reply", "answer", "respond", "switch", "change", "prefer"]
 switch_phrases = ["english please"]
 confirm = "Okay, I'll speak English now."
-fillers = ["Mm.", "One moment.", "Let me check.", "Right, one sec.", "Let me think."]
+fillers = ["Mm.", "Hmm.", "Right.", "One moment.", "Let me check."]   # long ones are skipped (filler_max_ms)
 unclear = "Sorry, {address}, I couldn't make that out. Could you say it again, or type it?"
 
 # What Jarvis says when it starts or wakes (see src/jarvis/greeting.py).

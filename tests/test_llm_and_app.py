@@ -142,3 +142,64 @@ def test_no_retired_models_and_thinking_kept_short(settings):
     assert "llama-3.3" not in by_name["openrouter"].model and "free" in by_name["openrouter"].model
     for name in ("gemini", "groq", "groq_oss"):
         assert by_name[name].options.get("reasoning_effort") == "low"
+
+
+class ThinkingStream:
+    """Like gpt-oss on Groq: reasoning chunks first, then the reply."""
+
+    def __init__(self):
+        self.closed = False
+
+    def __aiter__(self):
+        return self._gen()
+
+    async def _gen(self):
+        from types import SimpleNamespace as NS
+        for r in ("The user wants", " a short answer."):
+            yield NS(choices=[NS(delta=NS(content=None, reasoning=r))])
+        for c in ("Sure", ", sir."):
+            yield NS(choices=[NS(delta=NS(content=c))])
+
+    async def close(self):
+        self.closed = True
+
+
+async def test_thinking_before_the_first_word_is_measured():
+    from types import SimpleNamespace as NS
+
+    class Capture(Telemetry):
+        def __init__(self):
+            super().__init__(None)
+            self.events = []
+
+        def log(self, event, **fields):
+            self.events.append({"event": event, **fields})
+
+    async def create(model, messages, stream=False, **kwargs):
+        return ThinkingStream()
+
+    tel = Capture()
+    client = NS(chat=NS(completions=NS(create=create)))
+    llm = FallbackLLM([Provider("groq_oss", "openai/gpt-oss-120b", client)], tel)
+    text = "".join([p async for p in llm.stream_text([{"role": "user", "content": "hi"}])])
+    assert text == "Sure, sir."                                   # reasoning is never spoken
+    first = next(e for e in tel.events if e["event"] == "llm_first_token")
+    assert first["thinking_chars"] == len("The user wants a short answer.")
+    assert first["first_chunk_ms"] <= first["ms"]
+    assert first["prompt_chars"] == 2 and first["messages"] == 1
+
+
+def test_llm_speed_try_option():
+    import importlib.util
+
+    from jarvis.config import PROJECT_ROOT, ProviderConfig
+    spec = importlib.util.spec_from_file_location("llm_speed", PROJECT_ROOT / "scripts" / "llm_speed.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    groq = ProviderConfig("groq", "https://api.groq.com/openai/v1", "GROQ_API_KEY", "openai/gpt-oss-20b",
+                          {"reasoning_effort": "low"})
+    cfg = mod.parse_try("groq=qwen/qwen3-32b,reasoning_effort=none", {"groq": groq})
+    assert (cfg.name, cfg.model, cfg.options) == ("groq:qwen/qwen3-32b", "qwen/qwen3-32b", {"reasoning_effort": "none"})
+    assert cfg.base_url == groq.base_url and cfg.api_key_env == "GROQ_API_KEY"
+    with pytest.raises(SystemExit):
+        mod.parse_try("nobody=some-model", {"groq": groq})

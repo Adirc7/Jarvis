@@ -360,3 +360,35 @@ Fixes today:
 Plan: train our own Sinhala model (IMPLEMENTATION_PLAN.md, section R):
 baselines on Adhi's round-1 recordings first, then fine-tune whisper-small on
 OpenSLR 52 with free Kaggle GPUs.
+
+## 2026-10-21: Second latency session (after the filler and warm-up fixes)
+
+`session-20261021-100114`: 12 turns (8 English voice, 2 Sinhala voice, 2 typed).
+
+| | Before (041323) | Now (100114) |
+|---|---|---|
+| First audio, English voice turns | 3.2-4.6 s | 2.7-3.1 s |
+| First audio, typed turns | - | 2.3 s |
+| Whisper, English | 0.7-2.3 s | 0.39-0.79 s (no cold first turn) |
+| LLM first word (Groq gpt-oss-120b) | 0.55-0.64 s | 0.78-1.42 s (p50 1.05 s) |
+| First sentence voice (Kokoro, CPU) | 0.35-1.41 s | 0.37-1.39 s |
+
+- The warm-up worked: the first turn's Whisper was 523 ms instead of 2317.
+  The warm-up itself takes 8.2 s at start-up.
+- The LLM is now the biggest step, and nearly twice as slow as this
+  morning. Unknown yet whether that's Groq's load at this hour, the longer
+  conversation, or gpt-oss "thinking" before it answers. The LLM log now
+  records the time to the server's first chunk, the reasoning characters
+  before the first word, and the prompt size; `scripts/llm_speed.py`
+  compares models on Jarvis's real prompt.
+- Because the LLM took more than 0.7 s, the filler fired in every turn. In
+  turns 6-8 the longer fillers ("Right, one sec.") were still playing when
+  the reply was ready, holding it back by about 0.6-0.9 s. Fix: fillers
+  longer than 700 ms (`filler_max_ms`) are skipped, English fillers are now
+  mostly short ("Mm.", "Hmm.", "Right."), and the turn table shows a
+  "held back" column.
+- Sinhala voice turns: Whisper took 6.2-6.6 s (it retries up to six times
+  at higher temperatures when the output looks wrong) and still wrote
+  nonsense. This goes away only with a real Sinhala model (section R).
+- Several recordings were long (12-30 s), one again exactly 30.0 s: to
+  check with Adhi whether the key release is being missed.

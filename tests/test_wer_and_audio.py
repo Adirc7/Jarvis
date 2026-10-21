@@ -61,7 +61,8 @@ def test_turn_rows_explain_each_request(tmp_path):
         {"event": "tts", "ms": 300.0, "chars": 30},                       # the greeting: not a turn
         {"event": "stt", "ms": 884.1, "language": "en", "detected": "en", "probability": 0.97,
          "retranscribed": False},
-        {"event": "llm_first_token", "ms": 588.3, "provider": "groq_oss"},
+        {"event": "llm_first_token", "ms": 588.3, "provider": "groq_oss", "first_chunk_ms": 200.3,
+         "thinking_chars": 340},
         {"event": "filler", "index": 2},
         {"event": "tts", "ms": 410.0, "chars": 18},
         {"event": "tts", "ms": 1500.0, "chars": 160},
@@ -77,6 +78,8 @@ def test_turn_rows_explain_each_request(tmp_path):
     assert (first["stt_ms"], first["heard"], first["p"]) == (884.1, "en", 0.97)
     assert (first["voice_ms"], first["voice_chars"]) == (410.0, 18)        # not the greeting's
     assert (first["filler"], first["first_audio"]) == (1584.8, 3220.7)
+    assert first["thinking_ms"] == pytest.approx(388.0)
     assert second["stt_ms"] is None and second["provider"] == "groq" and second["voice_ms"] == 350.0
+    assert second["thinking_ms"] is None                                   # older logs: no thinking data
     text = "\n".join(format_turns([first, second]))
-    assert "2.4s" in text and "typed" in text and "410 (18 ch)" in text
+    assert "2.4s" in text and "typed" in text and "410 (18 ch)" in text and "388 (340 ch)" in text

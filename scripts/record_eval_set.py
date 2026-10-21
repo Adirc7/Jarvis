@@ -32,7 +32,7 @@ RATE = 16000
 
 
 def read_sentences(path: Path) -> list[str]:
-    lines = path.read_text(encoding="utf-8").splitlines()
+    lines = path.read_text(encoding="utf-8-sig").splitlines()   # -sig: Notepad may add a BOM
     return [l.strip() for l in lines if l.strip() and not l.lstrip().startswith("#")]
 
 

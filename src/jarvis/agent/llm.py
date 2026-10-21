@@ -60,6 +60,20 @@ def configured_providers(configs: list[ProviderConfig], timeout_s: float = 20) -
     return [Provider.from_config(c, timeout_s) for c in configs if c.is_configured]
 
 
+def _reasoning_text(delta: Any) -> str:
+    """The model's "thinking" in a stream chunk, if the provider sends it.
+
+    Reasoning models (gpt-oss) think before they answer. Groq and OpenRouter
+    send that as `reasoning`, some others as `reasoning_content`; either way
+    it isn't part of the reply, but it is time the listener waits.
+    """
+    for name in ("reasoning", "reasoning_content"):
+        value = getattr(delta, name, None)
+        if isinstance(value, str):
+            return value
+    return ""
+
+
 @dataclass
 class FallbackLLM:
     providers: list[Provider]
@@ -74,9 +88,12 @@ class FallbackLLM:
     ) -> AsyncIterator[str]:
         """Yield reply text as it arrives, from the first provider that answers."""
         failures: list[tuple[str, str]] = []
+        prompt_chars = sum(len(str(m.get("content") or "")) for m in messages)
         for p in self.providers:
             start = time.perf_counter()
             started = False
+            first_chunk_ms: float | None = None   # anything back from the server
+            thinking_chars = 0                    # reasoning text before the first word
             try:
                 stream = await p.client.chat.completions.create(
                     model=p.model, messages=messages, stream=True, **p.request_kwargs(kwargs)
@@ -88,8 +105,13 @@ class FallbackLLM:
                             await close()
                         self.telemetry.log("llm_cancelled", provider=p.name)
                         return
-                    delta = chunk.choices[0].delta.content if chunk.choices else None
+                    if first_chunk_ms is None:
+                        first_chunk_ms = round((time.perf_counter() - start) * 1000, 1)
+                    d = chunk.choices[0].delta if chunk.choices else None
+                    delta = getattr(d, "content", None) if d is not None else None
                     if not delta:
+                        if d is not None and not started:
+                            thinking_chars += len(_reasoning_text(d))
                         continue
                     if not started:
                         started = True
@@ -97,6 +119,8 @@ class FallbackLLM:
                         self.telemetry.log(
                             "llm_first_token", provider=p.name, model=p.model,
                             ms=round((time.perf_counter() - start) * 1000, 1),
+                            first_chunk_ms=first_chunk_ms, thinking_chars=thinking_chars,
+                            prompt_chars=prompt_chars, messages=len(messages),
                         )
                     yield delta
                 self.telemetry.log(
