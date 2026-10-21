@@ -46,8 +46,12 @@ echo.
 echo === 4. GPU through CUDA
 rem 1.26 is the newest onnxruntime-gpu built for CUDA 12, the CUDA Whisper
 rem already uses; 1.27 and later need CUDA 13 and could clash with it.
+echo Installing onnxruntime-gpu and the CUDA libraries: about 0.5-1.3 GB to download
+echo (less if Whisper's copies are reused), then Windows may scan the files. This can
+echo take several minutes; the progress bars show it's working.
 if not exist "%CUDA%\Scripts\python.exe" uv venv "%CUDA%" --python 3.12 -q
-uv pip install -q --python "%CUDA%\Scripts\python.exe" "onnxruntime-gpu[cuda,cudnn]==1.26.0" numpy espeakng-loader "phonemizer>=3.4"
+uv pip install --python "%CUDA%\Scripts\python.exe" "onnxruntime-gpu[cuda,cudnn]==1.26.0" numpy espeakng-loader "phonemizer>=3.4"
+if errorlevel 1 goto :fail
 uv pip install -q --python "%CUDA%\Scripts\python.exe" --no-deps kokoro-onnx==0.6.1
 "%CUDA%\Scripts\python.exe" scripts\bench_tts.py --provider CUDAExecutionProvider
 
