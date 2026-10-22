@@ -139,3 +139,17 @@ After a Bing search, Jarvis names the top results and asks which to read.
 - Tests: result list read-out and choice by number; extraction on saved
   sample pages; a page containing "ignore previous instructions" changes
   nothing; no key -> just open Bing.
+
+## Also in group 2: the voice must survive a GPU failure (laptop, 22 Oct)
+
+Seen: after one turn, Kokoro on CUDA failed ("fatal: Memory allocation
+failure", then CUDA error 999 / CUDNN_STATUS_EXECUTION_FAILED in a Conv), and
+the sink switched to text only.
+- When a CUDA voice fails mid-session, rebuild that voice on CPU and retry
+  the sentence (log `tts_fallback_cpu`); go text-only only if CPU fails too.
+- Use less GPU memory in `kokoro_session` (voice/tts.py): CUDA provider
+  options `cudnn_conv_use_max_workspace="0"`,
+  `cudnn_conv_algo_search="HEURISTIC"`, `arena_extend_strategy="kSameAsRequested"`.
+- At start-up, print free GPU memory (`nvidia-smi --query-gpu=memory.used,memory.total`)
+  and warn if under about 2 GB is free.
+- Workaround meanwhile: `[tts] device = "cpu"` in config/settings.local.toml.
