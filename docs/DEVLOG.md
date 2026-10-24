@@ -735,3 +735,17 @@ one", "stop the video" (the media key; then "anything else?"), "resume",
 "go back" (Jarvis's own page list). One follow-up question at a time, 60 s,
 "cancel"; the kill switch clears it. New intents pause_media, resume_media,
 go_back (46 intents, 15,630 sentences; keyword routing 95.1%). 332 tests.
+
+## 2026-10-24: plan for making Jarvis feel human
+
+docs/HUMANLIKE_PLAN.md (Proposed). Starts from the laptop test, where "Can
+you open YouTube?" reached the model and it said it couldn't. Understanding
+in three layers: the fixed rules, then Adhi's intent classifier (act at 70%,
+ask "A or B?" between 40% and 70%), then the model with the web tools as
+function calls, all ending at the same tool code and the M3 gate. RAG in four
+places (corrected examples, memory, lecture notes, web pages) with one
+multilingual-e5-small encoder that the classifier's level 2 shares. Codex's
+suggestions placed by stage (captions, orb states, wake, clap, gestures,
+virtual mouse last). Stages H1-H6, each with measures; H1 needs no training:
+tool calling, spoken-style Sinhala for Friday, "I heard X, did you mean Y?",
+and a messy-phrasing test set of about 150 real requests.
