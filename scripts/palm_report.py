@@ -9,8 +9,10 @@ palm) and prints, for the "palm" rows and the "not palm" rows separately:
   2. each finger of the points check, and which way the hand faces, so a
      check that's the wrong way round shows up at once,
   3. a table of limits: how many real palms each limit catches and how many
-     "not palm" frames it would wrongly count (per frame; the 0.5 s hold in
-     Jarvis cuts the wrong ones further).
+     "not palm" frames it would wrongly count, frame by frame,
+  4. the recording replayed through the 0.5 s hold, as Jarvis would use it:
+     palms accepted per minute while you showed palms, and false ones per
+     minute while you didn't (and while you waved, if you recorded waves).
 """
 
 from __future__ import annotations
@@ -62,8 +64,10 @@ def main() -> int:
     rows = load(paths)
     groups = {"palm": [r for r in rows if r["label"] == "palm"],
               "not palm": [r for r in rows if r["label"] == "other"]}
+    if any(r["label"] == "wave" for r in rows):
+        groups["wave"] = [r for r in rows if r["label"] == "wave"]
     print(f"{len(rows)} rows from {', '.join(p.name for p in paths)}: "
-          f"{len(groups['palm'])} palm, {len(groups['not palm'])} not palm\n")
+          + ", ".join(f"{len(g)} {name}" for name, g in groups.items()) + "\n")
 
     # 1. What MediaPipe said.
     print("1. MediaPipe's gesture")
@@ -119,7 +123,58 @@ def main() -> int:
     print(f"   MediaPipe >= 0.50 or points {share(caught, len(groups['palm'])):>6}"
           f"              {share(wrong, len(groups['not palm'])):>6}")
     print("\nA good limit catches most real palms while counting almost no 'not palm' frames.")
+
+    # 4. Replay through the hold: what Jarvis would actually do.
+    names = list(groups)
+    print("\n4. Through the 0.5 s hold (accepted per minute of recording)")
+    print("   rule                          " + "".join(f"{name:>12}" for name in names))
+    rules = [(f"MediaPipe >= {limit:.2f}", lambda r, limit=limit: mp_palm(r, limit))
+             for limit in (0.50, 0.55, 0.60, 0.65, 0.70)]
+    rules += [("points check alone", points),
+              ("MediaPipe >= 0.50 or points", lambda r: mp_palm(r, 0.5) or points(r))]
+    for title, rule in rules:
+        cells = []
+        for name in names:
+            events, minutes = replay(rows_by_segment(rows, name), rule)
+            cells.append(f"{events / minutes:5.1f} ({events})" if minutes else "  -")
+        print(f"   {title:29} " + "".join(f"{c:>12}" for c in cells))
+    print("   Wanted: high under palm (about one per palm you showed), near 0 under not palm and wave.")
     return 0
+
+
+LABELS = {"palm": "palm", "not palm": "other", "wave": "wave"}
+
+
+def rows_by_segment(rows: list[dict], name: str) -> list[list[dict]]:
+    """Stretches of one label, in time order, per session."""
+    segments: list[list[dict]] = []
+    last = None
+    for r in rows:
+        key = (r["session"], r["label"])
+        if key != last:
+            segments.append([])
+            last = key
+        if r["label"] == LABELS[name]:
+            segments[-1].append(r)
+    return [seg for seg in segments if seg]
+
+
+def replay(segments: list[list[dict]], is_palm) -> tuple[int, float]:
+    """Run each stretch through the preview's hold rule; count accepted palms."""
+    events, seconds = 0, 0.0
+    for seg in segments:
+        hold = gp.PalmHold()
+        prev = None
+        for r in seg:
+            t = float(r["t"])
+            if prev is not None and t - prev > 0.2:        # the hand left the picture
+                for _ in range(hold.max_missed + 1):
+                    hold.update(prev + 0.1, False)
+                hold.update(t - 0.01, False)
+            events += hold.update(t, is_palm(r))
+            prev = t
+        seconds += float(seg[-1]["t"]) - float(seg[0]["t"])
+    return events, seconds / 60
 
 
 if __name__ == "__main__":

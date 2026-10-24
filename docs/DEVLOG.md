@@ -807,3 +807,13 @@ check never agreed with MediaPipe (both 0, only MediaPipe 848, only points
 Recorded 1,041 palm and 1,125 not-palm rows. New `scripts/palm_report.py`
 shows the cause and the trade-off for each limit.
 
+palm_report on that recording: MediaPipe said Open_Palm in 40% of palm rows
+and 30% of not-palm rows, and all five fingers were out in 43% of not-palm
+rows. The not-palm recording held open hands, because the instructions
+listed waving and a relaxed hand (Claude's mistake), so the per-frame table
+can't separate them. With the current sign only 22% of real palms counted as
+facing the camera, so the facing check is the wrong way round here (or the
+hand labels are swapped; a 30-second check decides which). The preview now
+records W = wave separately, P and N have clearer instructions (N: no open
+hands), and the report replays the recording through the 0.5 s hold.
+
