@@ -7,6 +7,12 @@
 Background tasks on the asyncio loop:
     control     kill switch and mute (from global hotkeys or typed commands)
     voice       push-to-talk events -> transcription -> handle_text
+
+One turn at a time: every request (spoken or typed) takes its cancel token
+the moment it starts, then waits for the turn before it to finish. The kill
+switch or a new push-to-talk cancels that token, and the turn checks it after
+speech recognition and before the model, so a cancelled question never
+reaches the model and a cancelled reply is never saved.
 """
 
 from __future__ import annotations
@@ -28,12 +34,13 @@ from .killswitch import HotkeyListener, Once
 from .language import LanguageManager, normalize
 from .memory import Memory, detect_fact, detect_name
 from .persona import Persona
-from .state import Mode, SharedState
+from .state import CancelToken, Mode, SharedState
 from .telemetry import Telemetry, Turn
 from .voice.sink import TextSink
 
 HISTORY_TURNS = 12
 LLM_UNAVAILABLE = "I can't reach any language model right now. Check the internet connection or start Ollama."
+REPLY_BROKE_OFF = "Sorry, the connection dropped in the middle of my answer. Please ask again."
 
 
 class App:
@@ -82,6 +89,7 @@ class App:
         self._hotkeys: HotkeyListener | None = None
         self._ptt = None
         self._stt_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="stt")
+        self._turn_lock = asyncio.Lock()      # one request at a time, in the order they came
         # When you last talked to Jarvis, so greetings follow sessions, not restarts.
         self.presence = presence if presence is not None else Presence.load(
             settings.path("general.state_dir", "state") / "presence.json")
@@ -164,12 +172,28 @@ class App:
         return True
 
     # ---- one request ----------------------------------------------------
-    async def handle_text(self, text: str, source: str = "keyboard", turn: Turn | None = None) -> str:
+    async def handle_text(self, text: str, source: str = "keyboard", turn: Turn | None = None,
+                          token: CancelToken | None = None) -> str:
+        """One request, start to finish, after any request already running."""
+        token = token or self.state.token()           # taken now: a stop from here on cancels it
         turn = turn or self.telemetry.turn(source=source)
+        async with self._turn_lock:
+            return await self._handle_text(text, source, turn, token)
+
+    def _cancelled(self, turn: Turn, where: str) -> None:
+        """A turn stopped by the kill switch or a new push-to-talk: nothing more happens."""
+        if self.state.mode not in (Mode.PAUSED, Mode.LISTENING):
+            self.state.mode = Mode.IDLE
+        turn.finish(kind="cancelled", at=where)
+
+    async def _handle_text(self, text: str, source: str, turn: Turn, token: CancelToken) -> str:
+        if token.cancelled:
+            self._cancelled(turn, "before_start")
+            return ""
         self.presence.touch()
         self.presence.save()
         if self.state.mode == Mode.PAUSED:
-            self.state.mode = Mode.IDLE   # a new request resumes after the kill switch
+            self.state.mode = Mode.IDLE   # a request made after the kill switch resumes
 
         # "be more direct" / "be gentler": change style, then let the model
         # acknowledge it naturally, in whatever language is active.
@@ -190,7 +214,7 @@ class App:
             lang = self.lang.current
             confirm = lang.confirm or f"Switched to {lang.name}."
             if len(normalize(text).split()) <= 5:
-                await self.sink.say(confirm, lang, self.state.token())
+                await self.sink.say(confirm, lang, token)
                 turn.finish(kind="language_switch", language=code)
                 return confirm
             self.out(f"Jarvis: {confirm}")
@@ -203,7 +227,6 @@ class App:
             + self.history[-HISTORY_TURNS * 2:]
             + [{"role": "user", "content": text}]
         )
-        token = self.state.token()
         lang = self.lang.current
         decision = self.router.route(text, lang.code, sum(len(m["content"]) for m in messages))
         self.telemetry.log("route", route=decision.route, reason=decision.reason, intent=decision.intent)
@@ -212,13 +235,23 @@ class App:
             reply = await self.sink.stream(
                 self.llm.stream_text(messages, token=token, route=decision.route, lang=lang.code), lang, token, turn)
         except LLMUnavailable as exc:
-            await self.sink.say(LLM_UNAVAILABLE, self.lang.languages["en"] if "en" in self.lang.languages else lang)
+            await self.sink.say(LLM_UNAVAILABLE, self.lang.languages.get("en", lang), token)
             turn.finish(kind="llm_unavailable", failures=exc.failures, route=decision.route)
             return LLM_UNAVAILABLE
+        except Exception as exc:             # the provider dropped after the reply had started
+            self.telemetry.log("llm_error", error=f"{type(exc).__name__}: {exc}"[:300],
+                               provider=self.llm.last_provider)
+            self.out(f"\n[the reply broke off: {type(exc).__name__}]")
+            await self.sink.say(REPLY_BROKE_OFF, self.lang.languages.get("en", lang), token)
+            turn.finish(kind="llm_error", route=decision.route)
+            return REPLY_BROKE_OFF
         finally:
             if self.state.mode in (Mode.THINKING, Mode.SPEAKING):
                 self.state.mode = Mode.IDLE
 
+        if token.cancelled:                  # stopped mid-reply: don't keep half an answer
+            self._cancelled(turn, "during_reply")
+            return reply
         self.history += [{"role": "user", "content": text}, {"role": "assistant", "content": reply}]
         if self.memory.enabled and self.settings.get("memory.keep_conversation", True):
             self.memory.set_recent(self.history[-HISTORY_TURNS * 2:])
@@ -258,7 +291,15 @@ class App:
                 current = asyncio.create_task(self.voice_turn(ev.audio, ev.seconds))
 
     async def voice_turn(self, audio, seconds: float) -> str | None:
+        token = self.state.token()           # taken now, before waiting or transcribing
         turn = self.telemetry.turn(source="voice", audio_s=round(seconds, 2))
+        async with self._turn_lock:
+            return await self._voice_turn(audio, turn, token)
+
+    async def _voice_turn(self, audio, turn: Turn, token: CancelToken) -> str | None:
+        if token.cancelled:
+            self._cancelled(turn, "before_stt")
+            return None
         self.state.mode = Mode.THINKING
         loop = asyncio.get_running_loop()
         try:
@@ -269,6 +310,10 @@ class App:
             turn.finish(kind="stt_error", error=str(exc)[:200])
             return None
         turn.mark("stt_done")
+        if token.cancelled:                  # the kill switch or a new push-to-talk came meanwhile
+            self.out(f"(stopped: \"{result.text[:60]}\" was not sent)" if result.text else "(stopped)")
+            self._cancelled(turn, "after_stt")
+            return None
         if not result.text:
             self.out("(I didn't catch anything)")
             self.state.mode = Mode.IDLE
@@ -282,14 +327,14 @@ class App:
             self.out(f"You [{heard}{note}, unclear: {result.unclear}]: {result.text}")
             lang = self.lang.current
             line = lang.unclear or self.lang.languages["en"].unclear or "Sorry, could you say that again?"
-            await self.sink.say(fill(line, self.persona.address), lang, self.state.token())
+            await self.sink.say(fill(line, self.persona.address), lang, token)
             self.state.mode = Mode.IDLE
             turn.finish(kind="unclear", reason=result.unclear, heard=result.language)
             return None
         self.out(f"You [{heard}{note}]: {result.text}")
         if self.settings.get("general.language_mode", "fixed") == "auto" and result.language != self.state.language:
             self.lang.set(result.language, source="auto")
-        return await self.handle_text(result.text, source="voice", turn=turn)
+        return await self._handle_text(result.text, "voice", turn, token)
 
     def _start_push_to_talk(self) -> None:
         from .voice.capture import PushToTalk
