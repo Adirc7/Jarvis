@@ -447,6 +447,11 @@ how many of 20 deliberate palms count after each one:
    MediaPipe's own score. The folder is gitignored; numbers only, no
    pictures.
 
+`scripts/palm_report.py` reads the recordings and prints what MediaPipe said
+for real palms and for everything else, the points check finger by finger
+(it flags a facing check that's the wrong way round), and a table of limits:
+real palms caught against "not palm" frames wrongly counted.
+
 **Why this can start before the window (differs from Codex's order).**
 Codex section 10 puts camera work after the M3 safety gate and the M6
 window. Palm to pause can come earlier because it adds no new power: it
