@@ -209,3 +209,29 @@ async def test_the_kill_switch_forgets_the_question(settings):
     task.cancel()
     assert tools.pending is None
     assert await app.handle_text("Fourier series") == "Ok."                # not taken as the search
+
+
+@pytest.mark.parametrize("text, tool", [
+    ("Can you open YouTube?", "youtube_open"),                     # the laptop, 24 Oct: the model answered this
+    ("Could you please open YouTube for me", "youtube_open"),
+    ("Jarvis, can you open up Bing please", "bing_open"),
+    ("I want to watch YouTube", "youtube_open"),
+    ("youtube eka balanna one", "youtube_open"),
+    ("Can you find me Fourier series videos on YouTube?", "youtube_search"),
+    ("could you search Bing for the Doppler effect", "bing_search"),
+])
+def test_polite_and_natural_requests(text, tool):
+    tools, opened, _, _ = make()
+    assert tools.handle(text).tool == tool and len(opened) == 1
+
+
+@pytest.mark.parametrize("text", ["can you explain entropy", "what can you do", "can you open the door"])
+def test_polite_questions_that_are_not_tools(text):
+    tools, opened, _, _ = make()
+    assert tools.handle(text) is None and opened == []
+
+
+def test_the_model_knows_jarvis_can_open_youtube():
+    from jarvis.persona import Persona
+    prompt = Persona.load().system_prompt(language_instruction="Reply in English.")
+    assert "open Bing and YouTube" in prompt and 'say "open YouTube"' in prompt
