@@ -363,7 +363,8 @@ recognizer = vision.GestureRecognizer.create_from_options(options)
 
 **Steps:**
 
-1. **`scripts/gesture_preview.py` (you):** a camera window with the
+1. **`scripts/gesture_preview.py` (Claude wrote it, 24 Oct; you run it):**
+   a camera window with the
    landmarks, the gesture name, the hand and the scores, at about 15
    frames a second. Show the gesture being considered ("Open_Palm 0.91,
    holding 0.3 s") separately from the one accepted ("accepted"), and the
