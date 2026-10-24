@@ -40,6 +40,7 @@ from .memory import Memory, detect_fact, detect_name
 from .persona import Persona
 from .state import CancelToken, Mode, SharedState
 from .telemetry import Telemetry, Turn
+from .tools.web import WebTools
 from .voice.sink import TextSink
 
 HISTORY_TURNS = 12
@@ -61,6 +62,7 @@ class App:
         presence: Presence | None = None,
         memory: Memory | None = None,
         router: Router | None = None,
+        web: WebTools | None = None,
     ):
         self.settings = settings
         self.persona = persona or Persona.load()
@@ -85,6 +87,13 @@ class App:
         # intent classifier replaces the keyword rules later (IntentRouter).
         self.router = router or KeywordRouter(int(settings.get("llm.long_prompt_chars", 12000)))
         self.sink = sink or TextSink(out)
+        # Voice tools for Bing and YouTube (tools/web.py): fixed rules, two sites only.
+        if web is not None:
+            self.web: WebTools | None = web
+        elif settings.get("tools.web", True):
+            self.web = WebTools.from_env(str(settings.get("tools.browser", "edge")))
+        else:
+            self.web = None
         self.state.empathy = self.persona.default_mode
         self._apply_empathy_voice()
         self.transcriber = transcriber
@@ -225,6 +234,14 @@ class App:
             self.out(f"Jarvis: {confirm}")
             turn.mark("language_switch")   # longer request: switch AND answer it
 
+        if self.web is not None:
+            # Bing and YouTube by voice: decided by fixed rules, before the model.
+            # Off the loop: a YouTube search waits on the network.
+            tool = await asyncio.get_running_loop().run_in_executor(
+                None, self.web.handle, text, self.lang.current.code, self.persona.address)
+            if tool is not None:
+                return await self._tool_reply(text, tool, turn, token)
+
         self._learn_from(text)
 
         messages = (
@@ -264,6 +281,21 @@ class App:
         turn.finish(kind="chat", provider=self.llm.last_provider, route=decision.route, language=lang.code,
                     chars=len(reply), cancelled=token.cancelled)
         return reply
+
+    async def _tool_reply(self, text: str, tool, turn: Turn, token: CancelToken) -> str:
+        """Say what a tool did, and keep it in the conversation so the model knows."""
+        lang = self.lang.current
+        self.telemetry.log("tool", name=tool.tool, language=lang.code)
+        await self.sink.say(tool.text, lang, token)
+        if self.state.mode not in (Mode.PAUSED, Mode.LISTENING):
+            self.state.mode = Mode.IDLE
+        if not token.cancelled:
+            self.history += [{"role": "user", "content": text}, {"role": "assistant", "content": tool.text}]
+            if self.memory.enabled and self.settings.get("memory.keep_conversation", True):
+                self.memory.set_recent(self.history[-HISTORY_TURNS * 2:])
+                self.memory.save()
+        turn.finish(kind="tool", tool=tool.tool, language=lang.code)
+        return tool.text
 
     # ---- voice ----------------------------------------------------------
     async def _voice_task(self) -> None:
@@ -394,6 +426,8 @@ class App:
                 gen = self.state.cancel_all()
                 self.sink.stop()
                 self.state.mode = Mode.PAUSED
+                if self.web is not None:
+                    self.web.pending = None          # and forget any question Jarvis asked
                 self.telemetry.log("kill_switch", source=ev.source, generation=gen)
                 self.out("\n[kill switch] everything stopped. Type or speak to resume.")
             elif isinstance(ev, MuteToggled):

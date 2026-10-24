@@ -1,5 +1,8 @@
 # Fixes from the Codex review (21 Oct 2026)
 
+**Status, 24 Oct:** groups 1 and 2, the GPU fallback, the Bing tool and YouTube by
+voice are done (see DEVLOG.md). Still to do: "search and read" and group 3.
+
 Codex reviewed the repo (279 tests: 277 passed, 2 skipped without Kokoro
 files). Claude checked the main findings against the code: all of these are
 real. Do group 1, then group 2, each with tests. Group 3 can wait.

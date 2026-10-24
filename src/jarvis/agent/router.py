@@ -33,7 +33,8 @@ INTENT_ROUTE: dict[str, str] = {
     **dict.fromkeys(["open_app", "close_app", "open_folder", "search_files", "play_music", "volume_up",
                      "volume_down", "take_screenshot", "send_message", "set_timer", "set_alarm", "set_reminder",
                      "system_power", "brightness_up", "brightness_down", "toggle_setting", "create_note",
-                     "remember_fact", "switch_language", "stop"], "command"),
+                     "remember_fact", "switch_language", "stop", "pause_media", "resume_media", "go_back"],
+                    "command"),
     **dict.fromkeys(["ask_time", "ask_date", "greeting", "thanks", "ask_capabilities", "ask_schedule"], "quick"),
     **dict.fromkeys(["solve_problem", "derive_proof", "check_answer"], "maths"),
     **dict.fromkeys(["explain_concept", "quiz_me", "exam_prep", "translate"], "teach"),
@@ -70,7 +71,7 @@ def _words(*items: str) -> list[str]:
 # with a backslash is a regular expression ("this \w+ question").
 RULES: list[tuple[str, list[str]]] = [
     ("command", _words("vs code|වීඑස් කෝඩ්|google chrome|ගූගල් ක්‍රෝම්")),    # apps whose names sound like other things
-    ("general", _words("google eke|ගූගල් එකේ|ඉන්ටර්නෙට් එකේ|search google|look up|online")),   # web search
+    ("general", _words("google eke|ගූගල් එකේ|ඉන්ටර්නෙට් එකේ|search google|look up|online|bing|බිං")),   # web search
     ("quick", _words(                                  # the time and date, before "what's" means "explain"
         "what time|what's the time|the time|what day|the date|today's date|what's today",
         "welawa keeyada|time eka keeyada|date eka|mona dawasada|keewenida",
@@ -118,6 +119,7 @@ RULES: list[tuple[str, list[str]]] = [
         "do not disturb|play|put on|message|text my|tell my|make a note|write a note|remember that|note that",
         "find my|where is my|search for|folder|my documents|the desktop|turn|switch|wake me|count down",
         "too loud|can't hear|capture the screen|stop|cancel|never mind|that's enough|text the|send a message",
+        "pause|resume|go back|previous page|video eka|aapahu yanna|වීඩියෝ එක|ආපහු යන්න",
         "speak|switch to|reply in|talk to|talk in|search karala|search karanna|send karanna|yawala|katha karanna",
         "open karanna|close karanna|arinna|wahanna|sound eka|volume eka|danna|yawanna|mathak karanna",
         "sleep karanna|on karanna|off karanna|koheda thiyenne|photo ekak|aharawanna|wadi karanna|adu karanna",

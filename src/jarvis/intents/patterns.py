@@ -1541,3 +1541,51 @@ PER_STUDY_INTENT = {"si": 360, "si-Latn": 300, "en": 140}
 
 def examples_per_intent(lang: str, intent: str) -> int:
     return (PER_STUDY_INTENT if intent in STUDY_INTENTS else PER_INTENT)[lang]
+
+
+# ============================================================================
+# Bing and YouTube by voice (tools/web.py, 24 Oct): open Bing, search Bing,
+# pause and resume a video, go back. The tool itself uses fixed rules; these
+# sentences teach the intent classifier the same requests.
+# ============================================================================
+
+SI_APP += [C("බිං එක", "bing")]
+SL_VOCAB["app"] += [C("bing eka", "bing")]
+EN_VOCAB["app"] += [C("Bing", "bing"), C("Microsoft Bing", "bing")]
+
+SI_PATTERNS += [
+    Pattern("search_web", "{w}{query} බිං එකේ {search}"),
+    Pattern("search_web", "{w}බිං එකේ {query} {search}"),
+    Pattern("pause_media", "{w}වීඩියෝ එක නවත්තන්න"),
+    Pattern("pause_media", "{w}වීඩියෝ එක පෝස් කරන්න"),
+    Pattern("pause_media", "{w}යූටියුබ් එක නවත්තන්න"),
+    Pattern("pause_media", "{w}වීඩියෝ එක ටිකකට නවත්තන්න"),
+    Pattern("resume_media", "{w}වීඩියෝ එක ආයේ දාන්න"),
+    Pattern("resume_media", "{w}වීඩියෝ එක ආයේ ප්ලේ කරන්න"),
+    Pattern("resume_media", "{w}නවත්තපු වීඩියෝ එක ආයේ දාන්න"),
+    Pattern("go_back", "{w}ආපහු යන්න"),
+    Pattern("go_back", "{w}ආපසු යන්න"),
+    Pattern("go_back", "{w}කලින් පිටුවට යන්න"),
+    Pattern("go_back", "{w}කලින් තිබ්බ පිටුවට යන්න"),
+]
+SL_PATTERNS += [
+    Pattern("search_web", "{w}{query} bing eke {search}"),
+    Pattern("search_web", "{w}bing eke {query} {search}"),
+    Pattern("pause_media", "{w}video eka nawaththanna"),
+    Pattern("pause_media", "{w}video eka pause karanna"),
+    Pattern("pause_media", "{w}youtube eka nawaththanna"),
+    Pattern("resume_media", "{w}video eka aye danna"),
+    Pattern("resume_media", "{w}video eka aye play karanna"),
+    Pattern("go_back", "{w}aapahu yanna"),
+    Pattern("go_back", "{w}apahu yanna"),
+    Pattern("go_back", "{w}kalin page ekata yanna"),
+]
+EN_PATTERNS += [
+    Pattern("search_web", "{w}search Bing for {query}"), Pattern("search_web", "{w}look up {query} on Bing"),
+    Pattern("pause_media", "{w}pause the video"), Pattern("pause_media", "{w}stop the video"),
+    Pattern("pause_media", "{w}pause YouTube"),
+    Pattern("resume_media", "{w}resume the video"), Pattern("resume_media", "{w}continue the video"),
+    Pattern("resume_media", "{w}play it again"),
+    Pattern("go_back", "{w}go back"), Pattern("go_back", "{w}go to the previous page"),
+    Pattern("go_back", "{w}back to the last page"),
+]

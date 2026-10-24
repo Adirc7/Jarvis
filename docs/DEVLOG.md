@@ -704,3 +704,34 @@ the dilu voice (stage 0 in TRAINING_SINHALA.md). Adhi's own recordings:
 `make_intent_data.py --reading-list 300` writes 300 training sentences
 (none from the test set) and `record_eval_set.py` now resumes after a stop
 or power cut. 279 tests pass.
+
+## 2026-10-24: review fixes done; Bing and YouTube by voice
+
+Codex's review (21 Oct) checked against the code; groups 1 and 2 of
+docs/REVIEW_FIXES.md are built, with tests that fail on the old code.
+- One turn at a time: each request takes its cancel token when it starts and
+  waits its turn (asyncio lock, request order). The kill switch or a new
+  push-to-talk during speech recognition stops the question before the
+  model; a reply stopped halfway isn't saved; mute silences the rest of a
+  reply; the audio player counts stops, so none is lost between sentences;
+  a provider dropping mid-reply no longer crashes typed mode.
+- Routes always end with the general order, so any key works for any
+  request; API keys are read only by Jarvis and the provider scripts;
+  .env.* is ignored; at most 50 remembered facts, quoted as information;
+  the microphone is closed on exit; audio device 0 works; other sample rates
+  are resampled to 16 kHz.
+- After the laptop's CUDA crash on 22 Oct ("Memory allocation failure",
+  error 999): Kokoro uses lighter CUDA settings (heuristic convolution
+  search, no maximum workspace); if the GPU still fails, the voice rebuilds
+  on the CPU and Whisper moves to the CPU too. Start-up prints free
+  graphics memory and warns under 2 GB.
+
+First tools (`src/jarvis/tools/web.py`), decided by fixed rules before the
+model, only on bing.com and youtube.com: "open Bing" (Edge) then the next
+sentence is the search; "search Bing for X" / "X bing eke hoyanna" / "X
+බිං එකේ හොයන්න"; "open YouTube", titles of the top 3 read aloud (YouTube
+Data API, YOUTUBE_API_KEY; without it the results page), "play the second
+one", "stop the video" (the media key; then "anything else?"), "resume",
+"go back" (Jarvis's own page list). One follow-up question at a time, 60 s,
+"cancel"; the kill switch clears it. New intents pause_media, resume_media,
+go_back (46 intents, 15,630 sentences; keyword routing 95.1%). 332 tests.
