@@ -69,6 +69,7 @@ class VoiceSink(TextSink):
         self._languages = getattr(settings, "languages", {})
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="tts")
         self._broken: dict[str, str] = {}      # language code -> TTS error, reported once
+        self._cpu_noted: set[str] = set()       # voices already reported as moved to the CPU
         self._chunk_cfg = dict(
             first_min_chars=int(settings.get("tts.first_chunk_min_chars", 12)),
             first_max_chars=int(settings.get("tts.first_chunk_max_chars", 60)),
@@ -179,6 +180,16 @@ class VoiceSink(TextSink):
     def _can_speak(self, lang: Language) -> bool:
         return not self.muted and lang.code not in self._broken
 
+    def _note_cpu_fallback(self, lang: Language) -> None:
+        """Say once if the voice had to move from the graphics card to the CPU."""
+        engine = getattr(self.tts, "engine", None)
+        reason = getattr(engine(lang), "fell_back", None) if engine is not None else None
+        if reason and lang.code not in self._cpu_noted:
+            self._cpu_noted.add(lang.code)
+            self.out(f"\n[voice] The graphics card failed ({reason[:80]}); the {lang.name} voice now runs on "
+                     "the CPU. Restarting the laptop usually clears it.")
+            self._tel.log("tts_fallback_cpu", language=lang.code, error=reason)
+
     def _report_broken(self, lang: Language, exc: Exception) -> None:
         if lang.code not in self._broken:
             self._broken[lang.code] = str(exc)
@@ -231,6 +242,7 @@ class VoiceSink(TextSink):
             except Exception as exc:
                 self._report_broken(voice, exc)
                 return
+            self._note_cpu_fallback(voice)
             if token is not None and token.cancelled:
                 return
             if self.muted:                  # muted while this sentence was being made

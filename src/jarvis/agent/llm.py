@@ -297,12 +297,15 @@ class FallbackLLM:
         """The providers to try for this kind of request (in this language), in
         order. Names without a configured provider (no API key) are left out."""
         route = route or "general"
-        names = ((lang and self.routes.get(f"{route}:{lang}")) or self.routes.get(route)
-                 or (lang and self.routes.get(f"general:{lang}")) or self.routes.get("general"))
-        if not names:
-            return list(self.providers)
+        general = ((lang and self.routes.get(f"general:{lang}")) or self.routes.get("general")
+                   or [p.name for p in self.providers])
+        names = (lang and self.routes.get(f"{route}:{lang}")) or self.routes.get(route) or general
         by_name = {p.name: p for p in self.providers}
-        return [by_name[n] for n in names if n in by_name]
+        chosen = [by_name[n] for n in names if n in by_name]
+        # Last resort, the general order's other providers: with only some keys
+        # (say OpenRouter alone), every kind of request must still get an answer.
+        chosen += [by_name[n] for n in general if n in by_name and by_name[n] not in chosen]
+        return chosen
 
     def _resting_for(self, p: Provider) -> float:
         return max(0.0, self.resting.get(p.quota_key, 0.0) - self.clock())

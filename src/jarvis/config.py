@@ -183,10 +183,15 @@ def set_local_value(path: Path, table: str, key: str, value: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def load_settings(config_dir: Path | None = None, local: bool = True) -> Settings:
-    """Read the settings. `local=False` ignores settings.local.toml (tests)."""
+def load_settings(config_dir: Path | None = None, local: bool = True, load_env: bool = True) -> Settings:
+    """Read the settings. `local=False` ignores settings.local.toml (tests).
+
+    `load_env=False` leaves the API keys in .env unread: tests and the voice
+    and model tools don't need them, so their libraries never see the keys.
+    """
     config_dir = config_dir or PROJECT_ROOT / "config"
-    load_dotenv(PROJECT_ROOT / ".env")
+    if load_env:
+        load_dotenv(PROJECT_ROOT / ".env")
     with open(config_dir / "settings.toml", "rb") as f:
         raw = tomllib.load(f)
     local_path = config_dir / LOCAL_SETTINGS

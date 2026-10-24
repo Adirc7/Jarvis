@@ -26,7 +26,7 @@ class SoundDeviceBackend:
         import sounddevice as sd
 
         self._sd = sd
-        self._device = device or None
+        self._device = None if device in (None, "") else device
 
     def play(self, audio: np.ndarray, sample_rate: int, stop: threading.Event) -> None:
         self._sd.play(audio, sample_rate, device=self._device)

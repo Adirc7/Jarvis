@@ -49,6 +49,23 @@ def prepare_cuda() -> list[Path]:
     return added
 
 
+def gpu_memory_mb() -> tuple[int, int] | None:
+    """(used, total) MB on the first NVIDIA card, from nvidia-smi; None without one."""
+    import shutil
+    import subprocess
+
+    exe = shutil.which("nvidia-smi")
+    if exe is None:
+        return None
+    try:
+        out = subprocess.run([exe, "--query-gpu=memory.used,memory.total", "--format=csv,noheader,nounits"],
+                             capture_output=True, text=True, timeout=5, check=True).stdout
+        used, total = (int(x) for x in out.splitlines()[0].split(","))
+        return used, total
+    except (subprocess.SubprocessError, OSError, ValueError, IndexError):
+        return None
+
+
 def cuda_device_count() -> int:
     """Number of CUDA devices CTranslate2 can see (0 if none or not installed)."""
     prepare_cuda()

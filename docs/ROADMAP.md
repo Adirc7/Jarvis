@@ -36,7 +36,7 @@ when measurements say it should.
 | **1.5** | **Emotion-aware, human-like replies** (the research contribution) | Character sheet, empathy modes and fillers built; feedback bandit next; emotion detection planned | See "Phase 1.5" |
 | 1.6 | Jarvis window, and calling Jarvis from your phone (free internet call, no phone number) | Planned | The window shows replies, equations, plots and confirmations; a hold-to-talk call works on home Wi-Fi and away through Tailscale, private only, with first-audio p50/p95 logged per channel |
 | **2** | **Tools and safety**: the platform every skill runs on | Planned in detail (below) | 20-30 fixed tasks with **verified and claimed completion side by side**; **zero unsafe actions** on the safety test set; intent accuracy per language |
-| **2.5** | **Light memory** (an early slice of Phase 6) | Planned | Jarvis recalls facts and recent sessions you allowed it to keep; "forget that" verifiably deletes |
+| **2.5** | **Light memory** (an early slice of Phase 6) | Early slice built 21 Oct: name, up to 50 facts, recent conversation, /memory, /forget | Jarvis recalls facts and recent sessions you allowed it to keep; "forget that" verifiably deletes |
 | 3 | Hand tracking | Later | Gesture accuracy and false activations measured |
 | 4 | Voice and gesture together | Later | "This/that" resolves to the right object in controlled tasks |
 | 5 | Speaking up on its own | Later | Relevant announcements, duplicates suppressed, quiet mode |
@@ -887,7 +887,10 @@ own copy of an open model can.
 
 1. **Memory:** saved facts in the prompt. Built 2026-10-21 as a light
    memory (`jarvis/memory`): the user's name, facts they asked Jarvis to
-   keep, and the recent conversation, in `state/memory.json`.
+   keep, and the recent conversation, in `state/memory.json`. The file
+   stays on the laptop, but the facts and the recent conversation go to the
+   cloud model with every request (that is how it "remembers"); facts are
+   capped at 50 and quoted as information, never as instructions.
 2. **Your past corrections as examples:** before each request, find the
    few most similar corrected exchanges and put them in the prompt
    (retrieval of few-shot examples). No training; helps Sinhala and Singlish

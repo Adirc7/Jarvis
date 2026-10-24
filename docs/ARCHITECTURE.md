@@ -20,7 +20,7 @@ answer comes back out at the bottom.
 flowchart TB
     IN["1 Inputs<br/>built: push-to-talk key, keyboard<br/>planned: Hey Jarvis, double clap, phone, camera"]
     HEAR["2 Hearing and understanding<br/>built: Whisper speech to text and language<br/>planned: emotion model, router, gestures"]
-    CONV["3 Conversation manager<br/>built: character sheet, empathy modes, greeting<br/>planned: topic threads, light memory"]
+    CONV["3 Conversation manager<br/>built: character sheet, empathy modes, greeting, light memory, request routing<br/>planned: topic threads, emotion detection"]
     BRAIN["4 Brain<br/>built: free LLMs with fallback"]
     SKILLS["5 Skills<br/>planned: Study, Visualise, Data, Research, News, Friend"]
     GATE["6 Safety gate<br/>planned: risk tiers, click to confirm, verify, log"]

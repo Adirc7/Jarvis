@@ -94,7 +94,7 @@ def main() -> int:
     args = ap.parse_args()
     if args.name:
         return save(args.name.strip().lower())
-    current = load_settings().get("hotkeys.push_to_talk", "ctrl_r")
+    current = load_settings(load_env=False).get("hotkeys.push_to_talk", "ctrl_r")
     return press_to_choose(current)
 
 

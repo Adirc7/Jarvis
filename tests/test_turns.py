@@ -6,14 +6,14 @@ import time
 from types import SimpleNamespace
 
 import numpy as np
-
 from conftest import FakeClient
+from test_voice_pipeline import AUDIO, FakeWhisper, make_voice_app
+
 from jarvis.agent.llm import FallbackLLM, Provider
 from jarvis.app import REPLY_BROKE_OFF, App
 from jarvis.state import Mode
 from jarvis.telemetry import Telemetry
 from jarvis.voice.player import AudioPlayer
-from test_voice_pipeline import AUDIO, FakeWhisper, make_voice_app
 
 
 class SlowWhisper(FakeWhisper):
