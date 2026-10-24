@@ -218,6 +218,8 @@ class VoiceSink(TextSink):
             chunk = await q.get()
             if chunk is None or (token is not None and token.cancelled):
                 return
+            if self.muted:                  # muted mid-reply: the rest is text only
+                continue
             # A Sinhala sentence is spoken by Friday even in English mode
             # (Jarvis's English voice can't read Sinhala letters).
             by_script = language_by_script(chunk, self._languages)
@@ -231,6 +233,8 @@ class VoiceSink(TextSink):
                 return
             if token is not None and token.cancelled:
                 return
+            if self.muted:                  # muted while this sentence was being made
+                continue
             if turn is not None and first:
                 turn.mark("first_tts")
             first = False

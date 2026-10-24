@@ -48,6 +48,7 @@ class _Item:
     sample_rate: int
     token: CancelToken | None
     on_start: Callable[[], None] | None
+    epoch: int = 0                 # stop() count when queued: older items never play
 
 
 class AudioPlayer:
@@ -58,6 +59,7 @@ class AudioPlayer:
         self._idle = threading.Event()
         self._idle.set()
         self._pending = 0
+        self._epoch = 0                # bumped by every stop()
         self._lock = threading.Lock()
         self._thread = threading.Thread(target=self._run, name="audio-player", daemon=True)
         self._thread.start()
@@ -73,10 +75,13 @@ class AudioPlayer:
         with self._lock:
             self._pending += 1
             self._idle.clear()
-        self._queue.put(_Item(audio, sample_rate, token, on_start))
+            epoch = self._epoch
+        self._queue.put(_Item(audio, sample_rate, token, on_start, epoch))
 
     def stop(self) -> None:
         """Drop everything queued and cut off what's playing now."""
+        with self._lock:
+            self._epoch += 1           # anything queued before now is dropped, even if mid-handover
         self._stop.set()
         while True:
             try:
@@ -101,6 +106,11 @@ class AudioPlayer:
         self.stop()
         self._queue.put(None)
 
+    def _stale(self, item: _Item) -> bool:
+        with self._lock:
+            stopped = item.epoch != self._epoch
+        return stopped or (item.token is not None and item.token.cancelled)
+
     def _done_one(self) -> None:
         with self._lock:
             self._pending = max(0, self._pending - 1)
@@ -113,11 +123,11 @@ class AudioPlayer:
             if item is None:
                 return
             try:
-                if item.token is not None and item.token.cancelled:
+                if self._stale(item):
                     continue
                 self._stop.clear()
                 # Re-check: a stop() between get() and clear() would otherwise be lost.
-                if item.token is not None and item.token.cancelled:
+                if self._stale(item):
                     continue
                 if item.on_start:
                     item.on_start()
