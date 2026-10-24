@@ -77,7 +77,12 @@ PHRASES = {
 
 # ---- recognising the requests (on _clean()ed text, any case) --------------------
 
-_LEAD = r"(?:(?:jarvis|friday|hey|please|ok|okay|ane|hari|podda|machan|bro|ජාවිස්|ෆ්\u200d?රයිඩේ|අනේ|හරි|පොඩ්ඩක්)\s+)*"
+# Wake words and polite openers ("Jarvis, can you please ..."), and polite
+# endings ("... for me, please"): Whisper writes what people really say.
+_LEAD = (r"(?:(?:jarvis|friday|hey|hi|please|ok|okay|so|now|ane|hari|podda|machan|bro|ජාවිස්|ෆ්\u200d?රයිඩේ"
+         r"|අනේ|හරි|පොඩ්ඩක්|can\s+you|could\s+you|would\s+you|will\s+you|can\s+u|could\s+u"
+         r"|i\s+want\s+you\s+to|i\s+need\s+you\s+to)\s+)*")
+_TAIL = r"(?:\s+(?:please|for\s+me|now|right\s+now|sir|jarvis|friday|thanks|thank\s+you))*"
 _BING = r"(?:microsoft\s+)?bing|බිං|බින්ග්"
 _YT = r"youtube|you\s+tube|යූටියුබ්"
 _OPEN_EN = r"open|launch|start|go\s+to|show\s+me"
@@ -94,22 +99,28 @@ _NOT_QUERY = r"(?:eka|eke|එක|එකේ|is|was|open|opened)(?:\s|$)"
 
 
 def _rx(*patterns: str) -> list[re.Pattern[str]]:
-    return [re.compile(rf"^{_LEAD}{p}$", re.IGNORECASE) for p in patterns]
+    return [re.compile(rf"^{_LEAD}{p}{_TAIL}$", re.IGNORECASE) for p in patterns]
 
 
-OPEN_BING = _rx(rf"(?:{_OPEN_EN})\s+(?:{_BING})", rf"(?:{_BING})", rf"(?:{_BING})\s+eka\s+(?:{_OPEN_SL})",
-                rf"(?:{_BING})\s+එක\s+(?:{_OPEN_SI})")
-SEARCH_BING = _rx(rf"(?:search|look\s+up|find)\s+(?:on\s+)?(?:{_BING})\s+(?:for\s+)?(?P<q>.+)",
+OPEN_BING = _rx(rf"(?:{_OPEN_EN})\s+(?:up\s+)?(?:{_BING})", rf"(?:{_BING})", rf"(?:{_BING})\s+eka\s+(?:{_OPEN_SL})",
+                rf"(?:{_BING})\s+එක\s+(?:{_OPEN_SI})",
+                rf"(?:i\s+want\s+to|i\s+would\s+like\s+to|i'd\s+like\s+to|let's|lets)\s+"
+                rf"(?:use\s+|open\s+|go\s+to\s+|search\s+(?:on\s+|with\s+)?)(?:{_BING})")
+SEARCH_BING = _rx(rf"(?:search|look\s+up|find)(?:\s+me)?\s+(?:on\s+)?(?:{_BING})\s+(?:for\s+)?(?P<q>.+)",
                   rf"(?:search|look\s+up|find)\s+(?:for\s+)?(?P<q>.+?)\s+(?:on|in|with)\s+(?:{_BING})",
                   rf"(?:{_BING})\s+eke\s+(?P<q>.+?)\s+(?:{_SEARCH_SL})",
                   rf"(?P<q>.+?)\s+(?:{_BING})\s+eke\s+(?:{_SEARCH_SL})",
                   rf"(?:{_BING})\s+එකේ\s+(?P<q>.+?)\s+(?:{_SEARCH_SI})",
                   rf"(?P<q>.+?)\s+(?:{_BING})\s+එකේ\s+(?:{_SEARCH_SI})",
                   rf"(?:{_BING})\s+(?!{_NOT_QUERY})(?:search\s+)?(?:for\s+)?(?P<q>.+)")
-OPEN_YT = _rx(rf"(?:{_OPEN_EN})\s+(?:{_YT})", rf"(?:{_YT})", rf"(?:{_YT})\s+eka\s+(?:{_OPEN_SL})",
-              rf"(?:{_YT})\s+එක\s+(?:{_OPEN_SI})")
-SEARCH_YT = _rx(rf"(?:search|look\s+up|find)\s+(?:on\s+)?(?:{_YT})\s+(?:for\s+)?(?P<q>.+)",
-                rf"(?:search|look\s+up|find|play|watch)\s+(?:for\s+)?(?P<q>.+?)\s+(?:on|in)\s+(?:{_YT})",
+OPEN_YT = _rx(rf"(?:{_OPEN_EN})\s+(?:up\s+)?(?:{_YT})", rf"(?:{_YT})", rf"(?:{_YT})\s+eka\s+(?:{_OPEN_SL})",
+              rf"(?:{_YT})\s+එක\s+(?:{_OPEN_SI})",
+              rf"(?:i\s+want\s+to|i\s+would\s+like\s+to|i'd\s+like\s+to|let's|lets)\s+"
+              rf"(?:watch\s+(?:something\s+on\s+)?|use\s+|open\s+|go\s+to\s+|go\s+on\s+)(?:{_YT})",
+              rf"(?:{_YT})\s+(?:eka\s+)?(?:balanna|බලන්න)\s+(?:one|ඕනේ)")
+SEARCH_YT = _rx(rf"(?:search|look\s+up|find)(?:\s+me)?\s+(?:on\s+)?(?:{_YT})\s+(?:for\s+)?(?P<q>.+)",
+                rf"(?:search|look\s+up|find|play|watch|show)(?:\s+me)?\s+(?:for\s+)?(?P<q>.+?)\s+(?:on|in|from)\s+"
+                rf"(?:{_YT})",
                 rf"(?:{_YT})\s+eke\s+(?P<q>.+?)\s+(?:{_PLAY_SL})",
                 rf"(?P<q>.+?)\s+(?:{_YT})\s+eke\s+(?:{_PLAY_SL})",
                 rf"(?:{_YT})\s+එකේ\s+(?P<q>.+?)\s+(?:{_PLAY_SI})",
