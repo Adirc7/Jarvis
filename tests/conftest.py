@@ -55,4 +55,5 @@ def settings(tmp_path):
     s = load_settings(local=False, load_env=False)   # the committed config, and no API keys
     # Keep Jarvis's memory of "when you last talked" out of the real state/ folder.
     s.raw.setdefault("general", {})["state_dir"] = str(tmp_path / "state")
+    s.raw.setdefault("tools", {})["web"] = False      # tests never open a browser or press media keys
     return s
