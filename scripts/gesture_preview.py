@@ -16,8 +16,13 @@ are out, and whether the palm (not the back of the hand) faces the camera.
 
 Recording, for choosing the limit and training your own palm classifier:
 click the window first so it gets the keys, then
-    P      start recording "palm"       (show open palms, in different ways)
-    N      start recording "not palm"   (fist, typing, pointing, waving, relaxed)
+    P      record "palm": the "stop" palm, held still and facing the camera,
+           at different distances and in different light; lower the hand
+           between palms
+    N      record "not palm": no open hands at all (fist, typing, pointing,
+           thumbs up, chin on hand, holding a cup or phone)
+    W      record "wave": waving as if to greet someone (an open hand that
+           moves; Jarvis should ignore it)
     space  stop recording
 Each result of your chosen hand becomes one row in data/gestures/palm-<time>.csv:
 the 21 points as numbers, MediaPipe's guess and the points check. No pictures
@@ -194,8 +199,8 @@ class Recorder:
         self.path: Path | None = None
         self.file = None
         self.writer = None
-        self.label: str | None = None          # "palm", "other" or None (not recording)
-        self.counts = {"palm": 0, "other": 0}
+        self.label: str | None = None          # "palm", "other", "wave" or None (not recording)
+        self.counts = {"palm": 0, "other": 0, "wave": 0}
 
     def write(self, t: float, hand: Hand, width: int, height: int) -> None:
         if self.label is None:
@@ -339,7 +344,7 @@ def main() -> int:
     fps = 0.0
     start = prev = time.monotonic()
     print(f"Showing camera {index}. Hold up your {side.lower()} hand. "
-          "In the window: P record palm, N record not palm, space stop, q quit.")
+          "In the window: P record palm, N not palm, W wave, space stop, q quit.")
 
     try:
         with vision.GestureRecognizer.create_from_options(options) as recognizer:
@@ -420,11 +425,11 @@ def main() -> int:
                 else:
                     check = (f"Points check: no {side.lower()} hand", WHITE)
                 if recorder.label is not None:
-                    label = "palm" if recorder.label == "palm" else "not palm"
+                    label = {"palm": "palm", "other": "not palm", "wave": "wave"}[recorder.label]
                     rec = (f"Recording {label}: {recorder.counts[recorder.label]} rows | space = stop",
                            COLOUR_RECORDING)
                 else:
-                    rec = ("P = record palm | N = record not palm | q = quit", WHITE)
+                    rec = ("P = record palm | N = not palm | W = wave | q = quit", WHITE)
                 draw_status(cv2, frame, [
                     status,
                     check,
@@ -441,6 +446,8 @@ def main() -> int:
                     recorder.label = "palm"
                 elif key in (ord("n"), ord("N")):
                     recorder.label = "other"
+                elif key in (ord("w"), ord("W")):
+                    recorder.label = "wave"
                 elif key == ord(" "):
                     recorder.label = None
                 if cv2.getWindowProperty(WINDOW, cv2.WND_PROP_VISIBLE) < 1:
@@ -473,7 +480,8 @@ def main() -> int:
               f"only MediaPipe {agree['mediapipe']}, only the points check {agree['points']}, "
               f"neither {agree['neither']}")
     if recorder.path is not None:
-        print(f"  recorded {recorder.counts['palm']} palm and {recorder.counts['other']} not-palm rows "
+        print(f"  recorded {recorder.counts['palm']} palm, {recorder.counts['other']} not-palm and "
+              f"{recorder.counts['wave']} wave rows "
               f"in {recorder.path.relative_to(ROOT) if recorder.path.is_relative_to(ROOT) else recorder.path}")
     return 0
 

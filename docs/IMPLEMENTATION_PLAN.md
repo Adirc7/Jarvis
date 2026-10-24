@@ -435,9 +435,10 @@ how many of 20 deliberate palms count after each one:
    -> index knuckle and wrist -> little-finger knuckle has the right sign.
    Rule to try: MediaPipe says Open_Palm at 0.5 or more, or all five fingers
    are out with the palm facing.
-4. **Your own palm classifier (you):** record with the preview (P while
-   showing palms, N for everything else: fist, typing, pointing, waving,
-   relaxed), in several sessions and lights. Each row of
+4. **Your own palm classifier (you):** record with the preview in several
+   sessions and lights: P for the "stop" palm held still, N for no open
+   hand at all (fist, typing, pointing, thumbs up, holding a cup), W for
+   waving (an open hand that moves, which Jarvis should ignore). Each row of
    `data/gestures/palm-<time>.csv` has the label, MediaPipe's gesture and
    score, the points check, and the 21 points (`x0,y0,z0 ... x20,y20,z20`,
    plus the same in metres as `wx0 ...`). Normalise (wrist to the origin,
@@ -449,8 +450,10 @@ how many of 20 deliberate palms count after each one:
 
 `scripts/palm_report.py` reads the recordings and prints what MediaPipe said
 for real palms and for everything else, the points check finger by finger
-(it flags a facing check that's the wrong way round), and a table of limits:
-real palms caught against "not palm" frames wrongly counted.
+(it flags a facing check that's the wrong way round), a table of limits:
+real palms caught against "not palm" frames wrongly counted, and the
+recording replayed through the 0.5 s hold: palms accepted while you showed
+palms, and false ones per minute while you didn't or while you waved.
 
 **Why this can start before the window (differs from Codex's order).**
 Codex section 10 puts camera work after the M3 safety gate and the M6
