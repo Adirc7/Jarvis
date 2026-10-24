@@ -26,7 +26,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
-import gesture_preview as gp  # the same points check the preview uses
+import gesture_preview as gp  # the same points check and hold rule the preview uses
+
+from jarvis.config import load_settings
 
 LIMITS = [0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80]
 
@@ -62,6 +64,9 @@ def main() -> int:
         print("No recordings yet. Record some with scripts/gesture_preview.py (P = palm, N = not palm).")
         return 1
     rows = load(paths)
+    settings = load_settings(load_env=False)
+    gp.FACING_SIGN = int(settings.get("gestures.facing_sign", 1))
+    max_move = float(settings.get("gestures.max_move", 0.35)) or 0.35
     groups = {"palm": [r for r in rows if r["label"] == "palm"],
               "not palm": [r for r in rows if r["label"] == "other"]}
     if any(r["label"] == "wave" for r in rows):
@@ -83,7 +88,7 @@ def main() -> int:
               f"middle {gp.percentile(scores, 0.5):.2f}, high 10% {gp.percentile(scores, 0.9):.2f}")
 
     # 2. The points check, finger by finger, and which way the hand faces.
-    print("\n2. Points check (share of rows)")
+    print(f"\n2. Points check (share of rows; facing sign {gp.FACING_SIGN})")
     print(f"   {'':9} {'thumb':>6} {'index':>6} {'middle':>6} {'ring':>6} {'little':>6} {'all 5':>6} "
           f"{'facing':>7}")
     facing_share = {}
@@ -97,9 +102,9 @@ def main() -> int:
               f" {share(sum(all(o) for o in out), n):>6} {share(sum(facing), n):>7}")
     if groups["palm"] and facing_share["palm"] < 0.3:
         print("   -> Real palms mostly count as 'back of hand': the facing check is the wrong way round "
-              "on this camera.\n      Set FACING_SIGN = -1 near the top of scripts/gesture_preview.py "
-              "(the table below already uses it).")
-        gp.FACING_SIGN = -gp.FACING_SIGN          # use the corrected direction for the table below
+              f"on this camera.\n      Set gestures.facing_sign = {-gp.FACING_SIGN} in config/settings.toml "
+              "(the tables below already use it).")
+        gp.FACING_SIGN = -gp.FACING_SIGN          # use the corrected direction for the tables below
     elif groups["palm"]:
         print("   -> The facing check agrees with your palms.")
 
@@ -126,19 +131,23 @@ def main() -> int:
 
     # 4. Replay through the hold: what Jarvis would actually do.
     names = list(groups)
-    print("\n4. Through the 0.5 s hold (accepted per minute of recording)")
-    print("   rule                          " + "".join(f"{name:>12}" for name in names))
-    rules = [(f"MediaPipe >= {limit:.2f}", lambda r, limit=limit: mp_palm(r, limit))
-             for limit in (0.50, 0.55, 0.60, 0.65, 0.70)]
-    rules += [("points check alone", points),
+    print(f"\n4. Through the 0.5 s hold: accepted per minute (count); 'still' = the palm stays within "
+          f"{max_move:.2f} of its size")
+    print("   rule                               " + "".join(f"{name:>12}" for name in names))
+    rules = []
+    for limit in (0.50, 0.55, 0.60, 0.65, 0.70):
+        rules.append((f"MediaPipe >= {limit:.2f}", lambda r, limit=limit: mp_palm(r, limit)))
+    rules += [("points check", points),
               ("MediaPipe >= 0.50 or points", lambda r: mp_palm(r, 0.5) or points(r))]
     for title, rule in rules:
-        cells = []
-        for name in names:
-            events, minutes = replay(rows_by_segment(rows, name), rule)
-            cells.append(f"{events / minutes:5.1f} ({events})" if minutes else "  -")
-        print(f"   {title:29} " + "".join(f"{c:>12}" for c in cells))
-    print("   Wanted: high under palm (about one per palm you showed), near 0 under not palm and wave.")
+        for still in (None, max_move):
+            cells = []
+            for name in names:
+                events, minutes = replay(rows_by_segment(rows, name), rule, still)
+                cells.append(f"{events / minutes:5.1f} ({events})" if minutes else "  -")
+            label = f"{title}, still" if still else title
+            print(f"   {label:34} " + "".join(f"{c:>12}" for c in cells))
+    print("   Wanted: about one per palm you showed under palm, and 0 under not palm and wave.")
     return 0
 
 
@@ -159,11 +168,11 @@ def rows_by_segment(rows: list[dict], name: str) -> list[list[dict]]:
     return [seg for seg in segments if seg]
 
 
-def replay(segments: list[list[dict]], is_palm) -> tuple[int, float]:
+def replay(segments: list[list[dict]], is_palm, max_move: float | None) -> tuple[int, float]:
     """Run each stretch through the preview's hold rule; count accepted palms."""
     events, seconds = 0, 0.0
     for seg in segments:
-        hold = gp.PalmHold()
+        hold = gp.PalmHold(max_move=max_move)
         prev = None
         for r in seg:
             t = float(r["t"])
@@ -171,7 +180,8 @@ def replay(segments: list[list[dict]], is_palm) -> tuple[int, float]:
                 for _ in range(hold.max_missed + 1):
                     hold.update(prev + 0.1, False)
                 hold.update(t - 0.01, False)
-            events += hold.update(t, is_palm(r))
+            geometry = gp.palm_geometry(hand_of(r), int(r["frame_w"]), int(r["frame_h"]))
+            events += hold.update(t, is_palm(r), *geometry)
             prev = t
         seconds += float(seg[-1]["t"]) - float(seg[0]["t"])
     return events, seconds / 60
