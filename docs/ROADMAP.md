@@ -266,7 +266,8 @@ consent; ask the supervisor whether a formal study needs ethics approval.
 ### Human-like conversation
 
 What makes talking to Jarvis feel like talking to a person, and where each
-part is built:
+part is built: (the staged plan, with the intent classifier, RAG and
+Codex's suggestions placed in it: docs/HUMANLIKE_PLAN.md)
 
 | Part | What it means | Where |
 |---|---|---|
