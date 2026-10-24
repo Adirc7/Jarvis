@@ -774,3 +774,11 @@ or camera isn't available, and carry Codex's acceptance criteria as "done
 when". In virtual-mouse mode (later) the palm freezes the pointer. One
 difference from Codex's order, with the reason written down: palm to pause
 may start before the window.
+
+`scripts/gesture_preview.py` (step 1 of palm to pause): the camera as a
+mirror, both hands drawn, hand and gesture with scores, "holding 0.3 of
+0.5 s" then "accepted", frame rate and time per frame, and a summary to
+paste. Checked here with a fake camera and recognizer (two palms with a
+0.7 s gap give two events; one held palm gives one; the left hand never
+counts; --swap-hands swaps them); the real camera test is on the laptop.
+
