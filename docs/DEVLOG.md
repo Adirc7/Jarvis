@@ -798,3 +798,12 @@ agree. Checked here with fake hands (an open right palm: 5 out, facing; the
 back of the hand: not facing; a fist: 0 out; rows written with 136 columns).
 IMPLEMENTATION_PLAN.md M8 lists the four ways to make the palm more reliable.
 
+Laptop, second run (24 Oct, --min-score 0.6, 320 s): 15 fps, MediaPipe
+16 ms p50 / 47 ms p95 per frame; 17 palms accepted, scores 0.61-0.74; the
+right hand's open-palm scores: low 10% 0.53, middle 0.63, high 10% 0.74, a
+third under 0.6, so MediaPipe is unsure of this hand and camera. The points
+check never agreed with MediaPipe (both 0, only MediaPipe 848, only points
+253), which suggests the facing check is the wrong way round on this camera.
+Recorded 1,041 palm and 1,125 not-palm rows. New `scripts/palm_report.py`
+shows the cause and the trade-off for each limit.
+
