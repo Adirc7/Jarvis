@@ -26,6 +26,9 @@ echo.
 echo === Installing packages: uv sync %EXTRAS%
 uv sync %EXTRAS%
 if errorlevel 1 goto :fail
+rem MediaPipe brings opencv-contrib-python. Removing the old opencv-python
+rem (24 Oct) also deletes the cv2 folder the two share, so put it back.
+uv run python -c "import cv2; cv2.VideoCapture" >nul 2>nul || uv sync %EXTRAS% --reinstall-package opencv-contrib-python
 
 echo.
 echo === Checking

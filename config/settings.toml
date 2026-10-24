@@ -111,6 +111,7 @@ target_rms_db = -20.0           # same loudness for every voice and language
 camera_index = 0
 num_hands = 1
 hand_model = "models/hand_landmarker.task"
+gesture_model = "models/gesture_recognizer.task"   # palm, thumbs (docs/IMPLEMENTATION_PLAN.md, M8)
 
 [tools]
 # Bing and YouTube by voice (src/jarvis/tools/web.py): "open Bing", "search

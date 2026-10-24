@@ -48,7 +48,7 @@ review**, or **you run**.
 | M5 | Emotion model beside Whisper (Phase 1.5) | **you** | planned |
 | M6 | Jarvis window, tray, wake word, double clap, phone calls (Phase 1.6) | Claude drafts the window; **you** write the clap detector | planned |
 | M7 | Visualise, Data, Research and News skills; Telegram | together | planned |
-| M8 | Gestures (Phase 3), then the evaluation and report (Phase 8) | **you** | later |
+| M8 | Gestures (Phase 3), then the evaluation and report (Phase 8) | **you** | palm to pause can start now (no window needed); the rest later |
 | R | Recording rounds, then our own Sinhala speech model (runs alongside) | **you** | round 1 ready; training planned |
 
 ---
@@ -225,9 +225,10 @@ clap, and shows the orb window.
   equations, plots, confirmations, action log.
 - Wake word (you): openWakeWord "hey jarvis"; test whether "Hi Jarvis" also
   works.
-- Double clap detector (you; a nice signal-processing exercise): the
-  short-time energy envelope, two sharp peaks 0.2-0.6 s apart, rejection of
-  long sounds.
+- Double clap detector (you; a nice signal-processing exercise). What it
+  means is decided in D29; how to build it is "The double clap, step by
+  step" below. The detector itself can be written and tested now, before
+  the tray exists.
 - Phone calls: hold-to-talk over WebRTC, then Tailscale.
 
 **Learn:** keyword spotting; onset detection from an energy envelope; how a
@@ -235,6 +236,58 @@ background process and a window talk (a local web page).
 
 **Done when:** missed wakes and false wakes per hour (with a film playing)
 for the wake word and the clap; phone first-audio p50/p95.
+
+### The double clap, step by step
+
+**Meaning (D29):** sleeping -> wake; awake and quiet -> listen now; while
+Jarvis speaks -> ignored. Never sleep, quit, cancel or confirm.
+
+**Libraries:** none new. `numpy` for the maths and `sounddevice` for the
+microphone, both already in Jarvis. No model: a clap is a sharp, short,
+broadband sound, and signal processing can find that.
+
+1. **`src/jarvis/sensors/clap.py`, a pure detector (you).** `ClapDetector`
+   gets blocks of 16 kHz audio and returns events; no microphone inside, so
+   it can be tested with made-up audio.
+   - Frames of 10 ms (160 samples); energy of each frame in dB.
+   - **Noise floor** that adapts: the 20th percentile of the last 3 s.
+   - **A peak** (one clap): the energy jumps at least ~15 dB above the floor
+     within 20 ms (a sharp start), and falls back by ~10 dB within 100 ms
+     (a short sound). Speech, music and a fan rise slowly or last long, so
+     they fail one of the two.
+   - **Broadband check:** a clap has much of its energy above 2 kHz; a door
+     knock or desk tap is mostly low. Measure the share on your own claps
+     before choosing the threshold.
+   - **Pairing:** a second peak 0.2-0.6 s after the first; no third peak in
+     the next 0.6 s (applause, knock-knock-knock); then 2 s of cooldown.
+   - **Ignored while Jarvis plays audio** and for 0.5 s after; the voice
+     sink tells the detector when it's playing.
+2. **Tests (you), `tests/test_clap.py`, on made-up audio:** two clicks 0.3 s
+   apart -> one double clap; one click -> none; 0.1 s or 0.9 s apart ->
+   none; three clicks -> none; a 1 s tone or white noise -> none; two
+   clicks while "speaking" -> none.
+3. **Calibration:** 2-3 s of room noise when the clap is switched on; a
+   sensitivity setting; the window later shows "first clap heard" before
+   waking (Codex section 6).
+4. **`scripts/clap_test.py` (you):** opens the microphone, prints each peak
+   with its dB and high-frequency share, and each double clap. Nothing is
+   saved.
+5. **Wire it (Claude drafts, you review):** `[clap] enabled = false`; when
+   on, the microphone stays open (your consent, shown in the console and
+   later the window); a double clap publishes an event that the life-cycle
+   controller turns into "wake" or "listen now".
+6. **Optional ML stage to compare:** MediaPipe's Audio Classifier with
+   YAMNet (AudioSet classes include clapping, knocking and tapping) checks
+   the second around each candidate. Report false wakes per hour with and
+   without it.
+
+**Measure (Codex sections 6 and 11):** missed wakes out of 50 double claps
+at 0.5, 1 and 2 m; false wakes per hour with Jarvis speaking, a lecture or
+YouTube video, the fan, typing, desk taps and door knocks.
+
+**Learn:** decibels and short-time energy; onset detection; spectral
+energy above a frequency (an FFT per frame); adaptive thresholds;
+precision against false alarms per hour.
 
 ## M7. More skills
 
@@ -246,10 +299,94 @@ its tools, through the gate.
 
 - **Gestures (you):** MediaPipe Gesture Recognizer for open palm and thumbs
   up/down; motion rules for swipes and the double wave; half-second hold;
-  measure accuracy and false activations per hour.
+  measure accuracy and false activations per hour. Palm to pause comes
+  first, and can start now: see below.
 - **Evaluation (you):** the reproducible run of every measurement above,
   Godspeed and SUS in a small user study (with consent and, if needed,
   ethics approval), and the report.
+
+### Palm to pause, step by step (can start now)
+
+**Meaning (D29):** right hand only, open palm held 0.5 s. While Jarvis
+speaks: stop speaking ("hold on"). While a video Jarvis opened is on: play
+or pause it. Otherwise nothing. Never confirms anything.
+
+**Libraries:** `mediapipe` (Google, Apache-2.0), already in Jarvis's
+`vision` extra, which `update.cmd` installs. It brings `cv2`
+(opencv-contrib-python) for the camera. MediaPipe 1.x has only the
+**Tasks API**: tutorials that use `mp.solutions.hands` or
+`mp.solutions.drawing_utils` are for the old version and won't run, so
+draw landmarks with `cv2.circle` yourself. The model,
+`models/gesture_recognizer.task`, comes from
+`uv run python scripts/download_models.py`.
+
+**How it works, per camera frame:**
+
+1. The camera gives a frame; flip it like a mirror (`cv2.flip(frame, 1)`)
+   and convert BGR to RGB.
+2. MediaPipe finds each hand: 21 landmarks (finger joints), the handedness
+   ("Left" or "Right" with a score) and a gesture ("Open_Palm",
+   "Closed_Fist", "Thumb_Up", "Thumb_Down", "Pointing_Up", "Victory",
+   "ILoveYou" or "None", with a score). No training needed.
+3. Jarvis keeps only the right hand with an Open_Palm score of at least
+   0.7, and then the rules: held 0.5 s -> one "palm" event; then the hand
+   must drop or close for 0.5 s before the next one counts; at most one
+   event a second.
+
+```python
+import mediapipe as mp
+from mediapipe.tasks.python import BaseOptions, vision
+
+options = vision.GestureRecognizerOptions(
+    base_options=BaseOptions(model_asset_path="models/gesture_recognizer.task"),
+    running_mode=vision.RunningMode.LIVE_STREAM,   # drops frames while busy
+    num_hands=2,                                   # so the right hand can be picked
+    result_callback=on_result)                     # on_result(result, image, timestamp_ms)
+recognizer = vision.GestureRecognizer.create_from_options(options)
+# per frame: recognizer.recognize_async(mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb), ms)
+# result.gestures[i][0].category_name, result.handedness[i][0].category_name,
+# result.hand_landmarks[i] (21 points, x and y from 0 to 1)
+```
+
+**Steps:**
+
+1. **`scripts/gesture_preview.py` (you):** a camera window with the
+   landmarks, the gesture name, the hand and the scores, at about 15
+   frames a second. Raise your right hand: it must say "Right". If it says
+   "Left", add a `swap_handedness` setting (which way round it reports
+   depends on whether the frame is mirrored; check it rather than assume).
+   `scripts/smoke_test.py` already opens the camera with the hand
+   landmarker, so start from there.
+2. **`src/jarvis/sensors/palm.py`, the rules without the camera (you).**
+   `PalmTrigger.update(t, hands) -> bool`, where `hands` is a list of
+   (hand, gesture, score). A small state machine: waiting -> holding ->
+   fired -> re-arming. Allow one or two missed frames in the middle of a
+   hold (tracking flickers).
+3. **Tests (you), `tests/test_palm.py`, with made-up frames:** held 0.6 s
+   -> one event; 0.3 s -> none; left hand -> none; held 3 s -> still one;
+   one missed frame mid-hold -> still one; palm, drop 0.6 s, palm -> two.
+4. **The camera thread, `src/jarvis/sensors/camera.py` (you):** opens the
+   camera only when `[gestures] enabled = true` (or `/camera on`), sends
+   frames with timestamps that only go up, keeps only the newest result,
+   and publishes `GestureEvent(name="open_palm", ...)` (it already exists
+   in `events.py`) with `bus.publish_threadsafe`. Frames are dropped after
+   the landmarks; nothing is saved.
+5. **Wire it into the app (Claude drafts, you review):** on `open_palm`, if
+   the voice is playing -> cancel the turn's reply and stop the voice (like
+   barge-in, not the kill switch, so Jarvis stays ready); else if a video
+   Jarvis opened is on -> the media key; log `gesture` in telemetry.
+6. **Settings:** `[gestures] enabled = false`, `hand = "right"`,
+   `hold_ms = 500`, `min_score = 0.7`, `rearm_ms = 500`, `fps = 15`.
+
+**Measure:** out of 100 palms (different light, distances, sitting back or
+close), how many fire; false palms per hour of normal work (typing,
+drinking tea, waving to someone, someone else in view); time from the palm
+appearing to the voice stopping (target under 0.8 s, of which 0.5 s is the
+hold); CPU use at 15 frames a second.
+
+**Learn:** hand landmarks and handedness; live-stream mode and timestamps;
+debouncing and hysteresis; small state machines; why one frame is never
+enough (Codex section 7).
 
 ## R. Recording rounds and our own Sinhala model (alongside everything)
 
