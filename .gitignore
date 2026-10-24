@@ -17,3 +17,5 @@ state/
 
 # Generated training data (scripts/make_intent_data.py); rebuild any time
 data/generated/
+# Your hand's points from scripts/gesture_preview.py (P and N); stay on the laptop
+data/gestures/

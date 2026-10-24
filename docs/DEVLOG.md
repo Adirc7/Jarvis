@@ -788,3 +788,13 @@ right palms are recognised as the right hand (no swap needed). Six palms
 were accepted in about 13 minutes, all with Open_Palm scores of 0.71-0.76,
 just over the 0.7 threshold, so real palms may be missed. The summary now
 shows the spread of open-palm scores to choose the threshold from data.
+
+The preview now records and checks a second way: P / N / space record your
+chosen hand's 21 points (and MediaPipe's guess) as "palm" or "not palm" rows
+in data/gestures/ (gitignored, numbers only); a "Points check" line counts
+the fingers that are out and says whether the palm or the back of the hand
+faces the camera; the summary counts where MediaPipe and the points check
+agree. Checked here with fake hands (an open right palm: 5 out, facing; the
+back of the hand: not facing; a fist: 0 out; rows written with 136 columns).
+IMPLEMENTATION_PLAN.md M8 lists the four ways to make the palm more reliable.
+

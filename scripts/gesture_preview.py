@@ -3,6 +3,7 @@
     uv run python scripts/gesture_preview.py                  right hand (the default)
     uv run python scripts/gesture_preview.py --camera 1       another camera
     uv run python scripts/gesture_preview.py --swap-hands     if "Right" shows for your left hand
+    uv run python scripts/gesture_preview.py --min-score 0.6  a lower limit for the open palm
 
 A window shows the camera like a mirror, the 21 points of each hand, which
 hand MediaPipe thinks it is, and the gesture it sees. When your right hand
@@ -10,14 +11,28 @@ holds an open palm for half a second, the window shows "accepted": that is
 the moment Jarvis would stop talking or pause the video (decision D29).
 Then the hand has to drop for half a second before the next palm counts.
 
-Nothing is saved, and nothing in Jarvis is controlled: this only shows.
-Press q (or close the window) to quit; a summary prints to paste into the
-chat. The plan is docs/IMPLEMENTATION_PLAN.md, M8, "Palm to pause".
+It also checks the palm a second way, from the 21 points: how many fingers
+are out, and whether the palm (not the back of the hand) faces the camera.
+
+Recording, for choosing the limit and training your own palm classifier:
+click the window first so it gets the keys, then
+    P      start recording "palm"       (show open palms, in different ways)
+    N      start recording "not palm"   (fist, typing, pointing, waving, relaxed)
+    space  stop recording
+Each result of your chosen hand becomes one row in data/gestures/palm-<time>.csv:
+the 21 points as numbers, MediaPipe's guess and the points check. No pictures
+are saved, and the folder stays on the laptop (it's in .gitignore).
+
+Nothing in Jarvis is controlled: this only shows. Press q (or close the
+window) to quit; a summary prints to paste into the chat. The plan is
+docs/IMPLEMENTATION_PLAN.md, M8, "Palm to pause".
 """
 
 from __future__ import annotations
 
 import argparse
+import csv
+import math
 import sys
 import threading
 import time
@@ -47,7 +62,14 @@ HAND_CONNECTIONS = [
 COLOUR_CHOSEN = (80, 200, 60)       # the hand Jarvis listens to: green
 COLOUR_OTHER = (150, 150, 150)      # any other hand: grey
 COLOUR_ACCEPTED = (60, 220, 255)    # "accepted": yellow
+COLOUR_RECORDING = (80, 80, 255)    # recording: red
 WHITE = (255, 255, 255)
+
+RECORD_DIR = ROOT / "data" / "gestures"
+FINGERS = ("thumb", "index", "middle", "ring", "little")
+# If the points check says "back of hand" while your palm faces the camera,
+# your camera is the other way round: set this to -1.
+FACING_SIGN = 1
 
 
 # --------------------------------------------------------------------------
@@ -99,12 +121,14 @@ class Hand:
     side_score: float
     gesture: str         # "Open_Palm", "Closed_Fist", ..., or "None"
     gesture_score: float
-    points: list         # 21 (x, y), each from 0 to 1
+    points: list         # 21 (x, y, z): x and y from 0 to 1 across the picture, z depth
+    world: list          # 21 (x, y, z) in metres, centred on the hand
 
 
 def read_hands(result, swap: bool) -> list[Hand]:
     """Turn MediaPipe's result into a plain list of hands."""
     hands = []
+    world = getattr(result, "hand_world_landmarks", None) or []
     for i, points in enumerate(result.hand_landmarks):
         side = result.handedness[i][0] if result.handedness and result.handedness[i] else None
         best = result.gestures[i][0] if result.gestures and result.gestures[i] else None
@@ -114,8 +138,89 @@ def read_hands(result, swap: bool) -> list[Hand]:
         hands.append(Hand(
             side=name, side_score=side.score if side else 0.0,
             gesture=best.category_name if best else "None", gesture_score=best.score if best else 0.0,
-            points=[(p.x, p.y) for p in points]))
+            points=[(p.x, p.y, getattr(p, "z", 0.0)) for p in points],
+            world=[(p.x, p.y, p.z) for p in world[i]] if len(world) > i else []))
     return hands
+
+
+def chosen_hand(hands: list[Hand], side: str) -> Hand | None:
+    """The hand Jarvis listens to (if two look like it, the surer one)."""
+    return max((h for h in hands if h.side == side), key=lambda h: h.side_score, default=None)
+
+
+# --------------------------------------------------------------------------
+# The second opinion: an open palm judged from the 21 points
+# (step 3 of "how to improve it"). Distances are in pixels, so a wide
+# picture doesn't stretch them.
+# --------------------------------------------------------------------------
+def fingers_out(hand: Hand, width: int, height: int) -> list[bool]:
+    """Thumb, index, middle, ring, little: is each one stretched out?"""
+    p = [(x * width, y * height) for x, y, _ in hand.points]
+
+    def d(a: int, b: int) -> float:
+        return math.dist(p[a], p[b])
+
+    # The thumb is out when its tip (4) is farther from the little-finger
+    # knuckle (17) than its own base (2) is; folded across the palm, it's nearer.
+    thumb = d(4, 17) > d(2, 17)
+    # A finger is out when its tip is clearly farther from the wrist (0) than
+    # its middle joint; curled, the tip comes back towards the wrist.
+    others = [d(0, tip) > 1.1 * d(0, joint) for tip, joint in ((8, 6), (12, 10), (16, 14), (20, 18))]
+    return [thumb, *others]
+
+
+def palm_facing(hand: Hand, width: int, height: int) -> bool:
+    """Does the palm (not the back of the hand) face the camera?
+
+    Wrist -> index knuckle and wrist -> little-finger knuckle: their cross
+    product's sign says which way round the hand is. In a mirrored picture,
+    a right palm facing the camera has the thumb side on the left.
+    """
+    (x0, y0, _), (x5, y5, _), (x17, y17, _) = hand.points[0], hand.points[5], hand.points[17]
+    cross = (x5 - x0) * width * (y17 - y0) * height - (y5 - y0) * height * (x17 - x0) * width
+    hand_sign = 1 if hand.side == "Right" else -1
+    return cross * hand_sign * FACING_SIGN > 0
+
+
+def points_say_palm(hand: Hand, width: int, height: int) -> bool:
+    return all(fingers_out(hand, width, height)) and palm_facing(hand, width, height)
+
+
+class Recorder:
+    """Writes one row per result while P or N is on. Numbers only, no pictures."""
+
+    def __init__(self, folder: Path):
+        self.folder = folder
+        self.path: Path | None = None
+        self.file = None
+        self.writer = None
+        self.label: str | None = None          # "palm", "other" or None (not recording)
+        self.counts = {"palm": 0, "other": 0}
+
+    def write(self, t: float, hand: Hand, width: int, height: int) -> None:
+        if self.label is None:
+            return
+        if self.writer is None:
+            self.folder.mkdir(parents=True, exist_ok=True)
+            self.path = self.folder / f"palm-{time.strftime('%Y%m%d-%H%M%S')}.csv"
+            self.file = self.path.open("w", newline="", encoding="utf-8")
+            self.writer = csv.writer(self.file)
+            header = ["t", "label", "side", "side_score", "mp_gesture", "mp_score",
+                      "fingers_out", "palm_facing", "frame_w", "frame_h"]
+            header += [f"{axis}{i}" for i in range(21) for axis in "xyz"]
+            header += [f"w{axis}{i}" for i in range(21) for axis in "xyz"]
+            self.writer.writerow(header)
+        out = fingers_out(hand, width, height)
+        row = [f"{t:.3f}", self.label, hand.side, f"{hand.side_score:.3f}", hand.gesture,
+               f"{hand.gesture_score:.3f}", sum(out), int(palm_facing(hand, width, height)), width, height]
+        row += [f"{v:.5f}" for point in hand.points for v in point]
+        row += [f"{v:.5f}" for point in hand.world for v in point] or [""] * 63
+        self.writer.writerow(row)
+        self.counts[self.label] += 1
+
+    def close(self) -> None:
+        if self.file is not None:
+            self.file.close()
 
 
 def chosen_palm(hands: list[Hand], side: str, min_score: float) -> Hand | None:
@@ -146,7 +251,7 @@ def percentile(values: list[float], q: float) -> float:
 def draw_hand(cv2, frame, hand: Hand, chosen: bool) -> None:
     h, w = frame.shape[:2]
     colour = COLOUR_CHOSEN if chosen else COLOUR_OTHER
-    pts = [(int(x * w), int(y * h)) for x, y in hand.points]
+    pts = [(int(x * w), int(y * h)) for x, y, _ in hand.points]
     for a, b in HAND_CONNECTIONS:
         cv2.line(frame, pts[a], pts[b], colour, 2)
     for p in pts:
@@ -225,13 +330,16 @@ def main() -> int:
     latencies: list[float] = []
     seen = {"Right": 0, "Left": 0}            # results where each hand was seen
     palm_scores: list[float] = []             # every Open_Palm score of the chosen hand
+    agree = {"both": 0, "mediapipe": 0, "points": 0, "neither": 0}   # the two opinions, chosen hand
+    recorder = Recorder(RECORD_DIR)
     frames = results = accepted = 0
     accepted_at = -10.0
     last_ts = -1
     last_result_ts = -1
     fps = 0.0
     start = prev = time.monotonic()
-    print(f"Showing camera {index}. Hold up your {side.lower()} hand. q = quit.")
+    print(f"Showing camera {index}. Hold up your {side.lower()} hand. "
+          "In the window: P record palm, N record not palm, space stop, q quit.")
 
     try:
         with vision.GestureRecognizer.create_from_options(options) as recognizer:
@@ -250,6 +358,7 @@ def main() -> int:
                 # 3. Mirror it like a selfie, so your right hand is on the
                 # right of the picture; MediaPipe wants RGB, OpenCV gives BGR.
                 frame = cv2.flip(frame, 1)
+                height, width = frame.shape[:2]
                 rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 ts = max(int(time.monotonic() * 1000), last_ts + 1)   # must always go up
                 last_ts = ts
@@ -262,6 +371,7 @@ def main() -> int:
                 now = time.monotonic()
                 hands = read_hands(result, args.swap_hands) if result is not None else []
                 palm = chosen_palm(hands, side, args.min_score)
+                mine = chosen_hand(hands, side)
                 if result is not None and result_ts != last_result_ts:
                     last_result_ts = result_ts
                     results += 1
@@ -272,6 +382,12 @@ def main() -> int:
                             seen[hand.side] += 1
                         if hand.side == side and hand.gesture == "Open_Palm":
                             palm_scores.append(hand.gesture_score)
+                    if mine is not None:
+                        by_mp = mine.gesture == "Open_Palm" and mine.gesture_score >= args.min_score
+                        by_points = points_say_palm(mine, width, height)
+                        key = ("both" if by_points else "mediapipe") if by_mp else ("points" if by_points else "neither")
+                        agree[key] += 1
+                        recorder.write(now - start, mine, width, height)
                     if rule.update(now, palm is not None):
                         accepted += 1
                         accepted_at = now
@@ -295,16 +411,38 @@ def main() -> int:
                     status = ("Lower your hand before the next palm", WHITE)
                 else:
                     status = (f"Waiting for an open {side.lower()} palm", WHITE)
+                if mine is not None:
+                    out = fingers_out(mine, width, height)
+                    named = ", ".join(n for n, o in zip(FINGERS, out, strict=True) if o) or "none"
+                    facing = "palm facing" if palm_facing(mine, width, height) else "back of hand"
+                    check = (f"Points check: {sum(out)} of 5 out ({named}); {facing}",
+                             COLOUR_CHOSEN if points_say_palm(mine, width, height) else WHITE)
+                else:
+                    check = (f"Points check: no {side.lower()} hand", WHITE)
+                if recorder.label is not None:
+                    label = "palm" if recorder.label == "palm" else "not palm"
+                    rec = (f"Recording {label}: {recorder.counts[recorder.label]} rows | space = stop",
+                           COLOUR_RECORDING)
+                else:
+                    rec = ("P = record palm | N = record not palm | q = quit", WHITE)
                 draw_status(cv2, frame, [
                     status,
+                    check,
                     (f"{fps:4.1f} fps | {latency:3.0f} ms per frame | palms accepted: {accepted}", WHITE),
-                    ("q = quit", WHITE),
+                    rec,
                 ])
 
                 # 6. Show it; quit on q or when the window is closed.
                 cv2.imshow(WINDOW, frame)
-                if cv2.waitKey(1) & 0xFF == ord("q"):
+                key = cv2.waitKey(1) & 0xFF
+                if key == ord("q"):
                     break
+                if key in (ord("p"), ord("P")):
+                    recorder.label = "palm"
+                elif key in (ord("n"), ord("N")):
+                    recorder.label = "other"
+                elif key == ord(" "):
+                    recorder.label = None
                 if cv2.getWindowProperty(WINDOW, cv2.WND_PROP_VISIBLE) < 1:
                     break
     except KeyboardInterrupt:
@@ -312,6 +450,7 @@ def main() -> int:
     finally:
         cap.release()                     # the camera light goes off
         cv2.destroyAllWindows()
+        recorder.close()
 
     # A summary to paste into the chat.
     seconds = time.monotonic() - start
@@ -329,6 +468,13 @@ def main() -> int:
         print(f"  open-palm scores ({side.lower()} hand, {len(palm_scores)} results): "
               f"low 10% {percentile(palm_scores, 0.1):.2f}, middle {percentile(palm_scores, 0.5):.2f}, "
               f"high 10% {percentile(palm_scores, 0.9):.2f}; {below:.0%} under {args.min_score}")
+    if sum(agree.values()):
+        print(f"  open palm, {side.lower()} hand, per result: both say yes {agree['both']}, "
+              f"only MediaPipe {agree['mediapipe']}, only the points check {agree['points']}, "
+              f"neither {agree['neither']}")
+    if recorder.path is not None:
+        print(f"  recorded {recorder.counts['palm']} palm and {recorder.counts['other']} not-palm rows "
+              f"in {recorder.path.relative_to(ROOT) if recorder.path.is_relative_to(ROOT) else recorder.path}")
     return 0
 
 

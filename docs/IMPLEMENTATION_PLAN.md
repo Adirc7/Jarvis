@@ -415,6 +415,38 @@ false palms per hour are in the dev log; with no camera or no permission,
 Jarvis carries on without gestures and says so once; no video is stored and
 the camera is on only while the setting or `/camera on` says so.
 
+**Making the palm more reliable (after the first laptop run, 24 Oct).** The
+first run accepted palms with scores of only 0.71-0.76, just over the 0.7
+limit, so real palms are probably missed. Four steps, cheapest first; measure
+how many of 20 deliberate palms count after each one:
+
+1. **Light and distance:** light in front of you, not behind; the hand
+   40-80 cm away, palm square to the camera, fingers spread.
+2. **The limit from your data, judged over the hold:** the 0.5 s hold
+   already stops one stray frame from counting, so the limit for a single
+   frame can be lower. Accept when the palm shows in at least 70% of the
+   frames of the hold and their average score clears the limit. Choose the
+   limit from recorded scores: the lowest one that never fires on the "not
+   palm" rows (an ROC curve).
+3. **A second opinion from the 21 points** (on screen as "Points check"): a
+   finger is out when its tip is clearly farther from the wrist than its
+   middle joint (the thumb: its tip farther from the little-finger knuckle
+   than its base); the palm faces the camera when the cross product of wrist
+   -> index knuckle and wrist -> little-finger knuckle has the right sign.
+   Rule to try: MediaPipe says Open_Palm at 0.5 or more, or all five fingers
+   are out with the palm facing.
+4. **Your own palm classifier (you):** record with the preview (P while
+   showing palms, N for everything else: fist, typing, pointing, waving,
+   relaxed), in several sessions and lights. Each row of
+   `data/gestures/palm-<time>.csv` has the label, MediaPipe's gesture and
+   score, the points check, and the 21 points (`x0,y0,z0 ... x20,y20,z20`,
+   plus the same in metres as `wx0 ...`). Normalise (wrist to the origin,
+   divide by the palm's size, mirror left hands), train logistic regression
+   or k-nearest neighbours with scikit-learn, and test on a session you
+   didn't train on: precision, recall and false palms per hour, against
+   MediaPipe's own score. The folder is gitignored; numbers only, no
+   pictures.
+
 **Why this can start before the window (differs from Codex's order).**
 Codex section 10 puts camera work after the M3 safety gate and the M6
 window. Palm to pause can come earlier because it adds no new power: it
