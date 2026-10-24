@@ -338,3 +338,32 @@ both on every turn.
 call and about half a second per turn); a second LLM checking maths (Python
 with SymPy checks numbers more reliably, Phase 2 tool).
 **Idea:** Adhi, 2026-10-21.
+
+## D29. What a double clap and an open palm mean
+**Decision:** each has one plain meaning, depending on what Jarvis is doing.
+Both are optional and off by default; the microphone (for claps) and the
+camera (for the palm) are switched on by the user, and nothing is stored.
+
+| Jarvis is | Double clap | Open palm, right hand, held 0.5 s |
+|---|---|---|
+| Sleeping (M6) | Wakes: the window opens, a short greeting, then it listens | Nothing (the camera is off while sleeping) |
+| Awake and quiet | Listens now ("Yes, sir?"), a hands-free push-to-talk (needs H3's voice detection) | Plays or pauses a video Jarvis opened (the media key, like the space bar); otherwise nothing |
+| Speaking, and 0.5 s after | Ignored: the sound could be its own voice or a video | Stops speaking and drops the rest of that reply ("hold on"); Jarvis stays awake |
+
+- A palm counts again only after the hand has dropped or closed for 0.5 s,
+  so one long palm is one action, never pause-then-resume.
+- Neither a clap nor a gesture can confirm, cancel a task, sleep or quit.
+  Confirming stays a physical click (D25); stopping everything stays
+  Ctrl+Alt+K; sleeping stays explicit ("that's all, thanks", 30 s of
+  silence, closing the window).
+- Only the right hand, a setting (`hand = "left"` for left-handed users).
+**Why:** A false wake costs little (Jarvis listens for a few seconds and
+times out), but a false sleep or quit loses what you were doing, and a clap
+that toggles sleep gets out of step after one missed clap. Codex's review
+says the same (CODEX_IMPROVEMENT_SUGGESTIONS.md, section 6). One hand only
+halves the accidental palms (a hand raised while talking, waving to
+someone), and raising the right hand off the mouse is a deliberate act.
+**Not chosen:** a second double clap putting Jarvis to sleep (can be a
+setting later if wanted); palm while idle doing anything beyond the video.
+**Idea:** Adhi, 2026-10-24 (double clap, palm with the right hand, pausing
+YouTube by hand).

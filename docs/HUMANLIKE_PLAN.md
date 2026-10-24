@@ -201,7 +201,8 @@ correctly with the source named, and nothing is invented.
 ### H6 (Phases 3 and 5): body language and initiative
 
 19. Open palm to pause, thumbs for feedback (Codex section 7), with camera
-    use opt-in and local.
+    use opt-in and local. Palm to pause (right hand, D29) can start early:
+    IMPLEMENTATION_PLAN.md, M8.
 20. Speaking up on its own: rare, opt-in, at most a few times a day ("Your
     PMAT exam is on Monday. Want a quick revision plan?").
 21. The virtual mouse last, as Codex recommends.

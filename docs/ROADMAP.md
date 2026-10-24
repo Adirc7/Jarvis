@@ -321,7 +321,8 @@ openWakeWord can train a custom phrase for free from synthetic speech), a
 **double clap** (optional, off by default: two sharp sound peaks 0.2-0.6 s
 apart, found with simple signal processing, no model; door knocks and desk
 taps are the false alarms to measure), and a double wave once gestures
-exist (Phase 3).
+exist (Phase 3). What a double clap does in each state (wake, listen now,
+ignored while Jarvis speaks; never sleep or quit) is decision D29.
 
 Candidate libraries, to check when building: openWakeWord's pretrained
 "hey jarvis" model (non-commercial licence, fine here; D3), pystray for the
@@ -395,7 +396,7 @@ rarely triggered by accident:
 
 | Gesture | What it does |
 |---|---|
-| Open palm | Stop talking ("hold on"), like pressing push-to-talk |
+| Open palm (right hand) | Stop talking ("hold on"); with a video Jarvis opened, play or pause it (D29) |
 | Thumbs up / thumbs down | Feedback for the empathy learner; on thumbs down Jarvis offers another way |
 | Swipe left / right | Previous / next: PDF pages, quiz cards, plots |
 | Point + "this" | Refer to what you point at ("explain this"); Phase 4 |
@@ -407,6 +408,9 @@ rarely triggered by accident:
   following the hand's position over a few frames, with simple code.
 - **Deliberate:** each gesture is held about half a second; the orb shows
   which gesture it saw.
+- **One hand:** only the right hand counts (a setting for left-handed
+  users); after a palm the hand must drop for 0.5 s before the next one.
+  Palm to pause can be built before the window (IMPLEMENTATION_PLAN.md, M8).
 - **Never for risky actions:** gestures, like voice, can't confirm "ask
   first" actions; only a click does.
 - **Camera only in gesture mode**, switched on by you; landmarks (numbers)

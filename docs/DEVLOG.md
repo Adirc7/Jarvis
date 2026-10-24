@@ -749,3 +749,19 @@ suggestions placed by stage (captions, orb states, wake, clap, gestures,
 virtual mouse last). Stages H1-H6, each with measures; H1 needs no training:
 tool calling, spoken-style Sinhala for Friday, "I heard X, did you mean Y?",
 and a messy-phrasing test set of about 150 real requests.
+
+## 2026-10-24: what a double clap and an open palm mean; how to build them
+
+D29: a double clap wakes Jarvis when it's asleep, means "listen now" when
+it's awake and quiet, and is ignored while it speaks; it never sleeps, quits,
+cancels or confirms. An open palm, right hand only, held 0.5 s, stops Jarvis
+speaking, or plays or pauses a video Jarvis opened; the hand must drop for
+0.5 s before the next palm counts. IMPLEMENTATION_PLAN.md gains "The double
+clap, step by step" (M6; numpy only, no model; YAMNet as an optional check)
+and "Palm to pause, step by step" (M8, can start now; MediaPipe's gesture
+recognizer, no training). MediaPipe 1.x has only the Tasks API and brings
+opencv-contrib-python, so the vision extra no longer lists opencv-python
+(both install the same cv2 folder); update.cmd reinstalls cv2 if removing
+the old package broke it. download_models.py also fetches
+gesture_recognizer.task.
+

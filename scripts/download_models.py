@@ -4,7 +4,7 @@
     uv run python scripts/download_models.py --small    int8 Kokoro (88 MB instead of 310 MB)
 
 Downloads:
-  - MediaPipe hand landmarker                      (Google, Apache-2.0)
+  - MediaPipe hand landmarker and gesture recognizer (Google, Apache-2.0)
   - Kokoro-82M model + voices for English          (GitHub release, Apache-2.0)
   - Piper voices for languages that use "piper"    (Hugging Face)
 Whisper models download themselves on first use, and so do MMS voices.
@@ -24,6 +24,8 @@ sys.path.insert(0, str(ROOT / "src"))
 from jarvis.config import load_settings  # noqa: E402
 
 HAND = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task"
+# Open palm, thumbs up/down, fist, pointing up, victory: no training needed (M8).
+GESTURES = "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/latest/gesture_recognizer.task"
 KOKORO = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/"
 # Piper voices that don't live in the official rhasspy/piper-voices repo.
 PIPER_EXTRA = {
@@ -72,6 +74,7 @@ def main() -> int:
 
     print("Hand tracking")
     ok &= fetch(HAND, settings.path("vision.hand_model", "models/hand_landmarker.task"))
+    ok &= fetch(GESTURES, settings.path("vision.gesture_model", "models/gesture_recognizer.task"))
 
     engines = {lang.tts_engine for lang in settings.languages.values()}
     if "kokoro" in engines:

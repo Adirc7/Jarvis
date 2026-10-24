@@ -30,8 +30,10 @@ mms = [
     "torch>=2.2",
 ]
 vision = [
-    "mediapipe>=0.10.14",
-    "opencv-python>=4.9",
+    # MediaPipe 1.x: the Tasks API only (the old mp.solutions is gone). It
+    # brings opencv-contrib-python (cv2, for the camera); don't also add
+    # opencv-python, because both packages install the same cv2 folder.
+    "mediapipe>=1.1",
 ]
 desktop = [
     "pynput>=1.7.6",
