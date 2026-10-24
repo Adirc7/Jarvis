@@ -219,10 +219,13 @@ async def test_the_kill_switch_forgets_the_question(settings):
     ("youtube eka balanna one", "youtube_open"),
     ("Can you find me Fourier series videos on YouTube?", "youtube_search"),
     ("could you search Bing for the Doppler effect", "bing_search"),
+    ("Now I mean pause the video.", "media_pause"),                # the laptop, 24 Oct: the model answered this
+    ("um, just stop the video", "media_pause"),
 ])
 def test_polite_and_natural_requests(text, tool):
-    tools, opened, _, _ = make()
-    assert tools.handle(text).tool == tool and len(opened) == 1
+    tools, opened, keys, _ = make()
+    assert tools.handle(text).tool == tool
+    assert len(opened) + len(keys) == 1                  # one page opened, or the play/pause key pressed
 
 
 @pytest.mark.parametrize("text", ["can you explain entropy", "what can you do", "can you open the door"])
@@ -234,4 +237,5 @@ def test_polite_questions_that_are_not_tools(text):
 def test_the_model_knows_jarvis_can_open_youtube():
     from jarvis.persona import Persona
     prompt = Persona.load().system_prompt(language_instruction="Reply in English.", spoken=True, mode="balanced")
-    assert "open Bing and YouTube" in prompt and 'say "open YouTube"' in prompt
+    assert "open Bing and YouTube" in prompt and "never say you can't do it" in prompt
+    assert '"pause the video"' in prompt
