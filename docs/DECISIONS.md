@@ -357,6 +357,9 @@ camera (for the palm) are switched on by the user, and nothing is stored.
   Ctrl+Alt+K; sleeping stays explicit ("that's all, thanks", 30 s of
   silence, closing the window).
 - Only the right hand, a setting (`hand = "left"` for left-handed users).
+- One mode owns the hand at a time (Codex sections 7 and 8). When the
+  virtual mouse is on (later, M8 after M3), an open palm freezes the
+  pointer instead, the same "hold on" meaning.
 **Why:** A false wake costs little (Jarvis listens for a few seconds and
 times out), but a false sleep or quit loses what you were doing, and a clap
 that toggles sleep gets out of step after one missed clap. Codex's review

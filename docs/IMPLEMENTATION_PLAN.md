@@ -273,9 +273,12 @@ broadband sound, and signal processing can find that.
    with its dB and high-frequency share, and each double clap. Nothing is
    saved.
 5. **Wire it (Claude drafts, you review):** `[clap] enabled = false`; when
-   on, the microphone stays open (your consent, shown in the console and
-   later the window); a double clap publishes an event that the life-cycle
-   controller turns into "wake" or "listen now".
+   on, the microphone stays open (your consent; the console says "clap
+   listener on", `/clap off` turns it off, and later the window shows it
+   next to the microphone and camera). A double clap publishes an event to
+   the `LifecycleController` (Codex section 12), the same controller the
+   wake word, tray and keyboard use, so every input does the same thing
+   (Codex section 5). It turns the event into "wake" or "listen now" (D29).
 6. **Optional ML stage to compare:** MediaPipe's Audio Classifier with
    YAMNet (AudioSet classes include clapping, knocking and tapping) checks
    the second around each candidate. Report false wakes per hour with and
@@ -284,6 +287,12 @@ broadband sound, and signal processing can find that.
 **Measure (Codex sections 6 and 11):** missed wakes out of 50 double claps
 at 0.5, 1 and 2 m; false wakes per hour with Jarvis speaking, a lecture or
 YouTube video, the fan, typing, desk taps and door knocks.
+
+**Done when (Codex section 11):** Jarvis's own speech never triggers it; with
+no microphone or no permission, Jarvis carries on with push-to-talk and the
+keyboard and says once that the clap is off; missed-wake and false-wake
+rates are in the dev log; no wake at all during the film, fan, typing and
+desk-tap test.
 
 **Learn:** decibels and short-time energy; onset detection; spectral
 energy above a frequency (an FFT per frame); adaptive thresholds;
@@ -331,7 +340,8 @@ draw landmarks with `cv2.circle` yourself. The model,
 3. Jarvis keeps only the right hand with an Open_Palm score of at least
    0.7, and then the rules: held 0.5 s -> one "palm" event; then the hand
    must drop or close for 0.5 s before the next one counts; at most one
-   event a second.
+   event a second. If the hand is lost for more than two frames mid-hold,
+   the hold starts again (low confidence is always a safe "nothing").
 
 ```python
 import mediapipe as mp
@@ -341,6 +351,9 @@ options = vision.GestureRecognizerOptions(
     base_options=BaseOptions(model_asset_path="models/gesture_recognizer.task"),
     running_mode=vision.RunningMode.LIVE_STREAM,   # drops frames while busy
     num_hands=2,                                   # so the right hand can be picked
+    min_hand_detection_confidence=0.5,             # defaults; raise them if
+    min_hand_presence_confidence=0.5,              # false palms appear
+    min_tracking_confidence=0.5,
     result_callback=on_result)                     # on_result(result, image, timestamp_ms)
 recognizer = vision.GestureRecognizer.create_from_options(options)
 # per frame: recognizer.recognize_async(mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb), ms)
@@ -352,21 +365,32 @@ recognizer = vision.GestureRecognizer.create_from_options(options)
 
 1. **`scripts/gesture_preview.py` (you):** a camera window with the
    landmarks, the gesture name, the hand and the scores, at about 15
-   frames a second. Raise your right hand: it must say "Right". If it says
+   frames a second. Show the gesture being considered ("Open_Palm 0.91,
+   holding 0.3 s") separately from the one accepted ("accepted"), and the
+   frame rate and time per frame (Codex sections 7 and 8, debug view).
+   This is Codex's "camera landmarks in the HUD only, no actions" step,
+   done in an OpenCV window before the Jarvis window exists. Raise your right hand: it must say "Right". If it says
    "Left", add a `swap_handedness` setting (which way round it reports
    depends on whether the frame is mirrored; check it rather than assume).
    `scripts/smoke_test.py` already opens the camera with the hand
    landmarker, so start from there.
-2. **`src/jarvis/sensors/palm.py`, the rules without the camera (you).**
-   `PalmTrigger.update(t, hands) -> bool`, where `hands` is a list of
+2. **`src/jarvis/sensors/gestures.py`, the rules without the camera
+   (you).** `PalmTrigger.update(t, hands) -> bool`, where `hands` is a list of
    (hand, gesture, score). A small state machine: waiting -> holding ->
    fired -> re-arming. Allow one or two missed frames in the middle of a
    hold (tracking flickers).
-3. **Tests (you), `tests/test_palm.py`, with made-up frames:** held 0.6 s
-   -> one event; 0.3 s -> none; left hand -> none; held 3 s -> still one;
-   one missed frame mid-hold -> still one; palm, drop 0.6 s, palm -> two.
-4. **The camera thread, `src/jarvis/sensors/camera.py` (you):** opens the
-   camera only when `[gestures] enabled = true` (or `/camera on`), sends
+   Later the same file holds the `GestureRouter` (Codex section 12): it
+   gives the hand to exactly one mode at a time, so while the virtual mouse
+   is on, swipes are off and the palm means "freeze the pointer" (D29).
+3. **Tests (you), `tests/test_gestures.py`, with made-up frames:** held
+   0.6 s -> one event; 0.3 s -> none; left hand -> none; held 3 s -> still
+   one; one missed frame mid-hold -> still one; hand lost for five frames
+   mid-hold -> none; palm, drop 0.6 s, palm -> two.
+4. **The camera thread, `src/jarvis/sensors/camera.py` (you):**
+   `CameraSource` (OpenCV owns the camera; only one part of Jarvis may hold
+   it at a time, Codex section 8) and `HandTracker` (MediaPipe). It opens
+   the camera only when `[gestures] enabled = true` (or `/camera on`; the
+   console says "camera on", `/camera off` closes it), sends
    frames with timestamps that only go up, keeps only the newest result,
    and publishes `GestureEvent(name="open_palm", ...)` (it already exists
    in `events.py`) with `bus.publish_threadsafe`. Frames are dropped after
@@ -383,6 +407,20 @@ close), how many fire; false palms per hour of normal work (typing,
 drinking tea, waving to someone, someone else in view); time from the palm
 appearing to the voice stopping (target under 0.8 s, of which 0.5 s is the
 hold); CPU use at 15 frames a second.
+
+**Done when (Codex section 11):** one deliberate palm gives exactly one
+action; losing the hand or low confidence never does anything; accuracy and
+false palms per hour are in the dev log; with no camera or no permission,
+Jarvis carries on without gestures and says so once; no video is stored and
+the camera is on only while the setting or `/camera on` says so.
+
+**Why this can start before the window (differs from Codex's order).**
+Codex section 10 puts camera work after the M3 safety gate and the M6
+window. Palm to pause can come earlier because it adds no new power: it
+only stops Jarvis's own voice or presses the play/pause key that "pause the
+video" already presses, and it can never confirm anything. The rest of
+Codex's order stays: swipes after the window, the virtual mouse after M3.
+Rollback: it's off by default and one setting turns it off.
 
 **Learn:** hand landmarks and handedness; live-stream mode and timestamps;
 debouncing and hysteresis; small state machines; why one frame is never

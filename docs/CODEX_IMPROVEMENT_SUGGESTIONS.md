@@ -8,6 +8,12 @@
 
 Reviewed locally on 2026-10-22 against commit e96040d.
 
+**Taken up so far (Claude, 24 Oct):** sections 6 and 7 (double clap, palm)
+in DECISIONS.md D29 and IMPLEMENTATION_PLAN.md (M6 "The double clap, step by
+step", M8 "Palm to pause, step by step"); the UI, lifecycle and safety
+sections are placed by stage in HUMANLIKE_PLAN.md. One difference: palm to
+pause may start before the window (reason in IMPLEMENTATION_PLAN.md, M8).
+
 ## 1. Purpose and source-of-truth rules
 
 This document records product, UI, multimodal-control, safety, and evaluation

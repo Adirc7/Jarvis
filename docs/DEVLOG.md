@@ -765,3 +765,12 @@ opencv-contrib-python, so the vision extra no longer lists opencv-python
 the old package broke it. download_models.py also fetches
 gesture_recognizer.task.
 
+
+Checked against CODEX_IMPROVEMENT_SUGGESTIONS.md the same day: the clap and
+palm steps now also name Codex's parts (LifecycleController, CameraSource,
+HandTracker, GestureRouter), show the gesture considered apart from the one
+accepted, reset a hold when the hand is lost, say once when the microphone
+or camera isn't available, and carry Codex's acceptance criteria as "done
+when". In virtual-mouse mode (later) the palm freezes the pointer. One
+difference from Codex's order, with the reason written down: palm to pause
+may start before the window.
