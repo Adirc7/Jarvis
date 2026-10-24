@@ -4,6 +4,10 @@
     uv run python scripts/gesture_preview.py --camera 1       another camera
     uv run python scripts/gesture_preview.py --swap-hands     if "Right" shows for your left hand
     uv run python scripts/gesture_preview.py --min-score 0.6  a lower limit for the open palm
+    uv run python scripts/gesture_preview.py --max-move 0     don't require the palm to be still
+
+The limits (hand, min_score, max_move, facing_sign) come from [gestures] in
+config/settings.toml; the options above override them for one run.
 
 A window shows the camera like a mirror, the 21 points of each hand, which
 hand MediaPipe thinks it is, and the gesture it sees. When your right hand
@@ -73,7 +77,7 @@ WHITE = (255, 255, 255)
 RECORD_DIR = ROOT / "data" / "gestures"
 FINGERS = ("thumb", "index", "middle", "ring", "little")
 # If the points check says "back of hand" while your palm faces the camera,
-# your camera is the other way round: set this to -1.
+# the camera is the other way round: gestures.facing_sign = -1 in settings.
 FACING_SIGN = 1
 
 
@@ -87,19 +91,33 @@ class PalmHold:
     hold_s: float = 0.5        # how long the palm must be held
     rearm_s: float = 0.5       # how long the hand must be away before the next palm
     max_missed: int = 2        # frames the tracker may lose mid-hold (it flickers)
+    # How far the middle of the palm may drift during the hold, as a share of
+    # the palm's size. A "stop" palm stays put; a wave swings much further.
+    # None (or 0) switches the stillness check off.
+    max_move: float | None = 0.35
     state: str = "waiting"     # waiting -> holding -> fired -> rearming -> waiting
     since: float = 0.0
     missed: int = 0
+    anchor: tuple[float, float] | None = None    # where the palm was when the hold (re)started
+    moved_at: float = -10.0                      # last time a move restarted the hold
 
-    def update(self, t: float, palm: bool) -> bool:
-        """Feed one result. Returns True only on the frame the palm is accepted."""
+    def update(self, t: float, palm: bool, centre: tuple[float, float] | None = None,
+               size: float | None = None) -> bool:
+        """Feed one result. Returns True only on the frame the palm is accepted.
+
+        `centre` and `size` (in pixels) let the rule check the palm is still.
+        """
         if self.state == "waiting":
             if palm:
-                self.state, self.since, self.missed = "holding", t, 0
+                self.state, self.since, self.missed, self.anchor = "holding", t, 0, centre
         elif self.state == "holding":
             if palm:
                 self.missed = 0
-                if t - self.since >= self.hold_s:
+                if self._moved(centre, size):
+                    # It's moving (a wave, or the hand still rising): the
+                    # half second starts again from here.
+                    self.since, self.anchor, self.moved_at = t, centre, t
+                elif t - self.since >= self.hold_s:
                     self.state = "fired"
                     return True
             else:
@@ -115,6 +133,11 @@ class PalmHold:
             elif t - self.since >= self.rearm_s:
                 self.state = "waiting"
         return False
+
+    def _moved(self, centre, size) -> bool:
+        if not self.max_move or centre is None or self.anchor is None or not size:
+            return False
+        return math.dist(centre, self.anchor) > self.max_move * size
 
     def held(self, t: float) -> float:
         return t - self.since if self.state == "holding" else 0.0
@@ -185,6 +208,17 @@ def palm_facing(hand: Hand, width: int, height: int) -> bool:
     cross = (x5 - x0) * width * (y17 - y0) * height - (y5 - y0) * height * (x17 - x0) * width
     hand_sign = 1 if hand.side == "Right" else -1
     return cross * hand_sign * FACING_SIGN > 0
+
+
+def palm_geometry(hand: Hand | None, width: int, height: int) -> tuple[tuple[float, float] | None, float | None]:
+    """The middle of the palm and its size (wrist to middle knuckle), in pixels."""
+    if hand is None:
+        return None, None
+    ids = (0, 5, 9, 13, 17)                      # wrist and the four knuckles
+    cx = sum(hand.points[i][0] for i in ids) / len(ids) * width
+    cy = sum(hand.points[i][1] for i in ids) / len(ids) * height
+    (x0, y0, _), (x9, y9, _) = hand.points[0], hand.points[9]
+    return (cx, cy), math.dist((x0 * width, y0 * height), (x9 * width, y9 * height))
 
 
 def points_say_palm(hand: Hand, width: int, height: int) -> bool:
@@ -281,12 +315,23 @@ def main() -> int:
     ap.add_argument("--camera", type=int, default=None, help="camera number (default: vision.camera_index, 0)")
     ap.add_argument("--hand", choices=["right", "left"], default=None, help="which hand counts (default: right)")
     ap.add_argument("--swap-hands", action="store_true", help="swap Left and Right, if they show the wrong way round")
-    ap.add_argument("--min-score", type=float, default=0.7, help="how sure the open palm must be (0-1)")
+    ap.add_argument("--min-score", type=float, default=None,
+                    help="how sure the open palm must be, 0-1 (default: gestures.min_score)")
+    ap.add_argument("--max-move", type=float, default=None,
+                    help="how still the palm must be, as a share of its size; 0 = off (default: gestures.max_move)")
+    ap.add_argument("--facing-sign", type=int, choices=[1, -1], default=None,
+                    help="-1 if the points check says 'back of hand' for your palm (default: gestures.facing_sign)")
     ap.add_argument("--hold", type=float, default=0.5, help="seconds the palm must be held")
     args = ap.parse_args()
 
     settings = load_settings(load_env=False)
     side = (args.hand or settings.get("gestures.hand", "right")).capitalize()
+    if args.min_score is None:
+        args.min_score = float(settings.get("gestures.min_score", 0.7))
+    if args.max_move is None:
+        args.max_move = float(settings.get("gestures.max_move", 0.35))
+    global FACING_SIGN
+    FACING_SIGN = args.facing_sign or int(settings.get("gestures.facing_sign", 1))
     model = settings.path("vision.gesture_model", "models/gesture_recognizer.task")
     if not model.exists():
         print(f"No gesture model at {model}.\nRun: uv run python scripts/download_models.py")
@@ -331,7 +376,7 @@ def main() -> int:
         min_tracking_confidence=0.5,
         result_callback=on_result)
 
-    rule = PalmHold(hold_s=args.hold)
+    rule = PalmHold(hold_s=args.hold, max_move=args.max_move or None)
     latencies: list[float] = []
     seen = {"Right": 0, "Left": 0}            # results where each hand was seen
     palm_scores: list[float] = []             # every Open_Palm score of the chosen hand
@@ -343,6 +388,9 @@ def main() -> int:
     last_result_ts = -1
     fps = 0.0
     start = prev = time.monotonic()
+    still = f"still within {args.max_move:.2f} of its size" if args.max_move else "no stillness check"
+    print(f"Palm: {side.lower()} hand, score >= {args.min_score}, held {args.hold} s, {still}, "
+          f"facing sign {FACING_SIGN}.")
     print(f"Showing camera {index}. Hold up your {side.lower()} hand. "
           "In the window: P record palm, N not palm, W wave, space stop, q quit.")
 
@@ -393,7 +441,7 @@ def main() -> int:
                         key = ("both" if by_points else "mediapipe") if by_mp else ("points" if by_points else "neither")
                         agree[key] += 1
                         recorder.write(now - start, mine, width, height)
-                    if rule.update(now, palm is not None):
+                    if rule.update(now, palm is not None, *palm_geometry(mine, width, height)):
                         accepted += 1
                         accepted_at = now
                         print(f"  {now - start:6.1f} s  palm accepted ({palm.gesture_score:.2f})")
@@ -408,6 +456,8 @@ def main() -> int:
                     fps = 0.9 * fps + 0.1 * (1 / dt) if fps else 1 / dt
                 if now - accepted_at < 1.0:
                     status = ("Accepted: Jarvis would stop talking or pause the video", COLOUR_ACCEPTED)
+                elif rule.state == "holding" and now - rule.moved_at < 0.3:
+                    status = ("Moving: hold your palm still", WHITE)
                 elif rule.state == "holding":
                     score = palm.gesture_score if palm else 0.0
                     text = f"{side} hand: Open_Palm {score:.2f}, holding {rule.held(now):.1f} of {args.hold:.1f} s"
@@ -467,7 +517,8 @@ def main() -> int:
     print(f"  time per frame: p50 {percentile(latencies, 0.5):.0f} ms, p95 {percentile(latencies, 0.95):.0f} ms")
     print(f"  hands seen: Right in {seen['Right']} results, Left in {seen['Left']}"
           f"{' (swapped)' if args.swap_hands else ''}")
-    print(f"  palms accepted ({side.lower()} hand, score >= {args.min_score}, held {args.hold} s): {accepted}")
+    print(f"  palms accepted ({side.lower()} hand, score >= {args.min_score}, held {args.hold} s, "
+          f"{still}): {accepted}")
     if palm_scores:
         # How sure MediaPipe was whenever it saw your open palm: if many scores
         # sit just under --min-score, real palms are being missed.

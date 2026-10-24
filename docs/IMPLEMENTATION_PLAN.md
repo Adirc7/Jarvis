@@ -400,8 +400,10 @@ recognizer = vision.GestureRecognizer.create_from_options(options)
    the voice is playing -> cancel the turn's reply and stop the voice (like
    barge-in, not the kill switch, so Jarvis stays ready); else if a video
    Jarvis opened is on -> the media key; log `gesture` in telemetry.
-6. **Settings:** `[gestures] enabled = false`, `hand = "right"`,
-   `hold_ms = 500`, `min_score = 0.7`, `rearm_ms = 500`, `fps = 15`.
+6. **Settings:** `[gestures]` already holds `hand = "right"`,
+   `min_score = 0.6`, `max_move = 0.35` and `facing_sign = -1` (measured on
+   the laptop, 24 Oct); add `enabled = false`, `hold_ms = 500`,
+   `rearm_ms = 500` and `fps = 15` when Jarvis uses them.
 
 **Measure:** out of 100 palms (different light, distances, sitting back or
 close), how many fire; false palms per hour of normal work (typing,
@@ -417,25 +419,31 @@ the camera is on only while the setting or `/camera on` says so.
 
 **Making the palm more reliable (after the first laptop run, 24 Oct).** The
 first run accepted palms with scores of only 0.71-0.76, just over the 0.7
-limit, so real palms are probably missed. Four steps, cheapest first; measure
+limit, so real palms are probably missed. Five steps, cheapest first; measure
 how many of 20 deliberate palms count after each one:
 
 1. **Light and distance:** light in front of you, not behind; the hand
    40-80 cm away, palm square to the camera, fingers spread.
-2. **The limit from your data, judged over the hold:** the 0.5 s hold
+2. **Held still (added 24 Oct, after the wave test):** during the hold the
+   middle of the palm must stay within 0.35 of the palm's size (wrist to
+   middle knuckle) of where it started; if it moves further, the half second
+   starts again. A "stop" palm stays put; a wave swings much further. On the
+   laptop, waving was accepted as a palm 3 times in about a minute at a
+   0.6 limit without this check.
+3. **The limit from your data, judged over the hold:** the 0.5 s hold
    already stops one stray frame from counting, so the limit for a single
    frame can be lower. Accept when the palm shows in at least 70% of the
    frames of the hold and their average score clears the limit. Choose the
    limit from recorded scores: the lowest one that never fires on the "not
    palm" rows (an ROC curve).
-3. **A second opinion from the 21 points** (on screen as "Points check"): a
+4. **A second opinion from the 21 points** (on screen as "Points check"): a
    finger is out when its tip is clearly farther from the wrist than its
    middle joint (the thumb: its tip farther from the little-finger knuckle
    than its base); the palm faces the camera when the cross product of wrist
    -> index knuckle and wrist -> little-finger knuckle has the right sign.
    Rule to try: MediaPipe says Open_Palm at 0.5 or more, or all five fingers
    are out with the palm facing.
-4. **Your own palm classifier (you):** record with the preview in several
+5. **Your own palm classifier (you):** record with the preview in several
    sessions and lights: P for the "stop" palm held still, N for no open
    hand at all (fist, typing, pointing, thumbs up, holding a cup), W for
    waving (an open hand that moves, which Jarvis should ignore). Each row of

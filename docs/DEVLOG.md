@@ -817,3 +817,13 @@ hand labels are swapped; a 30-second check decides which). The preview now
 records W = wave separately, P and N have clearer instructions (N: no open
 hands), and the report replays the recording through the 0.5 s hold.
 
+Third laptop recording (24 Oct): 6,055 palm and 868 wave rows (no not-palm
+rows this time). Facing again reversed (17% of palms "facing"), so
+`[gestures] facing_sign = -1` in settings.toml. Through the hold, waving was
+accepted 6 times at a 0.5 limit and 3 at 0.6 in about 1.4 minutes, because
+the hold checked only that the hand stayed open. New stillness check: the
+palm's middle must stay within 0.35 of its size during the hold, or the half
+second starts again (a pretend wave of +-60 px: 0 accepted; still palms: all
+accepted). `[gestures]` in settings.toml now holds hand, min_score 0.6,
+max_move and facing_sign, used by the preview and the report.
+
