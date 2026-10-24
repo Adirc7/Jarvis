@@ -81,7 +81,8 @@ PHRASES = {
 # endings ("... for me, please"): Whisper writes what people really say.
 _LEAD = (r"(?:(?:jarvis|friday|hey|hi|please|ok|okay|so|now|ane|hari|podda|machan|bro|ජාවිස්|ෆ්\u200d?රයිඩේ"
          r"|අනේ|හරි|පොඩ්ඩක්|can\s+you|could\s+you|would\s+you|will\s+you|can\s+u|could\s+u"
-         r"|i\s+want\s+you\s+to|i\s+need\s+you\s+to)\s+)*")
+         r"|i\s+want\s+you\s+to|i\s+need\s+you\s+to|i\s+mean|i\s+said|just|actually|um|uh|and|then|no"
+         r"|sorry|wait)\s+)*")
 _TAIL = r"(?:\s+(?:please|for\s+me|now|right\s+now|sir|jarvis|friday|thanks|thank\s+you))*"
 _BING = r"(?:microsoft\s+)?bing|බිං|බින්ග්"
 _YT = r"youtube|you\s+tube|යූටියුබ්"
