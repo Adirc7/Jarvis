@@ -782,3 +782,9 @@ paste. Checked here with a fake camera and recognizer (two palms with a
 0.7 s gap give two events; one held palm gives one; the left hand never
 counts; --swap-hands swaps them); the real camera test is on the laptop.
 
+
+First laptop run of the preview (24 Oct): it works on the laptop camera, and
+right palms are recognised as the right hand (no swap needed). Six palms
+were accepted in about 13 minutes, all with Open_Palm scores of 0.71-0.76,
+just over the 0.7 threshold, so real palms may be missed. The summary now
+shows the spread of open-palm scores to choose the threshold from data.

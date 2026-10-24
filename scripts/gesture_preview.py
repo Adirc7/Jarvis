@@ -224,6 +224,7 @@ def main() -> int:
     rule = PalmHold(hold_s=args.hold)
     latencies: list[float] = []
     seen = {"Right": 0, "Left": 0}            # results where each hand was seen
+    palm_scores: list[float] = []             # every Open_Palm score of the chosen hand
     frames = results = accepted = 0
     accepted_at = -10.0
     last_ts = -1
@@ -269,6 +270,8 @@ def main() -> int:
                     for hand in hands:
                         if hand.side in seen:
                             seen[hand.side] += 1
+                        if hand.side == side and hand.gesture == "Open_Palm":
+                            palm_scores.append(hand.gesture_score)
                     if rule.update(now, palm is not None):
                         accepted += 1
                         accepted_at = now
@@ -319,6 +322,13 @@ def main() -> int:
     print(f"  hands seen: Right in {seen['Right']} results, Left in {seen['Left']}"
           f"{' (swapped)' if args.swap_hands else ''}")
     print(f"  palms accepted ({side.lower()} hand, score >= {args.min_score}, held {args.hold} s): {accepted}")
+    if palm_scores:
+        # How sure MediaPipe was whenever it saw your open palm: if many scores
+        # sit just under --min-score, real palms are being missed.
+        below = sum(score < args.min_score for score in palm_scores) / len(palm_scores)
+        print(f"  open-palm scores ({side.lower()} hand, {len(palm_scores)} results): "
+              f"low 10% {percentile(palm_scores, 0.1):.2f}, middle {percentile(palm_scores, 0.5):.2f}, "
+              f"high 10% {percentile(palm_scores, 0.9):.2f}; {below:.0%} under {args.min_score}")
     return 0
 
 
