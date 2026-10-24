@@ -233,5 +233,5 @@ def test_polite_questions_that_are_not_tools(text):
 
 def test_the_model_knows_jarvis_can_open_youtube():
     from jarvis.persona import Persona
-    prompt = Persona.load().system_prompt(language_instruction="Reply in English.")
+    prompt = Persona.load().system_prompt(language_instruction="Reply in English.", spoken=True, mode="balanced")
     assert "open Bing and YouTube" in prompt and 'say "open YouTube"' in prompt
