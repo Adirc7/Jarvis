@@ -106,7 +106,7 @@ def prepare(out: Path) -> None:
     from jarvis.config import load_settings
     from jarvis.voice.tts import KokoroTTS, PiperTTS
 
-    settings = load_settings()
+    settings = load_settings(load_env=False)
     model = settings.path("tts.kokoro_model", "models/kokoro-v1.0.onnx")
     voices = settings.path("tts.kokoro_voices", "models/voices-v1.0.bin")
     device = str(settings.get("tts.device", "auto"))
@@ -168,7 +168,7 @@ def finish(out: Path) -> None:
     from jarvis.config import load_settings
     from jarvis.voice.effects import VoiceStyle
 
-    style = VoiceStyle.from_dict(load_settings().get("voice_style", {}))
+    style = VoiceStyle.from_dict(load_settings(load_env=False).get("voice_style", {}))
     names = {"now": "1_friday_now_espeak", "dilu": "2_dilu_original"}
     for folder in sorted(out.glob("converted_k*"), key=lambda d: int(d.name.split("_k")[1])):
         names[folder.name] = f"3_friday_converted_{folder.name.split('_')[1]}"     # 3_friday_converted_k2 ...

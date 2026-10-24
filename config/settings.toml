@@ -76,6 +76,10 @@ first_chunk_min_chars = 12
 # A longer first sentence is cut at its first comma, so the voice starts sooner
 # (Kokoro needs about 0.2 s plus 14 ms per character on the laptop's CPU).
 first_chunk_max_chars = 60
+# Lighter on graphics memory: no exhaustive convolution search, no maximum
+# workspace (a "Memory allocation failure" on 22 Oct stopped the voice). If
+# the GPU still fails, the voice moves to the CPU by itself.
+cuda_memory_saver = true
 chunk_min_chars = 40
 chunk_max_chars = 220
 # Say a short filler ("Mm, one moment") if the LLM hasn't sent any text this

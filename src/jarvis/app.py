@@ -27,7 +27,11 @@ from .agent.router import KeywordRouter, Router
 from .bus import EventBus
 from .config import Settings
 from .events import (
-    KillSwitchPressed, LanguageChanged, MuteToggled, PushToTalkPressed, UtteranceCaptured,
+    KillSwitchPressed,
+    LanguageChanged,
+    MuteToggled,
+    PushToTalkPressed,
+    UtteranceCaptured,
 )
 from .greeting import FULL, Greeter, Presence, fill, greeting_kind
 from .killswitch import HotkeyListener, Once
@@ -90,6 +94,7 @@ class App:
         self._ptt = None
         self._stt_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="stt")
         self._turn_lock = asyncio.Lock()      # one request at a time, in the order they came
+        self._recorder_open = False
         # When you last talked to Jarvis, so greetings follow sessions, not restarts.
         self.presence = presence if presence is not None else Presence.load(
             settings.path("general.state_dir", "state") / "presence.json")
@@ -301,6 +306,10 @@ class App:
             self._cancelled(turn, "before_stt")
             return None
         self.state.mode = Mode.THINKING
+        rate = int(getattr(self.recorder, "sample_rate", 16000) or 16000)
+        if rate != 16000:                    # Whisper hears 16 kHz only
+            from .voice.audio_io import resample
+            audio = resample(audio, rate, 16000)
         loop = asyncio.get_running_loop()
         try:
             result = await loop.run_in_executor(self._stt_executor, self.transcriber.transcribe, audio)
@@ -353,6 +362,17 @@ class App:
 
     async def _prepare_voice(self) -> None:
         loop = asyncio.get_running_loop()
+        from .gpu import gpu_memory_mb
+
+        memory = gpu_memory_mb()
+        if memory is not None:
+            used, total = memory
+            note = f"Graphics card memory: {total - used:,} of {total:,} MB free."
+            if total - used < 2048:
+                note += (" Jarvis needs about 2 GB: close other programs that use the graphics card, "
+                         "or put the voice on the CPU ([tts] device = \"cpu\" in config/settings.local.toml).")
+            self.out(note)
+            self.telemetry.log("gpu_memory", used_mb=used, total_mb=total)
         self.out("Loading speech models (the first run downloads Whisper)...")
         await loop.run_in_executor(self._stt_executor, self.transcriber.warm_up)
         warm = getattr(self.sink, "warm_up", None)
@@ -362,6 +382,7 @@ class App:
                 where = "the graphics card (CUDA)" if device == "cuda" else "the CPU"
                 self.out(f"{self.lang.current.name} voice runs on {where}.")
         self.recorder.open()
+        self._recorder_open = True            # closed on exit even if what follows fails
         self._start_push_to_talk()
 
     # ---- control (kill switch, mute) ------------------------------------
@@ -456,8 +477,9 @@ class App:
                 self._hotkeys.stop()
             if self._ptt:
                 self._ptt.stop()
-            if self.recorder is not None and voice:
+            if self.recorder is not None and self._recorder_open:
                 self.recorder.close()
+                self._recorder_open = False
             self.sink.stop()
             self.presence.save()
             self.telemetry.log("session_end")
@@ -478,6 +500,8 @@ class App:
         if fact and self.memory.remember(fact):
             self.out(f"[memory] Remembered: {fact}")
             changed = True
+        elif fact and self.memory.full:
+            self.out("[memory] Memory is full (50 facts). /memory to see them, /forget to clear.")
         if changed:
             self.memory.save()
             self.telemetry.log("memory_saved", name=bool(name), fact=bool(fact))
@@ -518,6 +542,8 @@ class App:
             if arg.strip() and self.memory.remember(arg.strip()):
                 self.memory.save()
                 self.out(f"[memory] Remembered: {arg.strip()}")
+            elif self.memory.full:
+                self.out("[memory] Memory is full (50 facts). /memory to see them, /forget to clear.")
             else:
                 self.out("Usage: /remember <something to keep between sessions>")
         elif cmd == "/memory":

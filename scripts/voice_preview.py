@@ -39,7 +39,7 @@ def main() -> int:
     ap.add_argument("--out", default=str(ROOT / "samples"))
     args = ap.parse_args()
 
-    settings = load_settings()
+    settings = load_settings(load_env=False)
     style = VoiceStyle.from_dict(settings.get("voice_style", {}))
     style.enabled = True
     out = Path(args.out)

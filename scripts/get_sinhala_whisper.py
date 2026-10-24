@@ -97,7 +97,7 @@ def check(folder: Path) -> None:
     from jarvis.voice.stt import load_whisper
     from jarvis.voice.tts import PiperTTS
 
-    settings = load_settings()
+    settings = load_settings(load_env=False)
     prepare_cuda()
     sentences = test_sentences()
     dilu_path = settings.path("tts.piper_dir", "models/piper") / "si_LK-dilu-medium.onnx"

@@ -94,7 +94,7 @@ async def test_facts_reach_the_prompt(settings):
     app, client, _ = _app(settings, ["Noted."])
     await app.handle_text("Remember that my exam is on Friday")
     await app.handle_text("When is my exam?")
-    assert "- my exam is on Friday" in client.last_messages[0]["content"]
+    assert '- "my exam is on Friday"' in client.last_messages[0]["content"]          # quoted, as information
 
 
 async def test_forget_command_clears_everything(settings):

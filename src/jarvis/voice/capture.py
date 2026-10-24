@@ -18,7 +18,7 @@ import numpy as np
 class MicRecorder:
     def __init__(self, sample_rate: int = 16000, device: str | int | None = None, max_seconds: float = 30):
         self.sample_rate = sample_rate
-        self._device = device or None
+        self._device = None if device in (None, "") else device
         self._max_frames = int(max_seconds * sample_rate)
         self._frames: list[np.ndarray] = []
         self._count = 0

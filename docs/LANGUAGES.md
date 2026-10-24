@@ -53,7 +53,7 @@ as a fallback.
 | | English | Tamil | Sinhala |
 |---|---|---|---|
 | Whisper (base models) | good | usable, test it | weak |
-| TTS | Kokoro `bm_lewis` (British) | MMS-TTS `facebook/mms-tts-tam` (or community Piper voice) | Piper `si_LK-dilu-medium` (community, MIT) |
+| TTS | Kokoro `bm_lewis` (British), "Jarvis" | MMS-TTS `facebook/mms-tts-tam` (or community Piper voice) | Kokoro `bf_emma` with eSpeak Sinhala, "Friday" (Piper `si_LK-dilu-medium` as the alternative) |
 | Free hosted LLMs | good | usually fine | varies: the smoke test checks for Sinhala script |
 | Local Ollama (4B) | fine | weak | weak: use a hosted model for Sinhala |
 

@@ -33,13 +33,24 @@ class TTSEngine(Protocol):
     def synthesize(self, text: str, speed_factor: float = 1.0) -> np.ndarray: ...
 
 
-def kokoro_session(model_path: Path, device: str = "auto"):
+# Lighter on graphics memory (22 Oct: "Memory allocation failure", then CUDA
+# error 999, after one turn): no exhaustive search for the fastest convolution
+# (it allocates big trial buffers), no maximum workspace, and memory grown
+# only as asked. The 6 GB card also holds Whisper.
+CUDA_MEMORY_SAVER = {
+    "cudnn_conv_algo_search": "HEURISTIC",
+    "cudnn_conv_use_max_workspace": "0",
+    "arena_extend_strategy": "kSameAsRequested",
+}
+
+
+def kokoro_session(model_path: Path, device: str = "auto", memory_saver: bool = True):
     """An onnxruntime session for Kokoro, on the NVIDIA GPU when there is one.
 
     device: "auto" (the GPU if there's an NVIDIA card and the GPU build of
     onnxruntime), "cuda" or "cpu". On the laptop the GPU is about 4x faster
-    (179 vs 770 ms for a 42-character sentence). If CUDA fails while running,
-    onnxruntime falls back to the CPU by itself.
+    (179 vs 770 ms for a 42-character sentence). If the GPU fails while
+    running, KokoroTTS rebuilds the voice on the CPU (see synthesize).
     """
     import onnxruntime as rt
 
@@ -55,7 +66,8 @@ def kokoro_session(model_path: Path, device: str = "auto"):
                     preload()
                 except Exception:
                     pass
-            providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+            cuda = ("CUDAExecutionProvider", dict(CUDA_MEMORY_SAVER)) if memory_saver else "CUDAExecutionProvider"
+            providers = [cuda, "CPUExecutionProvider"]
     opts = rt.SessionOptions()
     opts.log_severity_level = 3                  # errors only
     return rt.InferenceSession(str(model_path), opts, providers=providers)
@@ -70,7 +82,7 @@ class KokoroTTS:
     _lock = threading.Lock()
 
     def __init__(self, model_path: Path, voices_path: Path, voice: str, lang: str = "en-gb", speed: float = 1.0,
-                 device: str = "auto"):
+                 device: str = "auto", memory_saver: bool = True):
         from kokoro_onnx import Kokoro
 
         if not model_path.is_file() or not voices_path.is_file():
@@ -78,11 +90,14 @@ class KokoroTTS:
                 f"Kokoro files missing ({model_path.name}, {voices_path.name}). "
                 "Run: uv run python scripts/download_models.py"
             )
-        key = (str(model_path), str(voices_path), device)
+        self._paths = (model_path, voices_path)
+        self._key = (str(model_path), str(voices_path), device)
+        self.fell_back: str | None = None      # why the voice moved to the CPU, if it did
         with KokoroTTS._lock:
-            if key not in KokoroTTS._shared:
-                KokoroTTS._shared[key] = Kokoro.from_session(kokoro_session(model_path, device), str(voices_path))
-            self._kokoro = KokoroTTS._shared[key]
+            if self._key not in KokoroTTS._shared:
+                KokoroTTS._shared[self._key] = Kokoro.from_session(
+                    kokoro_session(model_path, device, memory_saver), str(voices_path))
+            self._kokoro = KokoroTTS._shared[self._key]
         if voice not in self._kokoro.get_voices():
             raise ValueError(f"Kokoro has no voice '{voice}'")
         self.voice, self.lang, self.speed = voice, lang or "en-us", speed
@@ -95,9 +110,28 @@ class KokoroTTS:
 
     def synthesize(self, text: str, speed_factor: float = 1.0) -> np.ndarray:
         with KokoroTTS._lock:
-            audio, sr = self._kokoro.create(text, voice=self.voice, speed=self.speed * speed_factor, lang=self.lang)
+            self._kokoro = KokoroTTS._shared.get(self._key, self._kokoro)   # another voice may have moved it
+            try:
+                audio, sr = self._create(text, speed_factor)
+            except Exception as exc:
+                if self.device != "cuda":
+                    raise
+                self._move_to_cpu(exc)                      # the GPU failed: keep talking on the CPU
+                audio, sr = self._create(text, speed_factor)
         self.sample_rate = sr
         return np.asarray(audio, dtype=np.float32)
+
+    def _create(self, text: str, speed_factor: float):
+        return self._kokoro.create(text, voice=self.voice, speed=self.speed * speed_factor, lang=self.lang)
+
+    def _move_to_cpu(self, exc: Exception) -> None:
+        """Rebuild the shared model on the CPU (called with the lock held)."""
+        from kokoro_onnx import Kokoro
+
+        model_path, voices_path = self._paths
+        self._kokoro = Kokoro.from_session(kokoro_session(model_path, "cpu"), str(voices_path))
+        KokoroTTS._shared[self._key] = self._kokoro
+        self.fell_back = f"{type(exc).__name__}: {exc}"[:300]
 
 
 class PiperTTS:
@@ -152,6 +186,7 @@ def build_engine(lang: Language, settings: Settings) -> TTSEngine:
             settings.path("tts.kokoro_voices", "models/voices-v1.0.bin"),
             voice=lang.tts_voice, lang=lang.tts_lang or "en-us", speed=speed,
             device=str(settings.get("tts.device", "auto")),
+            memory_saver=bool(settings.get("tts.cuda_memory_saver", True)),
         )
     if lang.tts_engine == "piper":
         return PiperTTS(settings.path("tts.piper_dir", "models/piper") / f"{lang.tts_voice}.onnx", speed=speed)

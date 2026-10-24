@@ -63,6 +63,7 @@ class Transcriber:
         languages: LanguageManager,
         telemetry: Telemetry | None = None,
         loader: Callable[[str], Any] | None = None,
+        cpu_loader: Callable[[str], Any] | None = None,
     ):
         self._settings = settings
         self._lm = languages
@@ -70,6 +71,10 @@ class Transcriber:
         device = settings.get("stt.device", "cuda")
         compute = settings.get("stt.compute_type", "int8_float16")
         self._loader = loader or (lambda name: load_whisper(name, device, compute))
+        # If the graphics card fails mid-session (CUDA error 999), Whisper
+        # moves to the CPU: slower, but Jarvis keeps hearing you.
+        self._cpu_loader = cpu_loader or (None if loader else (lambda name: load_whisper(name, "cpu")))
+        self.on_cpu = False
         self._models: dict[str, Any] = {}
 
     def _model_name(self, lang: Language | None) -> str:
@@ -123,6 +128,19 @@ class Transcriber:
                     info["error"] = f"{type(exc).__name__}: {exc}"[:200]
 
     def transcribe(self, audio: np.ndarray) -> TranscriptResult:
+        try:
+            return self._transcribe(audio)
+        except Exception as exc:
+            if self.on_cpu or self._cpu_loader is None:
+                raise
+            self._tel.log("stt_fallback_cpu", error=f"{type(exc).__name__}: {exc}"[:300])
+            print(f"[stt] Speech recognition failed on the graphics card ({type(exc).__name__}); "
+                  "moving Whisper to the CPU.")
+            self._models.clear()
+            self._loader, self.on_cpu = self._cpu_loader, True
+            return self._transcribe(audio)
+
+    def _transcribe(self, audio: np.ndarray) -> TranscriptResult:
         start = time.perf_counter()
         detected, prob = None, None
         if self._detects_language():

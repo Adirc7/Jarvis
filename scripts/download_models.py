@@ -67,7 +67,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--small", action="store_true", help="use the int8 Kokoro model (smaller, slightly lower quality)")
     args = ap.parse_args()
-    settings = load_settings()
+    settings = load_settings(load_env=False)
     ok = True
 
     print("Hand tracking")

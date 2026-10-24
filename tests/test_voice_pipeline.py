@@ -273,6 +273,8 @@ def test_kokoro_session_uses_cpu_without_a_gpu(monkeypatch, tmp_path):
     monkeypatch.setattr(gpu, "cuda_device_count", lambda: 1)
     monkeypatch.setattr(gpu, "prepare_cuda", lambda: [])
     tts_mod.kokoro_session(tmp_path / "m.onnx", "auto")
+    assert made["providers"] == [("CUDAExecutionProvider", tts_mod.CUDA_MEMORY_SAVER), "CPUExecutionProvider"]
+    tts_mod.kokoro_session(tmp_path / "m.onnx", "auto", memory_saver=False)
     assert made["providers"] == ["CUDAExecutionProvider", "CPUExecutionProvider"]
 
     tts_mod.kokoro_session(tmp_path / "m.onnx", "cpu")

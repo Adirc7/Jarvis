@@ -44,7 +44,7 @@ def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
 
-    settings = load_settings()
+    settings = load_settings(load_env=False)
     lang = settings.languages[args.lang]
     set_name = args.set_name or args.lang
     manifest = ROOT / "eval" / "recordings" / set_name / "manifest.csv"
