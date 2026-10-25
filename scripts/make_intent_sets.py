@@ -4,7 +4,8 @@
 
 Writes data/intent/ (gitignored; run again any time, the same seed gives the same sets):
 
-  train.jsonl      generated sentences (scripts/make_intent_data.py) to learn from
+  train.jsonl      generated sentences (scripts/make_intent_data.py, remade each
+                   time so they match the current patterns) to learn from
   dev.jsonl        generated sentences from PATTERNS the training set never saw:
                    choose settings on this (which features, the limit, ...)
   test_real.jsonl  the real phrasings of eval/commands.jsonl and
@@ -137,9 +138,11 @@ def main() -> int:
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--mine-weight", type=int, default=3, help="how many times each of your sentences counts")
     args = ap.parse_args()
-    if not GENERATED.exists():
-        print("Making the generated sentences first (scripts/make_intent_data.py)...")
-        subprocess.run([sys.executable, str(ROOT / "scripts" / "make_intent_data.py")], check=True)
+    # Always remake them (7 s, same sentences every time): an old file from an
+    # earlier version of the patterns would quietly train on less.
+    print("Making the generated sentences (scripts/make_intent_data.py)...")
+    subprocess.run([sys.executable, str(ROOT / "scripts" / "make_intent_data.py")], check=True,
+                   stdout=subprocess.DEVNULL)
     rows = [json.loads(line) for line in GENERATED.read_text(encoding="utf-8").splitlines() if line.strip()]
     keep = ("text", "lang", "intent", "pattern")
     rows = [{k: r[k] for k in keep if k in r} for r in rows]
