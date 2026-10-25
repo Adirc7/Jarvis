@@ -1036,6 +1036,6 @@ for data/intent/mine.jsonl; 4 left out: a near-copy of the real test line
 "pull up YouTube", and battery, RAM and recycle-bin requests Jarvis has no
 intent for. One Gujarati word in a Singlish line fixed. make_intent_sets.py
 now accepts new intent names and lists them. The generator isn't used yet:
-its labels clash with the 46, its 10,500 lines come from about 300 phrases,
+its labels clash with the 46, its 10,500 lines come from about 360 core phrases,
 and it has mixed-script slips (Devanagari, Gujarati).
 
