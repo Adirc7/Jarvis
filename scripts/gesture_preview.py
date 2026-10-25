@@ -9,7 +9,8 @@
 The limits (hand, min_score, max_move, facing_sign) come from [gestures] in
 config/settings.toml; the options above override them for one run.
 
-A window shows the camera like a mirror, the 21 points of each hand, which
+A window shows the camera like a mirror (MediaPipe itself gets the unmirrored
+picture, so it tells your hands apart), the 21 points of each hand, which
 hand MediaPipe thinks it is, and the gesture it sees. When your right hand
 holds an open palm for half a second, the window shows "accepted": that is
 the moment Jarvis would stop talking or pause the video (decision D29).
@@ -154,7 +155,14 @@ class Hand:
 
 
 def read_hands(result, swap: bool) -> list[Hand]:
-    """Turn MediaPipe's result into a plain list of hands."""
+    """Turn MediaPipe's result into a plain list of hands, in mirror coordinates.
+
+    MediaPipe gets the camera's own picture (its "Left" and "Right" are only
+    right for an unmirrored picture: fed a mirrored one, it swapped the hands
+    on the laptop, 25 Oct). What you see is mirrored, so x becomes 1 - x here
+    and every later step (drawing, the points check, recordings) works in the
+    mirror picture.
+    """
     hands = []
     world = getattr(result, "hand_world_landmarks", None) or []
     for i, points in enumerate(result.hand_landmarks):
@@ -166,8 +174,8 @@ def read_hands(result, swap: bool) -> list[Hand]:
         hands.append(Hand(
             side=name, side_score=side.score if side else 0.0,
             gesture=best.category_name if best else "None", gesture_score=best.score if best else 0.0,
-            points=[(p.x, p.y, getattr(p, "z", 0.0)) for p in points],
-            world=[(p.x, p.y, p.z) for p in world[i]] if len(world) > i else []))
+            points=[(1.0 - p.x, p.y, getattr(p, "z", 0.0)) for p in points],
+            world=[(-p.x, p.y, p.z) for p in world[i]] if len(world) > i else []))
     return hands
 
 
@@ -302,10 +310,20 @@ def draw_hand(cv2, frame, hand: Hand, chosen: bool) -> None:
 
 
 def draw_status(cv2, frame, lines: list[tuple[str, tuple[int, int, int]]]) -> None:
+    """The lines at the top, on a dark see-through band so they read on any background.
+
+    (Drawing each line twice, thick black then thin colour, doubled the text
+    on the laptop: OpenCV 5 draws thick text with a wider font.)
+    """
+    font, scale = cv2.FONT_HERSHEY_SIMPLEX, 0.6
+    widest = max(cv2.getTextSize(text, font, scale, 1)[0][0] for text, _ in lines)
+    bottom = min(frame.shape[0], 12 + 24 * len(lines))
+    right = min(frame.shape[1], widest + 20)
+    band = frame[:bottom, :right]
+    band[:] = (band * 0.4).astype(band.dtype)          # darken behind the text
     y = 26
     for text, colour in lines:
-        cv2.putText(frame, text, (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 4)   # outline
-        cv2.putText(frame, text, (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, colour, 1)
+        cv2.putText(frame, text, (10, y), font, scale, colour, 1, cv2.LINE_AA)
         y += 24
 
 
@@ -408,11 +426,12 @@ def main() -> int:
                 failures = 0
                 frames += 1
 
-                # 3. Mirror it like a selfie, so your right hand is on the
-                # right of the picture; MediaPipe wants RGB, OpenCV gives BGR.
+                # 3. MediaPipe gets the camera's own picture (so it tells
+                # left from right correctly), in RGB; OpenCV gives BGR. You see
+                # it mirrored like a selfie, so your right hand is on the right.
+                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 frame = cv2.flip(frame, 1)
                 height, width = frame.shape[:2]
-                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 ts = max(int(time.monotonic() * 1000), last_ts + 1)   # must always go up
                 last_ts = ts
                 recognizer.recognize_async(mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb), ts)

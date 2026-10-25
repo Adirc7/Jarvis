@@ -331,8 +331,11 @@ draw landmarks with `cv2.circle` yourself. The model,
 
 **How it works, per camera frame:**
 
-1. The camera gives a frame; flip it like a mirror (`cv2.flip(frame, 1)`)
-   and convert BGR to RGB.
+1. The camera gives a frame. MediaPipe gets it **unmirrored**, converted
+   from BGR to RGB: fed a mirrored frame, it swapped left and right hands
+   (found on the laptop, 25 Oct). Only the picture you see is mirrored
+   (`cv2.flip(frame, 1)`), and the landmarks' x becomes 1 - x to match it
+   (Codex section 7: "resolve camera mirroring consistently").
 2. MediaPipe finds each hand: 21 landmarks (finger joints), the handedness
    ("Left" or "Right" with a score) and a gesture ("Open_Palm",
    "Closed_Fist", "Thumb_Up", "Thumb_Down", "Pointing_Up", "Victory",
@@ -401,8 +404,8 @@ recognizer = vision.GestureRecognizer.create_from_options(options)
    barge-in, not the kill switch, so Jarvis stays ready); else if a video
    Jarvis opened is on -> the media key; log `gesture` in telemetry.
 6. **Settings:** `[gestures]` already holds `hand = "right"`,
-   `min_score = 0.6`, `max_move = 0.35` and `facing_sign = -1` (measured on
-   the laptop, 24 Oct); add `enabled = false`, `hold_ms = 500`,
+   `min_score = 0.6`, `max_move = 0.35` and `facing_sign = 1` (checked on
+   the laptop, 24-25 Oct); add `enabled = false`, `hold_ms = 500`,
    `rearm_ms = 500` and `fps = 15` when Jarvis uses them.
 
 **Measure:** out of 100 palms (different light, distances, sitting back or

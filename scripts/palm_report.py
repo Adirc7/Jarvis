@@ -71,6 +71,9 @@ def main() -> int:
               "not palm": [r for r in rows if r["label"] == "other"]}
     if any(r["label"] == "wave" for r in rows):
         groups["wave"] = [r for r in rows if r["label"] == "wave"]
+    if any(p.stem < "palm-20261025" for p in paths):
+        print("Note: recordings from 24 Oct were made before the fix that gives MediaPipe the unmirrored\n"
+              "picture, so their 'Right' hand is your left hand and the facing check looks reversed.\n")
     print(f"{len(rows)} rows from {', '.join(p.name for p in paths)}: "
           + ", ".join(f"{len(g)} {name}" for name, g in groups.items()) + "\n")
 

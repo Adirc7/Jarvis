@@ -827,3 +827,18 @@ second starts again (a pretend wave of +-60 px: 0 accepted; still palms: all
 accepted). `[gestures]` in settings.toml now holds hand, min_score 0.6,
 max_move and facing_sign, used by the preview and the report.
 
+## 2026-10-25: MediaPipe swapped the hands; the preview's text doubled
+
+A laptop screenshot showed the left hand labelled "Right 0.99": the
+whiteboard writing behind Adhi was mirrored (as intended for the preview),
+and in a mirror a left palm has its thumb towards the face, as in the
+picture. So MediaPipe's Gesture Recognizer expects the unmirrored picture,
+and the preview had been flipping it first: every "right hand" result and
+recording on 24 Oct was the left hand, and facing_sign = -1 only made up for
+the swap. Now MediaPipe gets the camera's own frame, only the shown picture
+is mirrored, landmarks are mirrored to match (x -> 1 - x, world x -> -x),
+and facing_sign is back to 1. palm_report notes that 24 Oct recordings have
+the hands swapped. The status text was doubled because OpenCV 5 draws thick
+text (the black outline) with a wider font than thin text; it's now drawn
+once on a darkened band.
+

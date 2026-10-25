@@ -120,10 +120,11 @@ gesture_model = "models/gesture_recognizer.task"   # palm, thumbs (docs/IMPLEMEN
 hand = "right"
 min_score = 0.6      # MediaPipe's open-palm score on the laptop: middle 0.63, so 0.7 missed most (24 Oct)
 max_move = 0.35      # the palm must stay this still during the 0.5 s hold (share of its size); 0 = off
-# The points check's idea of which way the palm faces. On the laptop camera,
-# with 1, about 80% of real palms counted as the back of the hand (24 Oct).
-# Per camera: put a different value in settings.local.toml if one differs.
-facing_sign = -1
+# Which way the points check thinks the palm faces. 1 is right once MediaPipe
+# gets the unmirrored picture (25 Oct: on 24 Oct it got a mirrored one, swapped
+# the hands, and -1 only made up for that). If the check says "back of hand"
+# for your palm, put -1 in settings.local.toml.
+facing_sign = 1
 
 [tools]
 # Bing and YouTube by voice (src/jarvis/tools/web.py): "open Bing", "search
