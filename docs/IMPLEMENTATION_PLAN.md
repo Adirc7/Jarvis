@@ -396,16 +396,19 @@ recognizer = vision.GestureRecognizer.create_from_options(options)
    results mid-hold -> none; palm, drop 0.6 s, palm -> two; a 0.2 s drop ->
    one; a fist between palms re-arms; a wave -> none; a small shake -> one;
    a rising hand counts once it stops.
-4. **The camera thread, `src/jarvis/perception/camera.py` (you):**
-   `CameraSource` (OpenCV owns the camera; only one part of Jarvis may hold
-   it at a time, Codex section 8) and `HandTracker` (MediaPipe). It opens
+4. **The camera thread, `src/jarvis/perception/camera.py` (built 25 Oct:
+   Claude wrote it, Adhi reviews):** `PalmCamera` with `open_camera`
+   (OpenCV owns the camera; only one part of Jarvis may hold it at a time,
+   Codex section 8) and `MediaPipeHands` (MediaPipe, fed the unmirrored
+   frame); both can be replaced by fakes in tests. It opens
    the camera only when `[gestures] enabled = true` (or `/camera on`; the
    console says "camera on", `/camera off` closes it), sends
    frames with timestamps that only go up, keeps only the newest result,
    and publishes `GestureEvent(name="open_palm", ...)` (it already exists
    in `events.py`) with `bus.publish_threadsafe`. Frames are dropped after
    the landmarks; nothing is saved.
-5. **Wire it into the app (Claude drafts, you review):** on `open_palm`, if
+5. **Wire it into the app (built 25 Oct, `App._on_gesture`; 12 tests in
+   `tests/test_palm_camera.py`):** on `open_palm`, if
    the voice is playing -> cancel the turn's reply and stop the voice (like
    barge-in, not the kill switch, so Jarvis stays ready); else if a video
    Jarvis opened is on -> the media key; log `gesture` in telemetry.

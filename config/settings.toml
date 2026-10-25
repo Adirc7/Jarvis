@@ -114,9 +114,13 @@ hand_model = "models/hand_landmarker.task"
 gesture_model = "models/gesture_recognizer.task"   # palm, thumbs (docs/IMPLEMENTATION_PLAN.md, M8)
 
 [gestures]
-# Palm to pause (decision D29; docs/IMPLEMENTATION_PLAN.md, M8). Used by
-# scripts/gesture_preview.py and scripts/palm_report.py now; by Jarvis once
-# palm to pause is built.
+# Palm to pause (decision D29; docs/IMPLEMENTATION_PLAN.md, M8): a palm held
+# still for half a second stops Jarvis talking, or plays or pauses a video
+# Jarvis opened. Off by default: the camera is on only while this is true, or
+# after /camera on. Nothing is recorded. Also used by scripts/gesture_preview.py
+# and scripts/palm_report.py.
+enabled = false
+fps = 15             # camera pictures checked per second; plenty for a palm
 hand = "right"
 min_score = 0.6      # MediaPipe's open-palm score on the laptop: middle 0.63, so 0.7 missed most (24 Oct)
 max_move = 0.35      # the palm must stay this still during the 0.5 s hold (share of its size); 0 = off

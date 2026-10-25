@@ -5,8 +5,12 @@
                 (typing still works in voice mode)
 
 Background tasks on the asyncio loop:
-    control     kill switch and mute (from global hotkeys or typed commands)
+    control     kill switch, mute and the open palm (hotkeys, typed commands, camera)
     voice       push-to-talk events -> transcription -> handle_text
+
+Palm to pause (decision D29), when the camera is on ([gestures] enabled, or
+/camera on): a right palm held still for half a second stops Jarvis talking,
+or plays or pauses a video Jarvis opened. Nothing else; it never confirms.
 
 One turn at a time: every request (spoken or typed) takes its cancel token
 the moment it starts, then waits for the turn before it to finish. The kill
@@ -27,6 +31,7 @@ from .agent.router import KeywordRouter, Router
 from .bus import EventBus
 from .config import Settings
 from .events import (
+    GestureEvent,
     KillSwitchPressed,
     LanguageChanged,
     MuteToggled,
@@ -63,6 +68,7 @@ class App:
         memory: Memory | None = None,
         router: Router | None = None,
         web: WebTools | None = None,
+        camera_factory: Callable[[], Any] | None = None,
     ):
         self.settings = settings
         self.persona = persona or Persona.load()
@@ -98,6 +104,9 @@ class App:
         self._apply_empathy_voice()
         self.transcriber = transcriber
         self.recorder = recorder
+        # The camera for palm to pause (perception/camera.py), made when first switched on.
+        self._camera_factory = camera_factory
+        self.camera = None
         self.history: list[dict[str, str]] = []
         self._hotkeys: HotkeyListener | None = None
         self._ptt = None
@@ -419,10 +428,12 @@ class App:
 
     # ---- control (kill switch, mute) ------------------------------------
     async def _control_task(self) -> None:
-        q = self.bus.subscribe(KillSwitchPressed, MuteToggled, name="control")
+        q = self.bus.subscribe(KillSwitchPressed, MuteToggled, GestureEvent, name="control")
         while True:
             ev = await q.get()
-            if isinstance(ev, KillSwitchPressed):
+            if isinstance(ev, GestureEvent):
+                self._on_gesture(ev)
+            elif isinstance(ev, KillSwitchPressed):
                 gen = self.state.cancel_all()
                 self.sink.stop()
                 self.state.mode = Mode.PAUSED
@@ -438,6 +449,50 @@ class App:
                 muted = toggle()
                 self.telemetry.log("mute", muted=muted)
                 self.out(f"\n[voice {'muted: replies are text only' if muted else 'on'}]")
+
+    # ---- palm to pause (D29) ---------------------------------------------------
+    def _on_gesture(self, ev: GestureEvent) -> None:
+        """An accepted open palm: "hold on". It only stops or pauses; it never confirms anything."""
+        if ev.name != "open_palm":
+            return
+        if self.sink.busy or self.state.mode == Mode.THINKING:
+            # Like barge-in, not the kill switch: the reply stops and isn't
+            # saved, and Jarvis stays ready for the next request.
+            gen = self.state.cancel_all()
+            self.sink.stop()
+            self.state.mode = Mode.IDLE
+            self.telemetry.log("gesture", name=ev.name, action="stop_speaking", generation=gen,
+                               confidence=round(ev.confidence, 2))
+            self.out("\n[palm] stopped.")
+        elif self.web is not None and self.web.pages and "/watch?" in self.web.pages[-1]:
+            self.web.media_key()                     # the play/pause key, like "pause the video"
+            self.web.playing = not self.web.playing
+            action = "play" if self.web.playing else "pause"
+            self.telemetry.log("gesture", name=ev.name, action=action, confidence=round(ev.confidence, 2))
+            self.out(f"\n[palm] video {'playing' if self.web.playing else 'paused'}.")
+        else:
+            self.telemetry.log("gesture", name=ev.name, action="none", confidence=round(ev.confidence, 2))
+
+    def _start_camera(self) -> bool:
+        if self.camera is None:
+            if self._camera_factory is not None:
+                self.camera = self._camera_factory()
+            else:
+                from .perception.camera import PalmCamera
+                self.camera = PalmCamera(self.settings, self.bus.publish_threadsafe, log=self.telemetry.log)
+        if self.camera.start():
+            hand = str(self.settings.get("gestures.hand", "right")).lower()
+            self.out(f"[camera on] Hold up your {hand} palm for half a second to stop me talking or pause "
+                     "a video I opened. Nothing is recorded. /camera off turns it off.")
+            return True
+        self.out(f"[camera] couldn't start: {self.camera.error}. Everything else works as usual.")
+        self.telemetry.log("camera_unavailable", reason=str(self.camera.error)[:200])
+        return False
+
+    def _stop_camera(self) -> None:
+        if self.camera is not None and self.camera.running:
+            self.camera.stop()
+            self.out("[camera off]")
 
     def _start_hotkeys(self) -> None:
         bindings = {
@@ -485,7 +540,9 @@ class App:
                 "You can also type."
             )
         self.out("Commands: /lang <code>, /empathy <mode>, /name <name>, /remember <fact>, /memory, /forget, "
-                     "/mute, /stop, /status, /quit")
+                     "/mute, /stop, /camera on|off, /status, /quit")
+        if self.settings.get("gestures.enabled", False):
+            self._start_camera()
         self.telemetry.log("session_start", language=self.state.language, providers=names, mode=mode)
         try:
             await self.greet()
@@ -507,6 +564,7 @@ class App:
         finally:
             for t in tasks:
                 t.cancel()
+            self._stop_camera()
             if self._hotkeys:
                 self._hotkeys.stop()
             if self._ptt:
@@ -588,13 +646,27 @@ class App:
             self.history = []
             self.persona.user_name = ""
             self.out("[memory] Forgotten: name, facts and the saved conversation.")
+        elif cmd == "/camera":
+            arg = arg.strip().lower()
+            if arg == "on":
+                self._start_camera()
+            elif arg == "off":
+                if self.camera is not None and self.camera.running:
+                    self._stop_camera()
+                else:
+                    self.out("[camera] already off")
+            else:
+                on = self.camera is not None and self.camera.running
+                self.out(f"[camera {'on' if on else 'off'}] /camera on or /camera off"
+                         + (f" (palms so far: {self.camera.palms})" if on else ""))
         elif cmd == "/status":
             self.out(
                 f"mode={self.state.mode.value} language={self.state.language} "
                 f"generation={self.state.cancel_generation} empathy={self.state.empathy} last_llm={self.llm.last_provider} "
-                f"muted={getattr(self.sink, 'muted', None)}"
+                f"muted={getattr(self.sink, 'muted', None)} "
+                f"camera={'on' if self.camera is not None and self.camera.running else 'off'}"
             )
         else:
             self.out("Commands: /lang <code>, /empathy <mode>, /name <name>, /remember <fact>, /memory, /forget, "
-                     "/mute, /stop, /status, /quit")
+                     "/mute, /stop, /camera on|off, /status, /quit")
         return True

@@ -878,3 +878,16 @@ already set aside for Phase 3, with 17 tests in tests/test_gestures.py. The
 preview and the report now import the same PalmHold, so all three use one
 rule. Plan paths changed from sensors/ to perception/.
 
+Palm to pause, steps 3-4 (25 Oct): `perception/camera.py` runs the camera
+in a background thread at about 15 pictures a second, gives MediaPipe the
+unmirrored picture (live-stream mode), turns each result into HandSeen, asks
+PalmTrigger, and publishes GestureEvent("open_palm"); frames are dropped at
+once. A camera that won't open, a missing or broken model, or no MediaPipe
+gives a plain message and Jarvis carries on. In the app, an accepted palm
+while Jarvis is thinking or speaking stops it like barge-in (the reply isn't
+saved, Jarvis stays ready); with a video Jarvis opened on screen, it presses
+play/pause; otherwise nothing. Off by default: `[gestures] enabled = true`
+or `/camera on`; `/camera off`; `/status` shows the camera. 12 tests with a
+pretend camera and pretend MediaPipe (374 in all); the real camera test is
+on the laptop.
+
