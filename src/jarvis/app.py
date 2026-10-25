@@ -62,7 +62,12 @@ TOOL_WORDS = re.compile(
 TOOLS_NOTE = ("Tools this turn: you can open YouTube or Bing, search them, play one of the videos Jarvis read out, "
               "pause, play again and go back. When the user wants one of these, in any words or language, call the "
               "tool instead of answering (Jarvis then says what it did); if they don't, answer normally and don't "
-              "mention tools. Now: {state}")
+              "mention tools. If it isn't clear which video they mean, ask one short question instead of guessing. "
+              "Singlish and Sinhala words: danna/දාන්න put on, play; hoyanna/හොයන්න search; arinna/අරින්න open; "
+              "balanna/බලන්න look, watch; pennanna/පෙන්නන්න show; nawaththanna/නවත්තන්න pause, stop; "
+              "aye/ආයේ and digatama/දිගටම again, carry on; aapahu/ආපහු back; palaweni/පළවෙනි first; "
+              "deweni/දෙවෙනි second; thunweni/තුන්වෙනි third; anthima/අන්තිම last; eka/එක the one; "
+              "gana/ගැන about; sindu/සින්දු songs; tikak/ටිකක් some. Now: {state}")
 LLM_UNAVAILABLE = "I can't reach any language model right now. Check the internet connection or start Ollama."
 REPLY_BROKE_OFF = "Sorry, the connection dropped in the middle of my answer. Please ask again."
 

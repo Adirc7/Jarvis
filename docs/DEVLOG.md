@@ -974,3 +974,8 @@ so "can you stop talking so fast" and "I want to see my notes" stay with the
 model. The misses left are meant for the model ("the anime one", "I'm in the
 mood for some jazz", "shh, quiet for a moment").
 
+The model's tool note now lists the Singlish and Sinhala command words (danna
+put on, nawaththanna pause, anthima last, gana about, ...) and says to ask
+one short question when it isn't clear which video is meant. The real-model
+run of command_check.py (both sets) is the next measurement, on the laptop.
+

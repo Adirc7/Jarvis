@@ -201,3 +201,11 @@ async def test_after_paused_anything_else_carry_on_resumes():
     await app.handle_text("pause the video")                  # "Paused. Anything else, sir?"
     assert await app.handle_text("okay, carry on") == "Playing again."
     assert keys == ["play/pause", "play/pause"] and web.pages[-1].endswith("watch?v=v1")
+
+
+async def test_the_model_is_told_the_singlish_and_sinhala_command_words():
+    client = ModelClient(words=["Sure."])
+    app, _, _, _ = make(client)
+    await app.handle_text("anime eka danna")
+    system = client.messages[0]["content"]
+    assert "anthima/අන්තිම last" in system and "danna/දාන්න put on, play" in system
