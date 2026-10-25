@@ -1,0 +1,890 @@
+<div id="jarvis-ui-concepts">
+  <style>
+    #jarvis-ui-concepts {
+      width: 100%;
+    }
+
+    #jarvis-ui-concepts .viz-carousel > section {
+      min-height: 690px;
+    }
+
+    #jarvis-ui-concepts .ju-window {
+      --ju-accent: #7667ea;
+      --ju-radius: 20px;
+      --ju-orb-size: 132px;
+      --ju-bg: light-dark(#f2f4f8, #070a10);
+      --ju-panel: light-dark(#ffffff, #0f1420);
+      --ju-panel-soft: light-dark(#e9edf5, #171e2d);
+      --ju-panel-strong: light-dark(#dfe4ef, #202a3d);
+      --ju-text: light-dark(#171a22, #f2f5fb);
+      --ju-muted: light-dark(#606979, #98a3b7);
+      --ju-line: light-dark(#dce1ea, #252e40);
+      --ju-green: light-dark(#18794e, #5be0a4);
+      --ju-amber: light-dark(#996300, #f4c15d);
+      color-scheme: light dark;
+      position: relative;
+      overflow: hidden;
+      min-height: 640px;
+      border: 1px solid var(--ju-line);
+      border-radius: var(--ju-radius);
+      background: var(--ju-bg);
+      color: var(--ju-text);
+      box-shadow: 0 24px 65px light-dark(rgba(37, 45, 64, .16), rgba(0, 0, 0, .38));
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    #jarvis-ui-concepts .ju-window * {
+      box-sizing: border-box;
+    }
+
+    #jarvis-ui-concepts .ju-window button,
+    #jarvis-ui-concepts .ju-window input {
+      font: inherit;
+    }
+
+    #jarvis-ui-concepts .ju-window button {
+      color: inherit;
+    }
+
+    #jarvis-ui-concepts .ju-topbar {
+      display: flex;
+      min-height: 58px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--ju-line);
+      background: color-mix(in srgb, var(--ju-panel) 90%, transparent);
+    }
+
+    #jarvis-ui-concepts .ju-brand,
+    #jarvis-ui-concepts .ju-top-actions,
+    #jarvis-ui-concepts .ju-inline,
+    #jarvis-ui-concepts .ju-privacy,
+    #jarvis-ui-concepts .ju-composer-actions,
+    #jarvis-ui-concepts .ju-shortcuts {
+      display: flex;
+      align-items: center;
+    }
+
+    #jarvis-ui-concepts .ju-brand {
+      gap: 10px;
+      font-weight: 500;
+    }
+
+    #jarvis-ui-concepts .ju-brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--ju-accent) 45%, white), transparent 30%),
+        linear-gradient(145deg, color-mix(in srgb, var(--ju-accent) 78%, white), color-mix(in srgb, var(--ju-accent) 65%, #18111f));
+      box-shadow: 0 0 18px color-mix(in srgb, var(--ju-accent) 45%, transparent);
+    }
+
+    #jarvis-ui-concepts .ju-top-actions {
+      gap: 8px;
+    }
+
+    #jarvis-ui-concepts .ju-icon-button,
+    #jarvis-ui-concepts .ju-text-button,
+    #jarvis-ui-concepts .ju-nav-button,
+    #jarvis-ui-concepts .ju-chip,
+    #jarvis-ui-concepts .ju-send,
+    #jarvis-ui-concepts .ju-shortcut {
+      border: 0;
+      background: transparent;
+    }
+
+    #jarvis-ui-concepts .ju-icon-button,
+    #jarvis-ui-concepts .ju-send {
+      display: inline-grid;
+      width: 40px;
+      height: 40px;
+      place-items: center;
+      border-radius: 12px;
+      background: var(--ju-panel-soft);
+    }
+
+    #jarvis-ui-concepts .ju-text-button {
+      min-height: 40px;
+      padding: 0 13px;
+      border-radius: 12px;
+      background: var(--ju-panel-soft);
+    }
+
+    #jarvis-ui-concepts .ju-icon-button[aria-pressed="true"],
+    #jarvis-ui-concepts .ju-text-button[aria-pressed="true"] {
+      background: color-mix(in srgb, var(--ju-accent) 22%, var(--ju-panel));
+      color: var(--ju-accent);
+    }
+
+    #jarvis-ui-concepts .ju-layout {
+      display: grid;
+      grid-template-columns: 208px minmax(0, 1fr);
+      min-height: 581px;
+    }
+
+    #jarvis-ui-concepts .ju-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      padding: 18px 12px;
+      border-right: 1px solid var(--ju-line);
+      background: color-mix(in srgb, var(--ju-panel) 72%, transparent);
+    }
+
+    #jarvis-ui-concepts .ju-new-chat {
+      display: flex;
+      min-height: 42px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 0;
+      border-radius: 13px;
+      background: var(--ju-accent);
+      color: white;
+      font-weight: 500;
+    }
+
+    #jarvis-ui-concepts .ju-nav {
+      display: grid;
+      gap: 4px;
+    }
+
+    #jarvis-ui-concepts .ju-nav-label {
+      margin: 8px 10px 5px;
+      color: var(--ju-muted);
+      font-size: 12px;
+    }
+
+    #jarvis-ui-concepts .ju-nav-button {
+      display: flex;
+      min-height: 40px;
+      align-items: center;
+      gap: 10px;
+      padding: 0 10px;
+      border-radius: 10px;
+      text-align: left;
+      color: var(--ju-muted);
+    }
+
+    #jarvis-ui-concepts .ju-nav-button.is-active {
+      background: var(--ju-panel-soft);
+      color: var(--ju-text);
+    }
+
+    #jarvis-ui-concepts .ju-sidebar-footer {
+      margin-top: auto;
+      padding: 10px;
+      color: var(--ju-muted);
+      font-size: 12px;
+    }
+
+    #jarvis-ui-concepts .ju-main {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      min-width: 0;
+    }
+
+    #jarvis-ui-concepts .ju-main-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 16px 22px 10px;
+    }
+
+    #jarvis-ui-concepts .ju-title-group h2,
+    #jarvis-ui-concepts .ju-title-group p,
+    #jarvis-ui-concepts .ju-voice-copy h2,
+    #jarvis-ui-concepts .ju-voice-copy p {
+      margin: 0;
+    }
+
+    #jarvis-ui-concepts .ju-title-group h2,
+    #jarvis-ui-concepts .ju-voice-copy h2 {
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    #jarvis-ui-concepts .ju-title-group p,
+    #jarvis-ui-concepts .ju-voice-copy p {
+      margin-top: 4px;
+      color: var(--ju-muted);
+      font-size: 13px;
+    }
+
+    #jarvis-ui-concepts .ju-privacy {
+      gap: 7px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    #jarvis-ui-concepts .ju-pill {
+      display: inline-flex;
+      min-height: 28px;
+      align-items: center;
+      gap: 6px;
+      padding: 0 9px;
+      border-radius: 999px;
+      background: var(--ju-panel-soft);
+      color: var(--ju-muted);
+      font-size: 12px;
+    }
+
+    #jarvis-ui-concepts .ju-pill-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--ju-green);
+    }
+
+    #jarvis-ui-concepts .ju-conversation {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 14px;
+      padding: 14px 22px 18px;
+    }
+
+    #jarvis-ui-concepts .ju-message {
+      max-width: 76%;
+      padding: 12px 14px;
+      border-radius: 15px;
+      background: var(--ju-panel);
+      color: var(--ju-text);
+      font-size: 14px;
+      box-shadow: 0 7px 24px light-dark(rgba(33, 43, 64, .06), rgba(0, 0, 0, .15));
+    }
+
+    #jarvis-ui-concepts .ju-message.user {
+      align-self: flex-end;
+      background: color-mix(in srgb, var(--ju-accent) 17%, var(--ju-panel));
+    }
+
+    #jarvis-ui-concepts .ju-message-meta {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--ju-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-ui-concepts .ju-voice-dock {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 16px;
+      margin: 0 18px 18px;
+      padding: 13px;
+      border: 1px solid var(--ju-line);
+      border-radius: 17px;
+      background: var(--ju-panel);
+      box-shadow: 0 14px 34px light-dark(rgba(32, 40, 58, .10), rgba(0, 0, 0, .25));
+    }
+
+    #jarvis-ui-concepts .ju-mic-button {
+      display: grid;
+      width: 52px;
+      height: 52px;
+      place-items: center;
+      border: 0;
+      border-radius: 16px;
+      background: var(--ju-accent);
+      color: white;
+      box-shadow: 0 7px 24px color-mix(in srgb, var(--ju-accent) 36%, transparent);
+    }
+
+    #jarvis-ui-concepts .ju-input-wrap {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #jarvis-ui-concepts .ju-input {
+      width: 100%;
+      min-width: 0;
+      min-height: 40px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 11px;
+      outline: 0;
+      background: var(--ju-panel-soft);
+      color: var(--ju-text);
+    }
+
+    #jarvis-ui-concepts .ju-input::placeholder {
+      color: var(--ju-muted);
+    }
+
+    #jarvis-ui-concepts .ju-composer-actions {
+      gap: 7px;
+    }
+
+    #jarvis-ui-concepts .ju-wave {
+      display: flex;
+      height: 28px;
+      align-items: center;
+      gap: 3px;
+    }
+
+    #jarvis-ui-concepts .ju-wave span {
+      width: 3px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--ju-accent);
+      opacity: .55;
+      transition: height 180ms ease, opacity 180ms ease;
+    }
+
+    #jarvis-ui-concepts .ju-window[data-voice-state="listening"] .ju-wave span:nth-child(2n),
+    #jarvis-ui-concepts .ju-window[data-voice-state="speaking"] .ju-wave span:nth-child(odd) {
+      height: 22px;
+      opacity: 1;
+    }
+
+    #jarvis-ui-concepts .ju-window[data-voice-state="listening"] .ju-wave span:nth-child(3n),
+    #jarvis-ui-concepts .ju-window[data-voice-state="speaking"] .ju-wave span:nth-child(4n) {
+      height: 15px;
+      opacity: .85;
+    }
+
+    #jarvis-ui-concepts .ju-window[data-voice-state="thinking"] .ju-wave span {
+      height: 4px;
+      opacity: .35;
+    }
+
+    #jarvis-ui-concepts .ju-status {
+      display: block;
+      font-weight: 500;
+    }
+
+    #jarvis-ui-concepts .ju-status-detail {
+      display: block;
+      margin-top: 3px;
+      color: var(--ju-muted);
+      font-size: 12px;
+    }
+
+    #jarvis-ui-concepts .ju-command-layout {
+      display: grid;
+      grid-template-columns: 188px minmax(0, 1fr) 238px;
+      min-height: 581px;
+    }
+
+    #jarvis-ui-concepts .ju-command-center {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      min-width: 0;
+      border-right: 1px solid var(--ju-line);
+    }
+
+    #jarvis-ui-concepts .ju-runtime {
+      padding: 18px 14px;
+      background: var(--ju-panel);
+    }
+
+    #jarvis-ui-concepts .ju-runtime h3 {
+      margin: 0 0 14px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    #jarvis-ui-concepts .ju-runtime-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    #jarvis-ui-concepts .ju-runtime-item {
+      padding: 10px;
+      border-radius: 12px;
+      background: var(--ju-panel-soft);
+    }
+
+    #jarvis-ui-concepts .ju-runtime-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 12px;
+    }
+
+    #jarvis-ui-concepts .ju-runtime-row + .ju-runtime-row {
+      margin-top: 5px;
+      color: var(--ju-muted);
+    }
+
+    #jarvis-ui-concepts .ju-route {
+      color: var(--ju-accent);
+    }
+
+    #jarvis-ui-concepts .ju-companion-stage {
+      display: grid;
+      min-height: 581px;
+      place-items: center;
+      padding: 32px;
+      background:
+        radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--ju-accent) 12%, transparent), transparent 34%),
+        var(--ju-bg);
+    }
+
+    #jarvis-ui-concepts .ju-companion {
+      width: min(100%, 430px);
+      padding: 26px;
+      border: 1px solid var(--ju-line);
+      border-radius: calc(var(--ju-radius) + 4px);
+      background: var(--ju-panel);
+      box-shadow: 0 28px 70px light-dark(rgba(34, 43, 65, .14), rgba(0, 0, 0, .42));
+      text-align: center;
+    }
+
+    #jarvis-ui-concepts .ju-companion-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    #jarvis-ui-concepts .ju-orb-button {
+      position: relative;
+      display: grid;
+      width: var(--ju-orb-size);
+      height: var(--ju-orb-size);
+      margin: 8px auto 22px;
+      place-items: center;
+      border: 0;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 37% 30%, color-mix(in srgb, var(--ju-accent) 45%, white), transparent 27%),
+        linear-gradient(145deg, color-mix(in srgb, var(--ju-accent) 78%, white), color-mix(in srgb, var(--ju-accent) 66%, #18111f));
+      color: white;
+      box-shadow:
+        0 0 0 10px color-mix(in srgb, var(--ju-accent) 8%, transparent),
+        0 0 54px color-mix(in srgb, var(--ju-accent) 42%, transparent);
+    }
+
+    #jarvis-ui-concepts .ju-window[data-voice-state="listening"] .ju-orb-button {
+      box-shadow:
+        0 0 0 13px color-mix(in srgb, var(--ju-accent) 12%, transparent),
+        0 0 66px color-mix(in srgb, var(--ju-accent) 58%, transparent);
+    }
+
+    #jarvis-ui-concepts .ju-orb-label {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    #jarvis-ui-concepts .ju-voice-copy {
+      margin-bottom: 20px;
+    }
+
+    #jarvis-ui-concepts .ju-last-answer {
+      margin: 0 0 18px;
+      padding: 13px 14px;
+      border-radius: 14px;
+      background: var(--ju-panel-soft);
+      color: var(--ju-muted);
+      text-align: left;
+      font-size: 13px;
+    }
+
+    #jarvis-ui-concepts .ju-shortcuts {
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    #jarvis-ui-concepts .ju-shortcut,
+    #jarvis-ui-concepts .ju-chip {
+      min-height: 38px;
+      padding: 0 12px;
+      border-radius: 11px;
+      background: var(--ju-panel-soft);
+      color: var(--ju-muted);
+      font-size: 12px;
+    }
+
+    #jarvis-ui-concepts .ju-compact-composer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--ju-line);
+    }
+
+    #jarvis-ui-concepts .ju-compact-composer .ju-input {
+      flex: 1;
+    }
+
+    #jarvis-ui-concepts [hidden] {
+      display: none !important;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #jarvis-ui-concepts .ju-wave span {
+        transition: none;
+      }
+    }
+
+    @media (max-width: 760px) {
+      #jarvis-ui-concepts .viz-carousel > section {
+        min-height: 980px;
+      }
+
+      #jarvis-ui-concepts .ju-window {
+        min-height: 930px;
+      }
+
+      #jarvis-ui-concepts .ju-layout,
+      #jarvis-ui-concepts .ju-command-layout {
+        grid-template-columns: 1fr;
+      }
+
+      #jarvis-ui-concepts .ju-sidebar {
+        display: none;
+      }
+
+      #jarvis-ui-concepts .ju-command-center {
+        border-right: 0;
+      }
+
+      #jarvis-ui-concepts .ju-runtime {
+        border-top: 1px solid var(--ju-line);
+      }
+
+      #jarvis-ui-concepts .ju-main-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      #jarvis-ui-concepts .ju-privacy {
+        justify-content: flex-start;
+      }
+
+      #jarvis-ui-concepts .ju-message {
+        max-width: 92%;
+      }
+
+      #jarvis-ui-concepts .ju-voice-dock {
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+
+      #jarvis-ui-concepts .ju-composer-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+      }
+
+      #jarvis-ui-concepts .ju-companion-stage {
+        min-height: 871px;
+        padding: 18px;
+      }
+    }
+
+    @media (max-width: 430px) {
+      #jarvis-ui-concepts .ju-topbar {
+        padding: 9px 11px;
+      }
+
+      #jarvis-ui-concepts .ju-top-actions .ju-text-button {
+        display: none;
+      }
+
+      #jarvis-ui-concepts .ju-conversation,
+      #jarvis-ui-concepts .ju-main-header {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      #jarvis-ui-concepts .ju-voice-dock {
+        margin-left: 10px;
+        margin-right: 10px;
+      }
+
+      #jarvis-ui-concepts .ju-companion {
+        padding: 20px 15px;
+      }
+    }
+  </style>
+
+  <div class="viz-carousel" aria-label="Jarvis desktop UI directions">
+    <section data-variant="Focus" aria-label="Focus Jarvis desktop design">
+      <div class="ju-window" id="ju-focus" data-design="focus" data-voice-state="ready">
+        <header class="ju-topbar">
+          <div class="ju-brand"><span class="ju-brand-mark" aria-hidden="true"></span><span>Friday</span></div>
+          <div class="ju-top-actions">
+            <button class="ju-text-button cursor-interaction" type="button" data-mute aria-pressed="false"><span data-mute-label>Mute</span></button>
+            <button class="ju-icon-button cursor-interaction" type="button" aria-label="Open settings"><i data-lucide="settings" aria-hidden="true"></i></button>
+          </div>
+        </header>
+        <div class="ju-layout">
+          <aside class="ju-sidebar">
+            <button class="ju-new-chat cursor-interaction" type="button"><i data-lucide="plus" aria-hidden="true"></i>New conversation</button>
+            <nav class="ju-nav" aria-label="Main navigation">
+              <span class="ju-nav-label">Workspace</span>
+              <button class="ju-nav-button is-active cursor-interaction" type="button"><i data-lucide="message-circle" aria-hidden="true"></i>Conversation</button>
+              <button class="ju-nav-button cursor-interaction" type="button"><i data-lucide="brain" aria-hidden="true"></i>Memory</button>
+              <button class="ju-nav-button cursor-interaction" type="button"><i data-lucide="history" aria-hidden="true"></i>History</button>
+              <span class="ju-nav-label">Recent</span>
+              <button class="ju-nav-button cursor-interaction" type="button">Fourier series</button>
+              <button class="ju-nav-button cursor-interaction" type="button">Study plan</button>
+            </nav>
+            <div class="ju-sidebar-footer">Local voice services ready</div>
+          </aside>
+          <main class="ju-main">
+            <div class="ju-main-header">
+              <div class="ju-title-group">
+                <h2>Conversation</h2>
+                <p>English · Sinhala · Tamil</p>
+              </div>
+              <div class="ju-privacy" data-privacy>
+                <span class="ju-pill"><span class="ju-pill-dot"></span>Audio stays local</span>
+                <span class="ju-pill">Text via OpenRouter</span>
+              </div>
+            </div>
+            <div class="ju-conversation" aria-label="Example conversation">
+              <div class="ju-message">
+                <span class="ju-message-meta">Friday</span>
+                Good evening. I’m ready whenever you are.
+              </div>
+              <div class="ju-message user">
+                <span class="ju-message-meta">You</span>
+                Explain Fourier series in simple Sinhala.
+              </div>
+              <div class="ju-message">
+                <span class="ju-message-meta">Friday · Sinhala</span>
+                Fourier series කියන්නේ සංකීර්ණ periodic signal එකක් සරල sine සහ cosine තරංගවල එකතුවක් ලෙස ලියන ක්‍රමයක්.
+              </div>
+            </div>
+            <div class="ju-voice-dock">
+              <button class="ju-mic-button cursor-interaction" type="button" data-voice-cycle aria-label="Start listening"><i data-lucide="mic" aria-hidden="true"></i></button>
+              <div class="ju-input-wrap">
+                <div>
+                  <span class="ju-status" data-status>Ready</span>
+                  <span class="ju-status-detail" data-status-detail>Press the microphone or type a message</span>
+                </div>
+                <div class="ju-wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <input class="ju-input" type="text" aria-label="Message Friday" placeholder="Ask Friday anything…">
+              </div>
+              <div class="ju-composer-actions">
+                <button class="ju-icon-button cursor-interaction" type="button" aria-label="Stop current response"><i data-lucide="square" aria-hidden="true"></i></button>
+                <button class="ju-send cursor-interaction" type="button" aria-label="Send message"><i data-lucide="arrow-up" aria-hidden="true"></i></button>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </section>
+
+    <section data-variant="Command center" aria-label="Command center Jarvis desktop design" hidden>
+      <div class="ju-window" id="ju-command" data-design="command" data-voice-state="ready">
+        <header class="ju-topbar">
+          <div class="ju-brand"><span class="ju-brand-mark" aria-hidden="true"></span><span>Friday</span><span class="ju-pill">Power view</span></div>
+          <div class="ju-top-actions">
+            <button class="ju-text-button cursor-interaction" type="button" data-mute aria-pressed="false"><span data-mute-label>Mute</span></button>
+            <button class="ju-icon-button cursor-interaction" type="button" aria-label="Open settings"><i data-lucide="sliders-horizontal" aria-hidden="true"></i></button>
+          </div>
+        </header>
+        <div class="ju-command-layout">
+          <aside class="ju-sidebar">
+            <button class="ju-new-chat cursor-interaction" type="button"><i data-lucide="plus" aria-hidden="true"></i>New session</button>
+            <nav class="ju-nav" aria-label="Command center navigation">
+              <button class="ju-nav-button is-active cursor-interaction" type="button"><i data-lucide="activity" aria-hidden="true"></i>Live session</button>
+              <button class="ju-nav-button cursor-interaction" type="button"><i data-lucide="messages-square" aria-hidden="true"></i>Conversations</button>
+              <button class="ju-nav-button cursor-interaction" type="button"><i data-lucide="database" aria-hidden="true"></i>Memory</button>
+              <button class="ju-nav-button cursor-interaction" type="button"><i data-lucide="wrench" aria-hidden="true"></i>Diagnostics</button>
+            </nav>
+            <div class="ju-sidebar-footer">Laptop mode · GPU active</div>
+          </aside>
+          <main class="ju-command-center">
+            <div class="ju-main-header">
+              <div class="ju-title-group"><h2>Live session</h2><p>Voice-first · Push to talk</p></div>
+              <div class="ju-privacy" data-privacy><span class="ju-pill"><span class="ju-pill-dot"></span>Local audio</span></div>
+            </div>
+            <div class="ju-conversation">
+              <div class="ju-message user"><span class="ju-message-meta">You · voice transcript</span>Compare supervised and unsupervised learning.</div>
+              <div class="ju-message"><span class="ju-message-meta">Friday · OpenRouter · 1.8 s</span>Supervised learning uses labelled examples, while unsupervised learning finds structure in data without labels.</div>
+            </div>
+            <div class="ju-voice-dock">
+              <button class="ju-mic-button cursor-interaction" type="button" data-voice-cycle aria-label="Start listening"><i data-lucide="mic" aria-hidden="true"></i></button>
+              <div>
+                <span class="ju-status" data-status>Ready</span>
+                <span class="ju-status-detail" data-status-detail>Press to speak · Esc to stop</span>
+              </div>
+              <div class="ju-wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+          </main>
+          <aside class="ju-runtime" data-runtime aria-label="Runtime status">
+            <h3>Runtime</h3>
+            <div class="ju-runtime-list">
+              <div class="ju-runtime-item"><div class="ju-runtime-row"><span>Microphone</span><span class="ju-route">Ready</span></div><div class="ju-runtime-row"><span>Device</span><span>Default input</span></div></div>
+              <div class="ju-runtime-item"><div class="ju-runtime-row"><span>Speech to text</span><span class="ju-route">Local</span></div><div class="ju-runtime-row"><span>Model</span><span>faster-whisper</span></div></div>
+              <div class="ju-runtime-item"><div class="ju-runtime-row"><span>Request route</span><span class="ju-route">General</span></div><div class="ju-runtime-row"><span>Provider</span><span>OpenRouter</span></div></div>
+              <div class="ju-runtime-item"><div class="ju-runtime-row"><span>Voice</span><span class="ju-route">Emma</span></div><div class="ju-runtime-row"><span>Engine</span><span>Kokoro</span></div></div>
+              <div class="ju-runtime-item"><div class="ju-runtime-row"><span>First audio</span><span>2.4 s</span></div><div class="ju-runtime-row"><span>Total turn</span><span>5.8 s</span></div></div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section data-variant="Companion" aria-label="Companion Jarvis desktop design" hidden>
+      <div class="ju-window" id="ju-companion-window" data-design="companion" data-voice-state="ready">
+        <header class="ju-topbar">
+          <div class="ju-brand"><span class="ju-brand-mark" aria-hidden="true"></span><span>Friday</span></div>
+          <div class="ju-top-actions">
+            <button class="ju-icon-button cursor-interaction" type="button" data-mute aria-label="Mute Friday" aria-pressed="false"><i data-lucide="volume-2" aria-hidden="true"></i></button>
+            <button class="ju-icon-button cursor-interaction" type="button" aria-label="Open settings"><i data-lucide="settings" aria-hidden="true"></i></button>
+          </div>
+        </header>
+        <div class="ju-companion-stage">
+          <main class="ju-companion">
+            <div class="ju-companion-head">
+              <span class="ju-pill"><span class="ju-pill-dot"></span>Ready</span>
+              <span class="ju-pill" data-privacy>Audio local</span>
+            </div>
+            <button class="ju-orb-button cursor-interaction" type="button" data-voice-cycle aria-label="Talk to Friday"><span class="ju-orb-label" data-orb-label>Talk</span></button>
+            <div class="ju-voice-copy">
+              <h2 data-status>What can I help with?</h2>
+              <p data-status-detail>Tap the orb or use your push-to-talk key</p>
+            </div>
+            <p class="ju-last-answer">Last answer: Your study session starts with algorithms, followed by a short database review.</p>
+            <div class="ju-shortcuts" data-shortcuts>
+              <button class="ju-shortcut cursor-interaction" type="button">Study plan</button>
+              <button class="ju-shortcut cursor-interaction" type="button">Remember this</button>
+              <button class="ju-shortcut cursor-interaction" type="button">What’s next?</button>
+            </div>
+            <div class="ju-compact-composer">
+              <input class="ju-input" type="text" aria-label="Type a message" placeholder="Type instead…">
+              <button class="ju-send cursor-interaction" type="button" aria-label="Send message"><i data-lucide="arrow-up" aria-hidden="true"></i></button>
+            </div>
+          </main>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (() => {
+      const root = document.getElementById('jarvis-ui-concepts');
+      if (!root) return;
+
+      const voiceStates = [
+        { key: 'ready', title: 'Ready', detail: 'Press the microphone or type a message', companionTitle: 'What can I help with?', companionDetail: 'Tap the orb or use your push-to-talk key', orb: 'Talk' },
+        { key: 'listening', title: 'Listening', detail: 'Speak naturally · press stop to cancel', companionTitle: 'I’m listening', companionDetail: 'Speak naturally. Tap again when you’re done.', orb: 'Listening' },
+        { key: 'thinking', title: 'Thinking', detail: 'Understanding and choosing the best route', companionTitle: 'Thinking…', companionDetail: 'Preparing a useful response', orb: 'Thinking' },
+        { key: 'speaking', title: 'Speaking', detail: 'Streaming sentences to the local voice engine', companionTitle: 'Speaking', companionDetail: 'Tap the orb to interrupt', orb: 'Stop' }
+      ];
+
+      const saved = window.openai?.widgetState?.privateContent;
+      const windows = [...root.querySelectorAll('.ju-window')];
+      const interaction = {};
+
+      windows.forEach(windowEl => {
+        const name = windowEl.dataset.design;
+        const savedState = saved?.interactions?.[name];
+        interaction[name] = {
+          voiceIndex: Number.isInteger(savedState?.voiceIndex) ? savedState.voiceIndex % voiceStates.length : 0,
+          muted: Boolean(savedState?.muted)
+        };
+      });
+
+      function persist(name) {
+        if (!window.openai?.setWidgetState) return;
+        const current = interaction[name];
+        window.openai.setWidgetState({
+          modelContent: { uiConcept: name, voiceState: voiceStates[current.voiceIndex].key, muted: current.muted },
+          privateContent: { interactions: interaction }
+        }).catch(() => {});
+      }
+
+      function renderInteraction(windowEl) {
+        const name = windowEl.dataset.design;
+        const current = interaction[name];
+        const state = voiceStates[current.voiceIndex];
+        windowEl.dataset.voiceState = state.key;
+        windowEl.querySelectorAll('[data-status]').forEach(el => {
+          el.textContent = name === 'companion' ? state.companionTitle : state.title;
+        });
+        windowEl.querySelectorAll('[data-status-detail]').forEach(el => {
+          el.textContent = name === 'companion' ? state.companionDetail : state.detail;
+        });
+        windowEl.querySelectorAll('[data-orb-label]').forEach(el => { el.textContent = state.orb; });
+        windowEl.querySelectorAll('[data-mute]').forEach(button => {
+          button.setAttribute('aria-pressed', current.muted ? 'true' : 'false');
+          button.setAttribute('aria-label', current.muted ? 'Unmute Friday' : 'Mute Friday');
+        });
+        windowEl.querySelectorAll('[data-mute-label]').forEach(el => { el.textContent = current.muted ? 'Unmute' : 'Mute'; });
+      }
+
+      windows.forEach(windowEl => {
+        const name = windowEl.dataset.design;
+        renderInteraction(windowEl);
+        windowEl.querySelectorAll('[data-voice-cycle]').forEach(button => {
+          button.addEventListener('click', () => {
+            interaction[name].voiceIndex = (interaction[name].voiceIndex + 1) % voiceStates.length;
+            renderInteraction(windowEl);
+            persist(name);
+          });
+        });
+        windowEl.querySelectorAll('[data-mute]').forEach(button => {
+          button.addEventListener('click', () => {
+            interaction[name].muted = !interaction[name].muted;
+            renderInteraction(windowEl);
+            persist(name);
+          });
+        });
+      });
+
+      const designStates = {
+        focus: { accent: '#7667ea', radius: 20, orbSize: 132, showPrivacy: true },
+        command: { accent: '#2f83ea', radius: 16, orbSize: 122, showRuntime: true },
+        companion: { accent: '#b95cdb', radius: 24, orbSize: 132, showShortcuts: true }
+      };
+
+      function renderDesign(windowEl, designState) {
+        windowEl.style.setProperty('--ju-accent', designState.accent);
+        windowEl.style.setProperty('--ju-radius', `${designState.radius}px`);
+        windowEl.style.setProperty('--ju-orb-size', `${designState.orbSize}px`);
+        if ('showPrivacy' in designState) {
+          windowEl.querySelectorAll('[data-privacy]').forEach(el => { el.hidden = !designState.showPrivacy; });
+        }
+        if ('showRuntime' in designState) {
+          windowEl.querySelectorAll('[data-runtime]').forEach(el => { el.hidden = !designState.showRuntime; });
+        }
+        if ('showShortcuts' in designState) {
+          windowEl.querySelectorAll('[data-shortcuts]').forEach(el => { el.hidden = !designState.showShortcuts; });
+        }
+      }
+
+      Object.entries(designStates).forEach(([name, designState]) => {
+        const windowEl = root.querySelector(`[data-design="${name}"]`);
+        if (!windowEl) return;
+        const render = () => renderDesign(windowEl, designState);
+        render();
+        if (globalThis.Tweak) {
+          const tweak = new Tweak({ container: windowEl, onChange: render });
+          tweak.addColorPicker(designState, 'accent', { label: 'Assistant accent', reference: '--ju-accent' });
+          tweak.addSlider(designState, 'radius', { label: 'Window softness', min: 8, max: 32, unit: 'px', reference: '--ju-radius' });
+          tweak.addSlider(designState, 'orbSize', { label: 'Voice control size', min: 96, max: 168, unit: 'px', reference: '--ju-orb-size' });
+          if ('showPrivacy' in designState) tweak.addToggle(designState, 'showPrivacy', { label: 'Show privacy boundary', reference: 'privacy.visible' });
+          if ('showRuntime' in designState) tweak.addToggle(designState, 'showRuntime', { label: 'Show runtime panel', reference: 'runtime.visible' });
+          if ('showShortcuts' in designState) tweak.addToggle(designState, 'showShortcuts', { label: 'Show quick actions', reference: 'shortcuts.visible' });
+        }
+      });
+
+      window.addEventListener('openai:set_globals', event => {
+        const next = event.detail?.globals?.widgetState?.privateContent?.interactions;
+        if (!next) return;
+        windows.forEach(windowEl => {
+          const name = windowEl.dataset.design;
+          if (!next[name]) return;
+          interaction[name].voiceIndex = Number.isInteger(next[name].voiceIndex) ? next[name].voiceIndex % voiceStates.length : 0;
+          interaction[name].muted = Boolean(next[name].muted);
+          renderInteraction(windowEl);
+        });
+      });
+    })();
+  </script>
+</div>

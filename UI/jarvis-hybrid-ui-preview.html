@@ -1,0 +1,3899 @@
+<!doctype html>
+<html lang="en" data-visualize-standalone>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src 'unsafe-inline' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Jarvis Hybrid Ui</title>
+<style>:root{color-scheme:light dark;background:light-dark(rgb(255 255 255), rgb(24 24 24))}html,body{margin:0}body{box-sizing:border-box;padding:1rem;background:inherit}iframe{display:block;width:100%;height:calc(100vh - 2rem);margin:0 auto;border:0}</style>
+
+</head>
+<body>
+<iframe id="codex-visualization" sandbox="allow-scripts" referrerpolicy="no-referrer" title="Jarvis Hybrid Ui" data-srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot; data-visualize-standalone&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;meta name=&quot;referrer&quot; content=&quot;no-referrer&quot;&gt;
+&lt;meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#x27;none&#x27;; script-src &#x27;unsafe-inline&#x27; &#x27;unsafe-eval&#x27; &#x27;wasm-unsafe-eval&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src &#x27;unsafe-inline&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src &#x27;none&#x27;; object-src &#x27;none&#x27;; base-uri &#x27;none&#x27;; form-action &#x27;none&#x27;&quot;&gt;
+&lt;title&gt;Jarvis Hybrid Ui&lt;/title&gt;
+&lt;style&gt;:root {
+  color-scheme: light dark;
+  background-color: var(
+    --background,
+    var(--color-background-primary, light-dark(rgb(255 255 255), rgb(24 24 24)))
+  ) !important;
+
+  /* Agent-facing contract; keep in sync with SKILL.md. */
+  --background: var(
+    --color-background-primary,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --card: color-mix(in oklab, var(--foreground) 5%, var(--background));
+  --card-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --popover: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255), rgb(45 45 45))
+  );
+  --popover-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --primary: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --primary-foreground: var(
+    --color-text-inverse,
+    light-dark(rgb(255 255 255), rgb(13 13 13))
+  );
+  --secondary: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%))
+  );
+  --secondary-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --muted-foreground: var(
+    --color-text-secondary,
+    light-dark(rgb(26 28 31 / 49.4%), rgb(255 255 255 / 49.8%))
+  );
+  --accent: var(
+    --color-background-info,
+    light-dark(rgb(229 242 255), rgb(13 39 63))
+  );
+  --accent-foreground: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --destructive: var(
+    --color-text-warning,
+    light-dark(rgb(226 85 7), rgb(255 133 73))
+  );
+  --border: var(
+    --color-border-secondary,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+  --input: var(
+    --color-border-primary,
+    light-dark(
+      rgb(26 28 31 / 11.8%),
+      color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+    )
+  );
+  --ring: var(
+    --color-ring-primary,
+    light-dark(rgb(51 156 255), rgb(131 195 255 / 76%))
+  );
+  --font-size-base: var(--font-text-md-size, 16px);
+  --blue: light-dark(rgb(51 156 255), rgb(51 156 255));
+  --orange: light-dark(rgb(226 85 7), rgb(251 106 34));
+  --green: light-dark(rgb(0 162 64), rgb(64 201 119));
+  --red: light-dark(rgb(224 46 42), rgb(255 103 100));
+  --purple: light-dark(rgb(146 79 247), rgb(173 123 249));
+  --yellow: light-dark(rgb(255 195 0), rgb(255 210 64));
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(rgb(243 136 59), rgb(245 154 86));
+  --viz-series-3: light-dark(rgb(93 201 119), rgb(116 213 139));
+  --viz-series-4: light-dark(rgb(235 119 177), rgb(240 143 192));
+  --viz-series-5: light-dark(rgb(155 121 236), rgb(170 145 239));
+  --viz-series-6: light-dark(rgb(58 185 177), rgb(90 203 194));
+
+  /* Internal implementation variables; not part of the agent contract. */
+  --font-sans:
+    -apple-system-body, ui-sans-serif, -apple-system, system-ui, &quot;Segoe UI&quot;,
+    Helvetica, &quot;Apple Color Emoji&quot;, Arial, sans-serif, &quot;Segoe UI Emoji&quot;,
+    &quot;Segoe UI Symbol&quot;;
+  --font-mono:
+    ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;,
+    monospace;
+  --font-size-normal: max(11px, var(--font-size-base));
+  --font-size-tooltip: calc(var(--font-size-base) - 1px);
+  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
+  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
+  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --icon-size: 16px;
+  --line-height-normal: calc(var(--font-size-normal) * 1.5);
+  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
+  --line-height-small: calc(var(--font-size-small) + 4px);
+  --corner-shape: round;
+  --radius: var(--border-radius-lg, 8px);
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
+  --radius-lg: var(--radius);
+  --radius-2xl: calc(var(--radius) * 2);
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
+  --checkmark-image: url(&quot;data:image/svg+xml,%3Csvg xmlns=&#x27;http://www.w3.org/2000/svg&#x27; viewBox=&#x27;0 0 17 17&#x27;%3E%3Cpath d=&#x27;M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z&#x27;/%3E%3C/svg%3E&quot;);
+
+  /* Legacy aliases; not part of the current agent contract. */
+  --viz-bg: transparent;
+  --viz-panel: var(--card);
+  --viz-border: var(--border);
+  --viz-text: var(--foreground);
+  --viz-muted: var(--muted-foreground);
+  --viz-accent: var(--primary);
+  --viz-accent-text: var(--primary-foreground);
+  --viz-accent-bg: var(--accent);
+  --viz-font-size: var(--font-size-base);
+  --viz-warning: var(--destructive);
+}
+
+:root[data-theme=&quot;light&quot;] {
+  color-scheme: light;
+}
+
+:root[data-theme=&quot;dark&quot;] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html &gt; body {
+  /* Preserve MCP aliases for older inline renderers without creating :root cycles. */
+  --color-background-primary: var(
+    --background,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --color-text-primary: var(
+    --foreground,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --color-border-secondary: var(
+    --border,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+
+  margin: 0;
+  padding: var(--visualize-paint-gutter, 0px);
+  color: var(--foreground);
+  background: transparent !important;
+  font-family: var(--font-sans) !important;
+  -webkit-font-smoothing: antialiased;
+  font-size: var(--font-size-base);
+  line-height: calc(var(--font-size-base) * 1.625);
+  font-weight: var(--font-weight-normal);
+}
+
+.cursor-interaction {
+  cursor: var(--cursor-interaction, pointer);
+}
+
+a {
+  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
+  cursor: var(--cursor-interaction, pointer);
+  text-decoration: none;
+  text-underline-offset: 2px;
+  font-weight: inherit;
+}
+
+a:is(:hover, :focus-visible) {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 0.5px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-block: 0;
+}
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+li,
+.table {
+  font-family: var(--font-sans);
+}
+
+h1 {
+  font-size: calc(var(--font-size-base) * 1.5);
+  line-height: 1.3333333333;
+}
+
+h2 {
+  font-size: calc(var(--font-size-base) * 1.25);
+  line-height: 1.4;
+}
+h3 {
+  font-size: calc(var(--font-size-base) * 1.125);
+  line-height: 1.5555555556;
+}
+h4 {
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+}
+h5,
+h6 {
+  font-size: var(--font-size-base);
+  line-height: calc(var(--font-size-base) * 1.625);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+b,
+strong,
+th {
+  font-weight: 600;
+}
+
+code:not(pre code) {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  corner-shape: var(--corner-shape);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  word-break: break-word;
+}
+pre,
+pre code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.table {
+  width: 100%;
+  color: var(--foreground);
+  font: inherit;
+  text-align: start;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: calc(var(--font-size-base) * 0.875);
+  line-height: calc(var(--font-size-base) * 1.625);
+  font-family: var(--font-sans);
+}
+
+.table :is(th, td) {
+  padding-block: 10px;
+  padding-inline: 0 24px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+  border-bottom-color: color-mix(in srgb, var(--foreground) 5%, transparent);
+}
+.table :is(th, td):not(:last-child) {
+  padding-inline-end: calc(var(--font-size-base) * 1.5);
+}
+
+.table-responsive &gt; .table :is(th, td) {
+  overflow-wrap: break-word;
+}
+
+.table :is(th, td):last-child {
+  padding-inline-end: 0;
+}
+
+.table :is(caption, thead th) {
+  font-weight: 600;
+}
+
+.table thead :is(th, td) {
+  border-bottom-color: var(--border-strong, var(--input));
+  padding-block: calc(var(--font-size-base) / 2);
+  line-height: var(--font-size-base);
+}
+
+.table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+.table tbody :is(th, td) {
+  padding-block: calc(var(--font-size-base) * 0.625);
+}
+
+.table.table-sm :is(th, td) {
+  padding-block: 8px;
+}
+
+.table.table-sm :is(th, td):not(:last-child) {
+  padding-inline-end: 16px;
+}
+
+.table :is(.text-end, [align=&quot;right&quot;]) {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.table :is(.text-center, [align=&quot;center&quot;]) {
+  text-align: center;
+}
+
+.table .text-nowrap {
+  white-space: nowrap;
+}
+
+#widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: transparent !important;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  corner-shape: var(--corner-shape);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+.widget {
+  min-width: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-lg);
+  corner-shape: var(--corner-shape);
+  box-shadow: 0 0 0 0.5px var(--border-strong, var(--border));
+  color: var(--foreground);
+  background: var(--background);
+}
+
+#widget &gt; :not(.card, .widget, .progress) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(
+    20rem,
+    var(--tooltip-available-width, calc(100vw - 10px)),
+    calc(100vw - 10px)
+  );
+  max-height: min(
+    var(--tooltip-available-height, calc(100vh - 10px)),
+    calc(100vh - 10px)
+  );
+  border: 1px solid var(--border);
+  corner-shape: var(--corner-shape);
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  user-select: none;
+  font-family: var(--font-sans);
+  padding: 5px 12px;
+  border-color: color-mix(
+    in oklab,
+    light-dark(var(--primary-foreground), var(--foreground)) 5%,
+    transparent
+  );
+  border-radius: var(--radius-2xl);
+  color: light-dark(var(--primary-foreground), var(--foreground));
+  background: light-dark(var(--foreground), var(--popover));
+  box-shadow: 0 8px 18px rgb(15 23 42 / 20%);
+  letter-spacing: -0.15px;
+  font-size: calc(var(--font-size-base) * 14 / 16);
+  font-size: round(nearest, calc(var(--font-size-base) * 14 / 16), 1px);
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+}
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
+  gap: 10px;
+}
+
+.viz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viz-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.viz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+hr {
+  width: 100%;
+  height: 1px;
+  margin-block: 6px;
+  border: 0;
+  background: var(--border);
+}
+
+.nav {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+}
+
+.progress {
+  display: flex;
+  height: 8px;
+  margin-block: calc((var(--line-height-normal, 1.5em) - 8px) / 2);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+}
+
+.progress-bar:only-child {
+  border-radius: var(--radius-full);
+}
+
+.progress-bar {
+  height: 100%;
+  flex-shrink: 0;
+  border: 0;
+  background: var(--viz-series-1);
+}
+
+.viz-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  color: color-mix(in srgb, var(--foreground) 40%, var(--muted-foreground));
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  font-family: var(--font-sans);
+  font-size: calc(var(--font-size-base) * 14 / 16);
+  font-size: round(nearest, calc(var(--font-size-base) * 14 / 16), 1px);
+  font-weight: var(--font-weight-normal);
+  line-height: 1;
+}
+
+small,
+.text-small {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.text-muted {
+  color: var(--muted-foreground);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-controls &gt; .form-label {
+  display: grid;
+  min-width: min(100%, 260px);
+  flex: 1 1 280px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 0;
+}
+
+.viz-controls &gt; .form-label &gt; :is(.form-control, .form-range, .form-select) {
+  grid-column: 1 / -1;
+}
+
+.btn,
+.nav-link,
+.form-check-input,
+.form-control,
+.form-range,
+.form-select {
+  font: inherit;
+}
+
+/* Match inline alignment without overriding a containing flex or grid layout. */
+.btn,
+.nav-link,
+.form-control,
+.form-select,
+.form-range,
+.form-check {
+  vertical-align: middle;
+}
+
+.btn,
+.nav-link {
+  appearance: button;
+  display: inline-flex;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--input);
+  corner-shape: var(--corner-shape);
+  cursor: var(--cursor-interaction, pointer);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-font-smoothing: inherit;
+  font-family: var(--font-sans);
+  height: fit-content;
+  min-height: calc(12px + 2 * var(--control-spacing, 12px));
+  padding-inline: var(--control-spacing, 12px);
+  border-color: transparent;
+  border-radius: var(--radius-full);
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  font-size: calc(var(--font-size-base) * 14 / 16);
+  font-size: round(nearest, calc(var(--font-size-base) * 14 / 16), 1px);
+  font-weight: var(--font-weight-normal);
+  line-height: 18px;
+}
+
+.btn {
+  border-color: var(--border);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+}
+
+.btn:is(.btn-block, .viz-tile) {
+  inline-size: 100%;
+}
+
+.btn.viz-tile {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+a.btn {
+  cursor: var(--cursor-interaction, pointer);
+  text-decoration: none;
+}
+
+.btn:not(:disabled):hover {
+  background: light-dark(
+    color-mix(in srgb, var(--foreground) 5.5%, transparent),
+    color-mix(in srgb, var(--foreground) 8%, transparent)
+  );
+}
+
+.nav-link:not(:disabled):not([aria-disabled=&quot;true&quot;]):hover {
+  background: color-mix(in srgb, var(--foreground) 10%, transparent);
+}
+
+.btn-primary {
+  border-color: var(--border);
+  color: var(--primary-foreground);
+  background: var(--foreground);
+  background-clip: border-box;
+}
+
+.btn-primary .text-muted {
+  color: color-mix(in srgb, var(--primary-foreground) 50%, transparent);
+}
+
+.btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background-clip: border-box;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--muted-foreground);
+  background: light-dark(
+    color-mix(in srgb, var(--foreground) 5.5%, transparent),
+    color-mix(in srgb, var(--foreground) 8%, transparent)
+  );
+}
+
+.nav-pills .nav-link {
+  min-width: 0;
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.nav-justified .nav-link {
+  flex: 1 1 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.nav-pills .nav-link.active {
+  color: var(--foreground);
+  background: var(--muted);
+}
+
+/* Shared preview chrome; product styles stay inside each variant. */
+.viz-dotted-background {
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--foreground) 14%, transparent) 0.8px,
+    transparent 0.8px
+  );
+  background-position: center;
+  background-size: 16px 16px;
+}
+
+.viz-carousel {
+  position: relative;
+  min-width: 0;
+}
+
+.viz-carousel:has(&gt; .viz-carousel-controls) {
+  min-height: calc(60px + var(--viz-carousel-picker-height, 0px));
+  padding-bottom: 60px;
+}
+
+.viz-carousel &gt; [data-variant][hidden] {
+  display: none !important;
+}
+
+.viz-carousel &gt; [data-variant] {
+  isolation: isolate;
+}
+
+.viz-carousel-controls {
+  --viz-carousel-hover: light-dark(
+    color-mix(in srgb, var(--foreground) 5.4%, transparent),
+    color-mix(in srgb, var(--foreground) 7.8%, transparent)
+  );
+  position: absolute;
+  z-index: 2;
+  bottom: 8px;
+  left: 50%;
+  display: flex;
+  width: max-content;
+  /* Leave room for the host&#x27;s design-controls launcher at the trailing edge. */
+  max-width: calc(100% - 96px);
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-sans);
+  /* Match the settings dropdown chrome independently of the content font size. */
+  font-size: 13px;
+  font-weight: var(--font-weight-normal);
+  line-height: 18px;
+  transform: translateX(-50%);
+  user-select: none;
+}
+
+/* Keep authored mockup button styles out of the shared carousel chrome. */
+.viz-carousel-controls button,
+.viz-carousel-picker &gt; summary {
+  display: flex !important;
+  height: auto !important;
+  min-height: 30px;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px;
+  padding: 0 6px !important;
+  -webkit-app-region: no-drag;
+  border: 0 !important;
+  border-radius: 14px !important;
+  color: inherit !important;
+  background: transparent !important;
+  font: inherit !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.viz-carousel-controls &gt; button,
+.viz-carousel-picker &gt; summary {
+  position: relative;
+  isolation: isolate;
+}
+
+.viz-carousel-controls &gt; button {
+  --icon-size: 16px;
+  width: 30px !important;
+  padding: 0 !important;
+}
+
+.viz-carousel-picker &gt; summary {
+  padding-inline: 12px !important;
+}
+
+.viz-carousel-controls .viz-carousel-caret {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  margin: 0;
+  color: inherit;
+  transform: rotate(180deg);
+}
+
+.viz-carousel-controls &gt; button &gt; svg,
+.viz-carousel-controls .viz-carousel-caret,
+.viz-carousel-count {
+  opacity: 0.5;
+}
+
+.viz-carousel-controls &gt; button::before,
+.viz-carousel-picker &gt; summary::before {
+  position: absolute;
+  z-index: -1;
+  inset: 3px;
+  border-radius: 12px;
+  content: &quot;&quot;;
+  pointer-events: none;
+}
+
+.viz-carousel-controls &gt; button:hover::before,
+.viz-carousel-picker &gt; summary:hover::before {
+  background: var(--viz-carousel-hover);
+}
+
+.viz-carousel-controls &gt; button,
+.viz-carousel-controls [data-lucide],
+.viz-carousel-controls .lucide {
+  flex-shrink: 0;
+}
+
+.viz-carousel-picker {
+  min-width: 0;
+}
+
+.viz-carousel-picker &gt; summary {
+  min-width: 0;
+  list-style: none;
+}
+
+.viz-carousel-picker &gt; summary::-webkit-details-marker {
+  display: none;
+}
+
+.viz-carousel-count {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.viz-carousel-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viz-carousel-options {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 4px);
+  left: 0;
+  display: flex;
+  max-height: 240px;
+  flex-direction: column;
+  gap: 2px;
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--background);
+  box-shadow: 0 4px 12px light-dark(rgb(0 0 0 / 6%), rgb(0 0 0 / 25%));
+}
+
+.viz-carousel-options &gt; button {
+  border-radius: max(0px, calc(var(--radius-lg) - 5px)) !important;
+  width: 100% !important;
+  min-height: 28px;
+  justify-content: flex-start !important;
+  padding: 4px 8px !important;
+  font-size: var(--font-size-small) !important;
+  text-align: start;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.viz-carousel-options &gt; [aria-current=&quot;true&quot;],
+.viz-carousel-options &gt; button:hover {
+  background: var(--viz-carousel-hover) !important;
+}
+
+.btn:disabled,
+.nav-link:disabled,
+.nav-link[aria-disabled=&quot;true&quot;] {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+[data-lucide] {
+  stroke-width: 1.6;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  padding: 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  corner-shape: var(--corner-shape);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  height: calc(12px + 2 * var(--control-spacing, 12px));
+  min-height: calc(12px + 2 * var(--control-spacing, 12px));
+  padding-inline: calc(4px + var(--control-spacing, 12px) / 2);
+  border-color: var(--input);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--popover) 96%, transparent);
+  font-size: calc(var(--font-size-base) * 14 / 16);
+  font-size: round(nearest, calc(var(--font-size-base) * 14 / 16), 1px);
+  font-weight: var(--font-weight-normal);
+  line-height: 1.4285714286;
+}
+.form-control:is(
+  [type=&quot;file&quot;],
+  [type=&quot;date&quot;],
+  [type=&quot;datetime-local&quot;],
+  [type=&quot;month&quot;],
+  [type=&quot;week&quot;],
+  [type=&quot;color&quot;]
+) {
+  height: calc(12px + 2 * var(--control-spacing, 12px));
+  min-height: calc(12px + 2 * var(--control-spacing, 12px));
+  line-height: 18px;
+}
+.form-control:is(
+  [type=&quot;date&quot;],
+  [type=&quot;datetime-local&quot;],
+  [type=&quot;month&quot;],
+  [type=&quot;week&quot;]
+) {
+  padding-inline: var(--control-spacing, 12px);
+}
+
+.form-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+.form-control[type=&quot;file&quot;] {
+  overflow: hidden;
+  cursor: var(--cursor-interaction, pointer);
+  padding: 0;
+}
+
+.form-control[type=&quot;file&quot;]::file-selector-button {
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--input);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: inherit;
+  font: inherit;
+  min-height: calc(10px + 2 * var(--control-spacing, 12px));
+  padding-inline: var(--control-spacing, 12px);
+  margin-inline-end: var(--control-spacing, 12px);
+}
+
+.form-control[type=&quot;file&quot;]:not(:disabled):hover::file-selector-button {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-control-color[type=&quot;color&quot;] {
+  width: 40px;
+  height: calc(12px + 2 * var(--control-spacing, 12px));
+  padding: 3px;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 4px);
+  corner-shape: var(--corner-shape);
+}
+
+textarea.form-control {
+  height: auto;
+  resize: vertical;
+  min-height: 96px;
+  padding: 8px 10px;
+}
+
+.form-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: none;
+}
+.form-control:disabled {
+  color: var(--muted-foreground);
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  opacity: 1;
+}
+.form-control[aria-invalid=&quot;true&quot;] {
+  border-color: var(--red);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--red) 20%, transparent);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  cursor: not-allowed;
+}
+
+.form-select {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: fit-content;
+  min-height: calc(12px + 2 * var(--control-spacing, 12px));
+  margin: 0;
+  /* The secondary icon role is 14px at compact density and 16px at web density. */
+  --icon-size: calc(10px + var(--control-spacing, 12px) / 2);
+  /* Settings dropdowns retain a 12px inset and a 4px text-to-chevron gap. */
+  padding: 0 calc(16px + var(--icon-size)) 0 12px;
+  outline: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  corner-shape: var(--corner-shape);
+  color: var(--foreground);
+  background-color: var(--secondary);
+  background-image:
+    linear-gradient(
+      45deg,
+      transparent calc(50% - 0.6px),
+      var(--muted-foreground) calc(50% - 0.6px) calc(50% + 0.6px),
+      transparent calc(50% + 0.6px)
+    ),
+    linear-gradient(
+      135deg,
+      transparent calc(50% - 0.6px),
+      var(--muted-foreground) calc(50% - 0.6px) calc(50% + 0.6px),
+      transparent calc(50% + 0.6px)
+    );
+  background-position:
+    calc(100% - 12px - var(--icon-size) / 2) 50%,
+    calc(100% - 12px - var(--icon-size) * 0.18) 50%;
+  background-repeat: no-repeat;
+  background-size: calc(var(--icon-size) * 0.32) calc(var(--icon-size) * 0.32);
+  cursor: var(--cursor-interaction, default);
+  font-size: calc(var(--font-size-base) * 14 / 16);
+  font-size: round(nearest, calc(var(--font-size-base) * 14 / 16), 1px);
+  font-weight: var(--font-weight-normal);
+  line-height: 18px;
+}
+
+.form-select option {
+  color: var(--popover-foreground);
+  background-color: var(--popover);
+}
+
+.form-select:not(:disabled):hover {
+  background-color: light-dark(
+    color-mix(in srgb, var(--foreground) 5.5%, transparent),
+    color-mix(in srgb, var(--foreground) 8%, transparent)
+  );
+}
+
+.form-select:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+.form-select:disabled {
+  opacity: 0.4;
+}
+
+.form-check {
+  display: flex;
+  min-height: calc(12px + 2 * var(--control-spacing, 12px));
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--input);
+  color: var(--primary-foreground);
+  background-color: transparent;
+  cursor: var(--cursor-interaction, default);
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;] {
+  corner-shape: round;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  width: calc(10px + var(--control-spacing, 12px) / 2);
+  height: calc(10px + var(--control-spacing, 12px) / 2);
+  border-color: var(--border-strong, var(--input));
+  border-radius: calc(var(--radius-sm) / 2);
+  background-color: transparent;
+  color: var(--foreground);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input:not(:disabled):not(:checked):hover {
+  background-color: var(--card);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type=&quot;checkbox&quot;]:is(:checked, :indeterminate) {
+  border-color: var(--border-strong, var(--input));
+  background-color: color-mix(in srgb, var(--popover) 96%, transparent);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type=&quot;checkbox&quot;]:checked::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-foreground);
+  content: &quot;&quot;;
+  mask: var(--checkmark-image) center / 12px 12px no-repeat;
+  background-color: var(--foreground);
+}
+.form-check:not(.form-switch)
+  .form-check-input[type=&quot;checkbox&quot;]:indeterminate::before {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 65%;
+  height: 6.65%;
+  margin: auto;
+  border-radius: var(--radius-full);
+  background: var(--foreground);
+  mask: none;
+  content: &quot;&quot;;
+}
+
+.form-check-input[type=&quot;radio&quot;] {
+  border-radius: var(--radius-full);
+  width: 16px;
+  height: 16px;
+  border: 0;
+  box-shadow: inset 0 0 0 1px var(--input);
+}
+
+.form-check-input[type=&quot;radio&quot;]:checked {
+  border: 0;
+  background: radial-gradient(
+    circle,
+    var(--primary-foreground) 0 3px,
+    var(--foreground) 3px
+  );
+  box-shadow: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;]:focus-visible {
+  border-color: var(--ring);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+}
+.form-check:not(.form-switch) .form-check-input[type=&quot;radio&quot;]:disabled,
+.form-check:not(.form-switch)
+  .form-check-input[type=&quot;radio&quot;]:disabled
+  + .form-check-label {
+  opacity: 0.5;
+}
+
+.form-switch .form-check-input:disabled,
+.form-switch .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-check-label {
+  color: var(--foreground);
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-switch .form-check-input {
+  position: relative;
+  width: 32px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  box-shadow: none;
+  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+  content: &quot;&quot;;
+  transform: translate(2px, -50%);
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+  border-color: #fff;
+  background: #fff;
+}
+
+.form-switch .form-check-input:checked {
+  background: var(--blue);
+}
+
+.form-switch .form-check-input:checked::before {
+  transform: translate(14px, -50%);
+}
+
+.form-switch .form-check-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+  outline: none;
+}
+
+.form-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  accent-color: var(--primary);
+  height: calc(12px + 2 * var(--control-spacing, 12px));
+  min-height: calc(12px + 2 * var(--control-spacing, 12px));
+  outline: none;
+  border-radius: var(--radius-full);
+  color: var(--foreground);
+  background: transparent;
+}
+
+.form-range::-webkit-slider-runnable-track {
+  background: var(--form-range-track, var(--border));
+  height: 2px;
+  border-radius: var(--radius-full);
+}
+
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  margin-top: -9px;
+  border-color: transparent;
+  background: currentColor;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Outline the native track and thumb, preserving the larger input hit area. */
+.form-range:focus-visible::-webkit-slider-runnable-track {
+  outline: 2px auto Highlight;
+  outline-color: -webkit-focus-ring-color;
+}
+
+.form-range::-moz-range-track {
+  background: var(--form-range-track, var(--border));
+  height: 2px;
+  border-radius: var(--radius-full);
+}
+
+.form-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  border-color: transparent;
+  background: currentColor;
+  box-shadow: var(--shadow-sm);
+}
+
+.form-range:focus-visible::-moz-range-thumb {
+  outline: 2px solid Highlight;
+  outline-offset: 2px;
+}
+
+.form-range:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.btn:not(.btn-primary, .viz-tile):is(
+  [aria-pressed=&quot;true&quot;],
+  [aria-selected=&quot;true&quot;],
+  .is-selected
+) {
+  border-color: transparent;
+  color: var(--primary-foreground);
+  background: var(--blue);
+}
+
+.btn.viz-tile:is([aria-pressed=&quot;true&quot;], [aria-selected=&quot;true&quot;], .is-selected) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.btn:focus-visible,
+.nav-link:focus-visible {
+  outline-offset: 2px;
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.viz-carousel-controls :is(button, summary):focus-visible {
+  outline: 2px solid var(--ring) !important;
+  outline-offset: 2px !important;
+}
+
+/* Web recipes are the default, including on renderers without inline style queries. */
+@supports (border-radius: if(style(--corner-shape: round): 1px; else: 2px)) {
+  /* Match the host&#x27;s proportional text-sm scale at every text preference. */
+  .tooltip,
+  .viz-badge,
+  .btn,
+  .nav-link,
+  .form-control,
+  .form-select {
+    font-size: if(
+      style(--corner-shape: round): round(
+          nearest,
+          calc(var(--font-size-base) * 14 / 16),
+          1px
+        );
+        else: round(nearest, calc(var(--font-size-base) * 13 / 14), 1px)
+    );
+  }
+
+  .btn,
+  .nav-link,
+  .form-select {
+    border-radius: if(
+      style(--corner-shape: round): var(--radius-full); else: var(--radius-lg)
+    );
+  }
+
+  .form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;] {
+    border-radius: if(
+      style(--corner-shape: round): calc(var(--radius-sm) / 2);
+        else: calc(var(--radius-lg) * 0.4)
+    );
+  }
+
+  .tooltip {
+    font-weight: if(
+      style(--corner-shape: round): 600; else: var(--font-weight-normal)
+    );
+  }
+}
+
+@media (pointer: coarse) {
+  .viz-carousel:has(&gt; .viz-carousel-controls) {
+    min-height: calc(76px + var(--viz-carousel-picker-height, 0px));
+    padding-bottom: 76px;
+  }
+
+  .btn,
+  .nav-link,
+  .viz-carousel-controls button,
+  .viz-carousel-picker &gt; summary,
+  .form-control,
+  .form-select {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Keep small-screen WebKit from zooming when a text field receives focus. */
+  .form-control,
+  .form-select {
+    font-size: max(16px, calc(var(--font-size-base) * 14 / 16));
+    font-size: max(
+      16px,
+      round(nearest, calc(var(--font-size-base) * 14 / 16), 1px)
+    );
+  }
+  .form-control:is(
+    [type=&quot;file&quot;],
+    [type=&quot;date&quot;],
+    [type=&quot;datetime-local&quot;],
+    [type=&quot;month&quot;],
+    [type=&quot;week&quot;],
+    [type=&quot;time&quot;],
+    [type=&quot;color&quot;]
+  ) {
+    height: 44px;
+    min-height: 44px;
+    font-size: max(16px, calc(var(--font-size-base) * 14 / 16));
+    font-size: max(
+      16px,
+      round(nearest, calc(var(--font-size-base) * 14 / 16), 1px)
+    );
+  }
+
+  .form-control[type=&quot;file&quot;]::file-selector-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .form-control-color[type=&quot;color&quot;] {
+    width: 44px;
+    height: 44px;
+  }
+
+  .form-control:is(
+    [type=&quot;date&quot;],
+    [type=&quot;datetime-local&quot;],
+    [type=&quot;month&quot;],
+    [type=&quot;time&quot;],
+    [type=&quot;week&quot;]
+  ) {
+    min-width: 0;
+    max-width: 100%;
+    padding-block: 8px;
+  }
+
+  .form-check {
+    min-height: 44px;
+    padding-inline: 15px;
+  }
+
+  .form-check-input {
+    position: relative;
+  }
+
+  .form-check-input::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    content: &quot;&quot;;
+    transform: translate(-50%, -50%);
+  }
+
+  .form-check-label {
+    display: inline-flex;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .form-range {
+    height: 44px;
+    touch-action: pan-y;
+  }
+}
+
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#widget &gt; svg {
+  width: 100%;
+}
+
+/* Model-authored chart rules can otherwise stretch icons after these styles load. */
+svg.lucide {
+  display: block;
+  width: var(--icon-size) !important;
+  height: var(--icon-size) !important;
+  flex: none;
+  margin: 0 !important;
+  stroke-width: 1.6;
+}
+
+.text-warning,
+.text-destructive {
+  color: var(--destructive);
+}
+
+html&gt;body{padding:0}&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;script type=&quot;application/json&quot; id=&quot;codex-visualization-widget-state&quot;&gt;__CODEX_VISUALIZATION_WIDGET_STATE__&lt;/script&gt;
+&lt;script&gt;(() =&gt; {
+  const root = document.documentElement;
+  const mediaQuery = globalThis.matchMedia(&quot;(prefers-color-scheme: dark)&quot;);
+  const apply = Reflect.apply;
+  const isArray = Array.isArray;
+  const hasOwn = Object.hasOwn;
+  const parentWindow = globalThis.parent;
+  const stringify = JSON.stringify;
+  const parse = JSON.parse;
+  const encode = TextEncoder.prototype.encode.bind(new TextEncoder());
+  const initialStateElement = document.getElementById(
+    &quot;codex-visualization-widget-state&quot;,
+  );
+  const initialGlobals = parse(initialStateElement?.textContent ?? &quot;{}&quot;);
+  initialStateElement?.remove();
+  /** @type {Record&lt;string, unknown&gt; | null} */
+  let state = initialGlobals.widgetState ?? null;
+  const statePersistence = initialGlobals.statePersistence ?? &quot;none&quot;;
+  let nextStateRequestId = 0;
+  /** @type {Map&lt;number, { resolve: () =&gt; void; reject: (error: Error) =&gt; void; timeout: ReturnType&lt;typeof globalThis.setTimeout&gt;; serializedState: string }&gt;} */
+  const pendingStateWrites = new Map();
+  const persistenceError = () =&gt;
+    Object.assign(
+      new Error(&quot;The host could not persist the widget state update&quot;),
+      {
+        code: -32000,
+        data: { code: &quot;widget_state_persistence_failed&quot;, retryable: false },
+      },
+    );
+  /**
+   * @param {object} prototype
+   * @param {string} property
+   */
+  const getPrototypeGetter = (prototype, property) =&gt; {
+    // oxlint-disable-next-line typescript/unbound-method -- invoked through captured Reflect.apply
+    const getter = Object.getOwnPropertyDescriptor(prototype, property)?.get;
+    if (getter == null) {
+      throw new Error(`Missing ${property} getter`);
+    }
+    return getter;
+  };
+  const getMessageData = getPrototypeGetter(MessageEvent.prototype, &quot;data&quot;);
+  const getMessagePorts = getPrototypeGetter(MessageEvent.prototype, &quot;ports&quot;);
+  const getMessageSource = getPrototypeGetter(MessageEvent.prototype, &quot;source&quot;);
+  // oxlint-disable-next-line typescript/unbound-method -- captured before the untrusted fragment runs
+  const addHostMessageListener = MessagePort.prototype.addEventListener;
+  // oxlint-disable-next-line typescript/unbound-method -- captured before the untrusted fragment runs
+  const postHostMessage = MessagePort.prototype.postMessage;
+  // oxlint-disable-next-line typescript/unbound-method -- captured before the untrusted fragment runs
+  const startHostPort = MessagePort.prototype.start;
+  // oxlint-disable-next-line typescript/unbound-method -- captured before the untrusted fragment runs
+  const stopMessagePropagation = Event.prototype.stopImmediatePropagation;
+  /** @type {MessagePort | null} */
+  let hostPort = null;
+  const postToHost = (type, payload) =&gt; {
+    if (hostPort != null) {
+      apply(postHostMessage, hostPort, [{ type, ...payload }]);
+    }
+  };
+  const openExternal = ({ href }) =&gt; {
+    if (globalThis.navigator.userActivation?.isActive === true) {
+      postToHost(&quot;open-external&quot;, { href });
+    }
+  };
+  const sendFollowUpMessage = ({ context, prompt, title }) =&gt; {
+    if (globalThis.navigator.userActivation?.isActive === true) {
+      postToHost(&quot;follow-up&quot;, { context, prompt, title });
+    }
+    return Promise.resolve();
+  };
+  /**
+   * @param {Record&lt;string, unknown&gt; | ((previous: Record&lt;string, unknown&gt; | null) =&gt; Record&lt;string, unknown&gt;)} next
+   * @returns {Promise&lt;void&gt;}
+   */
+  const setWidgetState = async (next) =&gt; {
+    const nextState = typeof next === &quot;function&quot; ? next(state) : next;
+    if (
+      nextState == null ||
+      typeof nextState !== &quot;object&quot; ||
+      isArray(nextState)
+    ) {
+      throw new TypeError(&quot;Widget state must be a JSON object&quot;);
+    }
+    const inputState = stringify(
+      nextState,
+      (_key, /** @type {unknown} */ value) =&gt; {
+        if (
+          typeof value === &quot;undefined&quot; ||
+          typeof value === &quot;function&quot; ||
+          typeof value === &quot;symbol&quot; ||
+          (typeof value === &quot;number&quot; &amp;&amp; !Number.isFinite(value))
+        ) {
+          throw new TypeError(&quot;Widget state must be a JSON object&quot;);
+        }
+        return value;
+      },
+    );
+    const parsedState = parse(inputState);
+    if (
+      parsedState == null ||
+      typeof parsedState !== &quot;object&quot; ||
+      isArray(parsedState)
+    ) {
+      throw new TypeError(&quot;Widget state must be a JSON object&quot;);
+    }
+    const storedState = {
+      modelContent: null,
+      privateContent: null,
+      ...parsedState,
+    };
+    const serializedState = stringify(storedState);
+    if (encode(serializedState).length &gt; 16 * 1024) {
+      throw new TypeError(
+        &quot;Widget state must be a JSON object of at most 16 KiB&quot;,
+      );
+    }
+    if (
+      hasOwn(storedState, &quot;imageIds&quot;) &amp;&amp;
+      (!isArray(storedState.imageIds) ||
+        storedState.imageIds.some(
+          (/** @type {unknown} */ id) =&gt; typeof id !== &quot;string&quot;,
+        ))
+    ) {
+      throw new TypeError(&quot;Widget state imageIds must be an array of strings&quot;);
+    }
+    if (storedState.imageIds?.length &gt; 0) {
+      throw Object.assign(
+        new TypeError(&quot;Visualization state does not support image attachments&quot;),
+        { code: -32602, data: { code: &quot;images_unsupported&quot; } },
+      );
+    }
+    state = storedState;
+    globalThis.openai.widgetState = state;
+    globalThis.dispatchEvent(
+      new CustomEvent(&quot;openai:set_globals&quot;, {
+        detail: { globals: { widgetState: state } },
+      }),
+    );
+    if (statePersistence === &quot;none&quot;) {
+      throw persistenceError();
+    }
+    const id = ++nextStateRequestId;
+    return new Promise((resolve, reject) =&gt; {
+      const timeout = globalThis.setTimeout(() =&gt; {
+        pendingStateWrites.delete(id);
+        reject(persistenceError());
+      }, 30_000);
+      pendingStateWrites.set(id, { resolve, reject, timeout, serializedState });
+      postToHost(&quot;widget-state-write&quot;, { id, state: serializedState });
+    });
+  };
+  const syncTheme = () =&gt; {
+    const theme = mediaQuery.matches ? &quot;dark&quot; : &quot;light&quot;;
+    root.dataset.theme = theme;
+    globalThis.openai = {
+      ...globalThis.openai,
+      openExternal,
+      sendFollowUpMessage,
+      setWidgetState,
+      theme,
+      visualizationStyleVariables: {},
+      visualizationTheme: theme,
+      widgetState: state,
+      statePersistence,
+      stateModelContext: &quot;none&quot;,
+    };
+    globalThis.dispatchEvent(
+      new CustomEvent(&quot;openai:set_globals&quot;, {
+        detail: { globals: globalThis.openai },
+      }),
+    );
+  };
+  const sendHeight = () =&gt; {
+    postToHost(&quot;height&quot;, {
+      height: Math.ceil(
+        Math.max(
+          document.body.scrollHeight,
+          document.body.getBoundingClientRect().height,
+        ),
+      ),
+    });
+  };
+
+  globalThis.addEventListener(
+    &quot;message&quot;,
+    (event) =&gt; {
+      const data = apply(getMessageData, event, []);
+      const ports = apply(getMessagePorts, event, []);
+      const source = apply(getMessageSource, event, []);
+      if (
+        hostPort != null ||
+        source !== parentWindow ||
+        typeof data !== &quot;object&quot; ||
+        data?.type !== &quot;codex-visualization-initialize&quot; ||
+        !isArray(ports) ||
+        ports.length !== 1
+      ) {
+        return;
+      }
+      apply(stopMessagePropagation, event, []);
+      const nextHostPort = ports[0];
+      try {
+        apply(addHostMessageListener, nextHostPort, [
+          &quot;message&quot;,
+          (event) =&gt; {
+            const data = apply(getMessageData, event, []);
+            if (typeof data === &quot;object&quot; &amp;&amp; data?.type === &quot;measure&quot;) {
+              sendHeight();
+            } else if (
+              typeof data === &quot;object&quot; &amp;&amp;
+              data?.type === &quot;widget-state-result&quot;
+            ) {
+              /** @type {unknown} */
+              const id = data.id;
+              if (typeof id !== &quot;number&quot;) {
+                return;
+              }
+              const pending = pendingStateWrites.get(id);
+              if (pending != null) {
+                pendingStateWrites.delete(id);
+                globalThis.clearTimeout(pending.timeout);
+                if (data.ok === true) {
+                  pending.resolve();
+                } else {
+                  pending.reject(persistenceError());
+                }
+              }
+            }
+          },
+        ]);
+        apply(startHostPort, nextHostPort, []);
+      } catch {
+        return;
+      }
+      hostPort = nextHostPort;
+      for (const [id, { serializedState }] of pendingStateWrites) {
+        postToHost(&quot;widget-state-write&quot;, { id, state: serializedState });
+      }
+      sendHeight();
+    },
+    { capture: true },
+  );
+  document.currentScript?.remove();
+  mediaQuery.addEventListener(&quot;change&quot;, syncTheme);
+  globalThis.addEventListener(&quot;click&quot;, (event) =&gt; {
+    if (event.defaultPrevented) {
+      return;
+    }
+    let element = null;
+    if (event.target instanceof globalThis.Element) {
+      element = event.target;
+    } else if (event.target instanceof globalThis.Node) {
+      element = event.target.parentElement;
+    }
+    const link = element?.closest(&quot;a[href]&quot;);
+    const href = link?.getAttribute(&quot;href&quot;);
+    if (href == null) {
+      return;
+    }
+    if (href.startsWith(&quot;#&quot;)) {
+      let id;
+      try {
+        id = decodeURIComponent(href.slice(1));
+      } catch {
+        return;
+      }
+      const target = id.length === 0 ? root : document.getElementById(id);
+      if (
+        target == null ||
+        globalThis.navigator.userActivation?.isActive !== true
+      ) {
+        return;
+      }
+      event.preventDefault();
+      postToHost(&quot;scroll-to&quot;, {
+        top: target.getBoundingClientRect().top + globalThis.scrollY,
+      });
+      return;
+    }
+    event.preventDefault();
+    openExternal({ href });
+  });
+  new ResizeObserver(sendHeight).observe(document.body);
+  syncTheme();
+})();
+&lt;/script&gt;
+&lt;div id=&quot;jarvis-hybrid-ui&quot;&gt;
+  &lt;style&gt;
+    #jarvis-hybrid-ui {
+      width: 100%;
+    }
+
+    #jarvis-hybrid-ui .jh-shell {
+      --jh-accent: #ff8a1f;
+      --jh-orb-size: 270px;
+      --jh-glow: 64%;
+      --jh-bg: #060708;
+      --jh-panel: #0d1117;
+      --jh-panel-2: #121923;
+      --jh-panel-3: #182231;
+      --jh-text: #f5f7fa;
+      --jh-muted: #8d99aa;
+      --jh-line: #243142;
+      --jh-green: #57d99b;
+      --jh-cyan: #54c9e8;
+      --jh-red: #ff6b67;
+      color-scheme: dark;
+      position: relative;
+      overflow: hidden;
+      min-height: 680px;
+      border: 1px solid var(--jh-line);
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at 50% 25%, color-mix(in srgb, var(--jh-accent) 7%, transparent), transparent 34%),
+        var(--jh-bg);
+      color: var(--jh-text);
+      box-shadow: 0 28px 72px rgba(0, 0, 0, .42);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;
+    }
+
+    #jarvis-hybrid-ui .jh-shell * {
+      box-sizing: border-box;
+    }
+
+    #jarvis-hybrid-ui .jh-shell button,
+    #jarvis-hybrid-ui .jh-shell input {
+      font: inherit;
+    }
+
+    #jarvis-hybrid-ui .jh-topbar {
+      position: relative;
+      z-index: 4;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      min-height: 64px;
+      align-items: center;
+      gap: 16px;
+      padding: 0 20px;
+      border-bottom: 1px solid rgba(141, 153, 170, .16);
+      background: rgba(6, 7, 8, .72);
+      backdrop-filter: blur(18px);
+    }
+
+    #jarvis-hybrid-ui .jh-brand,
+    #jarvis-hybrid-ui .jh-nav,
+    #jarvis-hybrid-ui .jh-top-actions,
+    #jarvis-hybrid-ui .jh-status-row,
+    #jarvis-hybrid-ui .jh-composer,
+    #jarvis-hybrid-ui .jh-pipeline,
+    #jarvis-hybrid-ui .jh-legend,
+    #jarvis-hybrid-ui .jh-message-meta {
+      display: flex;
+      align-items: center;
+    }
+
+    #jarvis-hybrid-ui .jh-brand {
+      gap: 10px;
+      font-weight: 500;
+      letter-spacing: .02em;
+    }
+
+    #jarvis-hybrid-ui .jh-brand-core {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fff5c4 0 11%, #ffd35a 12% 26%, var(--jh-accent) 27% 58%, transparent 60%);
+      box-shadow: 0 0 20px color-mix(in srgb, var(--jh-accent) 70%, transparent);
+    }
+
+    #jarvis-hybrid-ui .jh-nav {
+      gap: 5px;
+      padding: 4px;
+      border-radius: 12px;
+      background: rgba(18, 25, 35, .72);
+    }
+
+    #jarvis-hybrid-ui .jh-nav-button,
+    #jarvis-hybrid-ui .jh-icon-button,
+    #jarvis-hybrid-ui .jh-action,
+    #jarvis-hybrid-ui .jh-orb-button,
+    #jarvis-hybrid-ui .jh-send,
+    #jarvis-hybrid-ui .jh-quick-action {
+      border: 0;
+      color: inherit;
+    }
+
+    #jarvis-hybrid-ui .jh-nav-button {
+      min-height: 36px;
+      padding: 0 13px;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--jh-muted);
+      font-size: 13px;
+    }
+
+    #jarvis-hybrid-ui .jh-nav-button[aria-selected=&quot;true&quot;] {
+      background: var(--jh-panel-3);
+      color: var(--jh-text);
+    }
+
+    #jarvis-hybrid-ui .jh-top-actions {
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    #jarvis-hybrid-ui .jh-icon-button,
+    #jarvis-hybrid-ui .jh-send {
+      display: inline-grid;
+      width: 40px;
+      height: 40px;
+      place-items: center;
+      border-radius: 11px;
+      background: var(--jh-panel-2);
+    }
+
+    #jarvis-hybrid-ui .jh-icon-button[aria-pressed=&quot;true&quot;] {
+      background: color-mix(in srgb, var(--jh-accent) 18%, var(--jh-panel-2));
+      color: var(--jh-accent);
+    }
+
+    #jarvis-hybrid-ui .jh-view {
+      min-height: 615px;
+    }
+
+    #jarvis-hybrid-ui .jh-view[hidden] {
+      display: none;
+    }
+
+    #jarvis-hybrid-ui .jh-home {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr) 250px;
+      gap: 26px;
+      align-items: stretch;
+      min-height: 615px;
+      padding: 28px;
+    }
+
+    #jarvis-hybrid-ui .jh-shell[data-home-diagnostics=&quot;false&quot;] .jh-home {
+      grid-template-columns: 1fr;
+    }
+
+    #jarvis-hybrid-ui .jh-core-stage {
+      display: grid;
+      min-width: 0;
+      place-items: center;
+      text-align: center;
+    }
+
+    #jarvis-hybrid-ui .jh-core-inner {
+      width: min(100%, 600px);
+    }
+
+    #jarvis-hybrid-ui .jh-kicker {
+      margin: 0 0 8px;
+      color: var(--jh-accent);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    #jarvis-hybrid-ui .jh-core-inner h1,
+    #jarvis-hybrid-ui .jh-core-inner p,
+    #jarvis-hybrid-ui .jh-panel-title h2,
+    #jarvis-hybrid-ui .jh-panel-title p {
+      margin: 0;
+    }
+
+    #jarvis-hybrid-ui .jh-core-inner h1 {
+      font-size: 25px;
+      font-weight: 500;
+    }
+
+    #jarvis-hybrid-ui .jh-core-inner &gt; p:not(.jh-kicker) {
+      margin-top: 7px;
+      color: var(--jh-muted);
+      font-size: 13px;
+    }
+
+    #jarvis-hybrid-ui .jh-orb-button {
+      position: relative;
+      display: grid;
+      width: var(--jh-orb-size);
+      height: var(--jh-orb-size);
+      margin: 26px auto 24px;
+      place-items: center;
+      border-radius: 50%;
+      background: transparent;
+      isolation: isolate;
+    }
+
+    #jarvis-hybrid-ui .jh-orb-glow,
+    #jarvis-hybrid-ui .jh-orb-ring,
+    #jarvis-hybrid-ui .jh-orb-core,
+    #jarvis-hybrid-ui .jh-orb-grid {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    #jarvis-hybrid-ui .jh-orb-glow {
+      inset: 5%;
+      z-index: -2;
+      background: radial-gradient(circle, color-mix(in srgb, var(--jh-accent) var(--jh-glow), transparent), transparent 67%);
+      filter: blur(18px);
+    }
+
+    #jarvis-hybrid-ui .jh-orb-grid {
+      inset: 16%;
+      opacity: .54;
+      background:
+        repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--jh-accent) 70%, transparent) 0 1deg, transparent 1deg 12deg),
+        repeating-radial-gradient(circle, transparent 0 12px, color-mix(in srgb, var(--jh-accent) 38%, transparent) 13px 14px);
+      mask: radial-gradient(circle, transparent 0 17%, #000 18% 72%, transparent 73%);
+    }
+
+    #jarvis-hybrid-ui .jh-orb-ring {
+      border: 1px solid color-mix(in srgb, var(--jh-accent) 72%, transparent);
+      box-shadow: inset 0 0 13px color-mix(in srgb, var(--jh-accent) 30%, transparent), 0 0 12px color-mix(in srgb, var(--jh-accent) 30%, transparent);
+    }
+
+    #jarvis-hybrid-ui .jh-ring-a {
+      inset: 8%;
+      border-width: 2px 1px 1px 2px;
+    }
+
+    #jarvis-hybrid-ui .jh-ring-b {
+      inset: 22%;
+      transform: rotate(34deg) scaleY(.66);
+      border-width: 1px 2px 2px 1px;
+    }
+
+    #jarvis-hybrid-ui .jh-ring-c {
+      inset: 29%;
+      transform: rotate(-42deg) scaleX(.68);
+    }
+
+    #jarvis-hybrid-ui .jh-orb-core {
+      inset: 38%;
+      background: radial-gradient(circle at 43% 40%, #ffffff 0 8%, #fff4b0 9% 23%, #ffc33a 24% 52%, var(--jh-accent) 53% 100%);
+      box-shadow:
+        0 0 20px #fff0a5,
+        0 0 52px color-mix(in srgb, var(--jh-accent) 85%, transparent),
+        0 0 90px color-mix(in srgb, var(--jh-accent) 52%, transparent);
+    }
+
+    #jarvis-hybrid-ui .jh-orb-state {
+      position: relative;
+      z-index: 2;
+      margin-top: calc(var(--jh-orb-size) + 24px);
+      color: var(--jh-text);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    #jarvis-hybrid-ui .jh-shell[data-voice-state=&quot;listening&quot;] .jh-ring-a,
+    #jarvis-hybrid-ui .jh-shell[data-voice-state=&quot;speaking&quot;] .jh-ring-c {
+      animation: jh-spin 7s linear infinite;
+    }
+
+    #jarvis-hybrid-ui .jh-shell[data-voice-state=&quot;thinking&quot;] .jh-ring-b {
+      animation: jh-spin-reverse 4s linear infinite;
+    }
+
+    #jarvis-hybrid-ui .jh-shell[data-voice-state=&quot;listening&quot;] .jh-orb-glow,
+    #jarvis-hybrid-ui .jh-shell[data-voice-state=&quot;speaking&quot;] .jh-orb-glow {
+      filter: blur(12px);
+    }
+
+    @keyframes jh-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes jh-spin-reverse {
+      from { transform: rotate(34deg) scaleY(.66); }
+      to { transform: rotate(-326deg) scaleY(.66); }
+    }
+
+    #jarvis-hybrid-ui .jh-status-row {
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    #jarvis-hybrid-ui .jh-pill {
+      display: inline-flex;
+      min-height: 28px;
+      align-items: center;
+      gap: 6px;
+      padding: 0 9px;
+      border: 1px solid rgba(141, 153, 170, .17);
+      border-radius: 999px;
+      background: rgba(18, 25, 35, .68);
+      color: var(--jh-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-hybrid-ui .jh-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--jh-green);
+      box-shadow: 0 0 8px color-mix(in srgb, var(--jh-green) 55%, transparent);
+    }
+
+    #jarvis-hybrid-ui .jh-composer {
+      gap: 8px;
+      width: min(100%, 560px);
+      margin: 0 auto;
+      padding: 8px;
+      border: 1px solid var(--jh-line);
+      border-radius: 15px;
+      background: var(--jh-panel);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, .24);
+    }
+
+    #jarvis-hybrid-ui .jh-input {
+      flex: 1;
+      min-width: 0;
+      min-height: 40px;
+      padding: 0 10px;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--jh-text);
+    }
+
+    #jarvis-hybrid-ui .jh-input::placeholder {
+      color: var(--jh-muted);
+    }
+
+    #jarvis-hybrid-ui .jh-send {
+      background: var(--jh-accent);
+      color: #15100a;
+    }
+
+    #jarvis-hybrid-ui .jh-side-status {
+      align-self: center;
+      padding: 16px;
+      border: 1px solid var(--jh-line);
+      border-radius: 15px;
+      background: rgba(13, 17, 23, .86);
+    }
+
+    #jarvis-hybrid-ui .jh-home-rail {
+      align-self: center;
+      padding: 16px;
+      border: 1px solid var(--jh-line);
+      border-radius: 15px;
+      background: rgba(13, 17, 23, .86);
+    }
+
+    #jarvis-hybrid-ui .jh-home-rail h2 {
+      margin: 0 0 14px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    #jarvis-hybrid-ui .jh-home-events {
+      display: grid;
+      gap: 10px;
+    }
+
+    #jarvis-hybrid-ui .jh-home-event {
+      display: grid;
+      grid-template-columns: 7px minmax(0, 1fr);
+      gap: 9px;
+      align-items: start;
+      color: var(--jh-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-hybrid-ui .jh-home-event i {
+      width: 7px;
+      height: 7px;
+      margin-top: 4px;
+      border-radius: 50%;
+      background: var(--jh-cyan);
+      box-shadow: 0 0 8px color-mix(in srgb, var(--jh-cyan) 50%, transparent);
+    }
+
+    #jarvis-hybrid-ui .jh-home-event strong,
+    #jarvis-hybrid-ui .jh-home-event span {
+      display: block;
+    }
+
+    #jarvis-hybrid-ui .jh-home-event strong {
+      margin-bottom: 2px;
+      color: var(--jh-text);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    #jarvis-hybrid-ui .jh-side-status h2 {
+      margin: 0 0 14px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    #jarvis-hybrid-ui .jh-status-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    #jarvis-hybrid-ui .jh-status-item {
+      display: grid;
+      gap: 4px;
+      padding: 10px;
+      border-radius: 11px;
+      background: var(--jh-panel-2);
+      font-size: 12px;
+    }
+
+    #jarvis-hybrid-ui .jh-status-item span:last-child {
+      color: var(--jh-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-hybrid-ui .jh-chat-view {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      min-height: 615px;
+      padding: 22px 28px 24px;
+    }
+
+    #jarvis-hybrid-ui .jh-panel-title {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--jh-line);
+    }
+
+    #jarvis-hybrid-ui .jh-panel-title h2 {
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    #jarvis-hybrid-ui .jh-panel-title p {
+      margin-top: 4px;
+      color: var(--jh-muted);
+      font-size: 12px;
+    }
+
+    #jarvis-hybrid-ui .jh-thread {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 13px;
+      width: min(100%, 720px);
+      margin: 0 auto;
+      padding: 24px 0;
+    }
+
+    #jarvis-hybrid-ui .jh-message {
+      max-width: 78%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: var(--jh-panel-2);
+      font-size: 14px;
+    }
+
+    #jarvis-hybrid-ui .jh-message.user {
+      align-self: flex-end;
+      background: color-mix(in srgb, var(--jh-accent) 17%, var(--jh-panel-2));
+    }
+
+    #jarvis-hybrid-ui .jh-message-meta {
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+      color: var(--jh-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-hybrid-ui .jh-memory-view {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      min-height: 615px;
+      padding: 22px 28px 24px;
+    }
+
+    #jarvis-hybrid-ui .jh-memory-layout {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: 16px;
+      min-height: 0;
+      padding-top: 16px;
+    }
+
+    #jarvis-hybrid-ui .jh-memory-index {
+      padding: 14px;
+      border: 1px solid var(--jh-line);
+      border-radius: 13px;
+      background: var(--jh-panel);
+    }
+
+    #jarvis-hybrid-ui .jh-memory-index h3,
+    #jarvis-hybrid-ui .jh-memory-detail h3 {
+      margin: 0 0 11px;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    #jarvis-hybrid-ui .jh-memory-buttons {
+      display: grid;
+      gap: 6px;
+    }
+
+    #jarvis-hybrid-ui .jh-memory-button {
+      display: flex;
+      min-height: 42px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 0 10px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--jh-muted);
+      text-align: left;
+    }
+
+    #jarvis-hybrid-ui .jh-memory-button[aria-pressed=&quot;true&quot;] {
+      background: var(--jh-panel-3);
+      color: var(--jh-text);
+    }
+
+    #jarvis-hybrid-ui .jh-memory-count {
+      color: var(--jh-cyan);
+      font-size: 10px;
+    }
+
+    #jarvis-hybrid-ui .jh-memory-detail {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--jh-line);
+      color: var(--jh-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-hybrid-ui .jh-memory-detail strong {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--jh-text);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    #jarvis-hybrid-ui .jh-graph-wrap {
+      min-height: 480px;
+      padding: 10px;
+      border: 1px solid var(--jh-line);
+      border-radius: 13px;
+      background:
+        radial-gradient(circle at 52% 48%, rgba(84, 201, 232, .07), transparent 31%),
+        var(--jh-bg);
+    }
+
+    #jarvis-hybrid-ui .jh-knowledge-graph {
+      display: block;
+      width: 100%;
+      height: auto;
+      min-height: 440px;
+    }
+
+    #jarvis-hybrid-ui .jh-knowledge-graph .jh-edge {
+      stroke: rgba(84, 201, 232, .25);
+      stroke-width: 1.3;
+    }
+
+    #jarvis-hybrid-ui .jh-knowledge-graph .jh-edge.strong {
+      stroke: rgba(255, 138, 31, .42);
+      stroke-width: 1.8;
+    }
+
+    #jarvis-hybrid-ui .jh-knowledge-graph .jh-node circle {
+      fill: #182231;
+      stroke: rgba(84, 201, 232, .72);
+      stroke-width: 2;
+    }
+
+    #jarvis-hybrid-ui .jh-knowledge-graph .jh-node[data-kind=&quot;core&quot;] circle {
+      fill: color-mix(in srgb, var(--jh-accent) 24%, #182231);
+      stroke: var(--jh-accent);
+    }
+
+    #jarvis-hybrid-ui .jh-knowledge-graph .jh-node[data-kind=&quot;study&quot;] circle {
+      fill: rgba(87, 217, 155, .16);
+      stroke: var(--jh-green);
+    }
+
+    #jarvis-hybrid-ui .jh-knowledge-graph .jh-node text {
+      fill: var(--jh-text);
+      font-size: 12px;
+      font-weight: 500;
+      text-anchor: middle;
+    }
+
+    #jarvis-hybrid-ui .jh-knowledge-graph .jh-node .jh-sub-label {
+      fill: var(--jh-muted);
+      font-size: 10px;
+      font-weight: 400;
+    }
+
+    #jarvis-hybrid-ui .jh-knowledge-graph .jh-node.is-dimmed {
+      opacity: .28;
+    }
+
+    #jarvis-hybrid-ui .jh-knowledge-graph .jh-node.is-selected circle {
+      stroke-width: 4;
+      filter: drop-shadow(0 0 9px color-mix(in srgb, var(--jh-accent) 72%, transparent));
+    }
+
+    #jarvis-hybrid-ui .jh-system-view {
+      min-height: 615px;
+      padding: 20px;
+      background:
+        linear-gradient(rgba(84, 201, 232, .025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(84, 201, 232, .025) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    #jarvis-hybrid-ui .jh-system-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(260px, .75fr);
+      gap: 14px;
+      margin-top: 15px;
+    }
+
+    #jarvis-hybrid-ui .jh-module {
+      padding: 15px;
+      border: 1px solid var(--jh-line);
+      border-radius: 13px;
+      background: rgba(13, 17, 23, .92);
+    }
+
+    #jarvis-hybrid-ui .jh-module h3 {
+      margin: 0 0 13px;
+      color: var(--jh-cyan);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    #jarvis-hybrid-ui .jh-pipeline {
+      align-items: stretch;
+      gap: 6px;
+    }
+
+    #jarvis-hybrid-ui .jh-pipe-node {
+      display: grid;
+      flex: 1;
+      min-width: 0;
+      min-height: 84px;
+      place-items: center;
+      padding: 8px;
+      border: 1px solid color-mix(in srgb, var(--jh-cyan) 24%, var(--jh-line));
+      border-radius: 10px;
+      background: color-mix(in srgb, var(--jh-cyan) 6%, var(--jh-panel-2));
+      text-align: center;
+    }
+
+    #jarvis-hybrid-ui .jh-pipe-node strong,
+    #jarvis-hybrid-ui .jh-pipe-node span {
+      display: block;
+    }
+
+    #jarvis-hybrid-ui .jh-pipe-node strong {
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    #jarvis-hybrid-ui .jh-pipe-node span {
+      margin-top: 4px;
+      color: var(--jh-muted);
+      font-size: 10px;
+    }
+
+    #jarvis-hybrid-ui .jh-pipe-arrow {
+      display: grid;
+      place-items: center;
+      color: var(--jh-cyan);
+      opacity: .62;
+    }
+
+    #jarvis-hybrid-ui .jh-lower-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    #jarvis-hybrid-ui .jh-route-list,
+    #jarvis-hybrid-ui .jh-metric-list,
+    #jarvis-hybrid-ui .jh-privacy-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    #jarvis-hybrid-ui .jh-route-row,
+    #jarvis-hybrid-ui .jh-metric-row,
+    #jarvis-hybrid-ui .jh-privacy-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 36px;
+      padding: 0 9px;
+      border-radius: 9px;
+      background: var(--jh-panel-2);
+      font-size: 11px;
+    }
+
+    #jarvis-hybrid-ui .jh-route-row span:last-child,
+    #jarvis-hybrid-ui .jh-metric-row span:last-child {
+      color: var(--jh-cyan);
+    }
+
+    #jarvis-hybrid-ui .jh-privacy-row span:last-child {
+      color: var(--jh-green);
+    }
+
+    #jarvis-hybrid-ui .jh-event-log {
+      display: grid;
+      gap: 7px;
+    }
+
+    #jarvis-hybrid-ui .jh-event {
+      display: grid;
+      grid-template-columns: 54px 1fr;
+      gap: 10px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(141, 153, 170, .10);
+      color: var(--jh-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-hybrid-ui .jh-event:last-child {
+      border-bottom: 0;
+    }
+
+    #jarvis-hybrid-ui .jh-event time {
+      color: var(--jh-cyan);
+      font-variant-numeric: tabular-nums;
+    }
+
+    #jarvis-hybrid-ui .jh-legend {
+      gap: 12px;
+      margin-top: 12px;
+      color: var(--jh-muted);
+      font-size: 10px;
+    }
+
+    #jarvis-hybrid-ui .jh-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    #jarvis-hybrid-ui .jh-legend i {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--jh-green);
+    }
+
+    #jarvis-hybrid-ui .jh-legend span:nth-child(2) i {
+      background: var(--jh-cyan);
+    }
+
+    #jarvis-hybrid-ui .jh-legend span:nth-child(3) i {
+      background: var(--jh-accent);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #jarvis-hybrid-ui .jh-shell[data-voice-state] .jh-orb-ring {
+        animation: none;
+      }
+    }
+
+    @media (max-width: 780px) {
+      #jarvis-hybrid-ui .jh-shell {
+        min-height: 930px;
+      }
+
+      #jarvis-hybrid-ui .jh-topbar {
+        grid-template-columns: 1fr auto;
+      }
+
+      #jarvis-hybrid-ui .jh-nav {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        justify-self: stretch;
+        justify-content: center;
+        margin-bottom: 9px;
+      }
+
+      #jarvis-hybrid-ui .jh-home {
+        grid-template-columns: 1fr;
+      }
+
+      #jarvis-hybrid-ui .jh-memory-layout {
+        grid-template-columns: 1fr;
+      }
+
+      #jarvis-hybrid-ui .jh-memory-buttons {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      #jarvis-hybrid-ui .jh-side-status {
+        align-self: auto;
+      }
+
+      #jarvis-hybrid-ui .jh-system-grid,
+      #jarvis-hybrid-ui .jh-lower-grid {
+        grid-template-columns: 1fr;
+      }
+
+      #jarvis-hybrid-ui .jh-pipeline {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      #jarvis-hybrid-ui .jh-pipe-arrow {
+        display: none;
+      }
+    }
+
+    @media (max-width: 480px) {
+      #jarvis-hybrid-ui .jh-shell {
+        min-height: 990px;
+        border-radius: 13px;
+      }
+
+      #jarvis-hybrid-ui .jh-topbar {
+        padding: 8px 11px 0;
+      }
+
+      #jarvis-hybrid-ui .jh-top-actions .jh-icon-button:first-child {
+        display: none;
+      }
+
+      #jarvis-hybrid-ui .jh-nav-button {
+        flex: 1;
+        padding: 0 8px;
+      }
+
+      #jarvis-hybrid-ui .jh-home,
+      #jarvis-hybrid-ui .jh-chat-view,
+      #jarvis-hybrid-ui .jh-memory-view,
+      #jarvis-hybrid-ui .jh-system-view {
+        padding-left: 13px;
+        padding-right: 13px;
+      }
+
+      #jarvis-hybrid-ui .jh-orb-button {
+        transform: scale(.86);
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      #jarvis-hybrid-ui .jh-message {
+        max-width: 94%;
+      }
+
+      #jarvis-hybrid-ui .jh-pipeline {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      #jarvis-hybrid-ui .jh-memory-buttons {
+        grid-template-columns: 1fr;
+      }
+    }
+  &lt;/style&gt;
+
+  &lt;div class=&quot;jh-shell&quot; data-voice-state=&quot;ready&quot; aria-label=&quot;Jarvis hybrid desktop UI&quot;&gt;
+    &lt;header class=&quot;jh-topbar&quot;&gt;
+      &lt;div class=&quot;jh-brand&quot;&gt;&lt;span class=&quot;jh-brand-core&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;span&gt;Friday&lt;/span&gt;&lt;/div&gt;
+      &lt;nav class=&quot;jh-nav&quot; aria-label=&quot;Primary views&quot;&gt;
+        &lt;button class=&quot;jh-nav-button cursor-interaction&quot; type=&quot;button&quot; data-view-target=&quot;home&quot; aria-selected=&quot;true&quot;&gt;Home&lt;/button&gt;
+        &lt;button class=&quot;jh-nav-button cursor-interaction&quot; type=&quot;button&quot; data-view-target=&quot;chat&quot; aria-selected=&quot;false&quot;&gt;Chat&lt;/button&gt;
+        &lt;button class=&quot;jh-nav-button cursor-interaction&quot; type=&quot;button&quot; data-view-target=&quot;memory&quot; aria-selected=&quot;false&quot;&gt;Memory&lt;/button&gt;
+        &lt;button class=&quot;jh-nav-button cursor-interaction&quot; type=&quot;button&quot; data-view-target=&quot;system&quot; aria-selected=&quot;false&quot;&gt;System&lt;/button&gt;
+      &lt;/nav&gt;
+      &lt;div class=&quot;jh-top-actions&quot;&gt;
+        &lt;button class=&quot;jh-icon-button cursor-interaction&quot; type=&quot;button&quot; data-mute aria-pressed=&quot;false&quot; aria-label=&quot;Mute Friday&quot;&gt;&lt;i data-lucide=&quot;volume-2&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+        &lt;button class=&quot;jh-icon-button cursor-interaction&quot; type=&quot;button&quot; aria-label=&quot;Settings&quot;&gt;&lt;i data-lucide=&quot;settings&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/header&gt;
+
+    &lt;main&gt;
+      &lt;section class=&quot;jh-view jh-home&quot; data-view=&quot;home&quot; aria-label=&quot;Home voice view&quot;&gt;
+        &lt;aside class=&quot;jh-home-rail&quot; data-home-diagnostics aria-label=&quot;Recent assistant activity&quot;&gt;
+          &lt;h2&gt;Core activity&lt;/h2&gt;
+          &lt;div class=&quot;jh-home-events&quot;&gt;
+            &lt;div class=&quot;jh-home-event&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;div&gt;&lt;strong&gt;Voice ready&lt;/strong&gt;&lt;span&gt;Microphone and local STT warmed&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+            &lt;div class=&quot;jh-home-event&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;div&gt;&lt;strong&gt;Route available&lt;/strong&gt;&lt;span&gt;OpenRouter → Gemini → Ollama&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+            &lt;div class=&quot;jh-home-event&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;div&gt;&lt;strong&gt;Memory loaded&lt;/strong&gt;&lt;span&gt;12 facts · recent conversation&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+            &lt;div class=&quot;jh-home-event&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;div&gt;&lt;strong&gt;Language ready&lt;/strong&gt;&lt;span&gt;English · Sinhala · Tamil&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/aside&gt;
+        &lt;div class=&quot;jh-core-stage&quot;&gt;
+          &lt;div class=&quot;jh-core-inner&quot;&gt;
+            &lt;p class=&quot;jh-kicker&quot;&gt;Voice core online&lt;/p&gt;
+            &lt;h1 data-state-title&gt;Ready when you are&lt;/h1&gt;
+            &lt;p data-state-detail&gt;Press the core or use your push-to-talk key&lt;/p&gt;
+
+            &lt;button class=&quot;jh-orb-button cursor-interaction&quot; type=&quot;button&quot; data-voice-cycle aria-label=&quot;Talk to Friday&quot;&gt;
+              &lt;span class=&quot;jh-orb-glow&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;
+              &lt;span class=&quot;jh-orb-grid&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;
+              &lt;span class=&quot;jh-orb-ring jh-ring-a&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;
+              &lt;span class=&quot;jh-orb-ring jh-ring-b&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;
+              &lt;span class=&quot;jh-orb-ring jh-ring-c&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;
+              &lt;span class=&quot;jh-orb-core&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;
+              &lt;span class=&quot;jh-orb-state&quot; data-orb-state&gt;Talk&lt;/span&gt;
+            &lt;/button&gt;
+
+            &lt;div class=&quot;jh-status-row&quot; aria-label=&quot;Privacy and route status&quot;&gt;
+              &lt;span class=&quot;jh-pill&quot;&gt;&lt;span class=&quot;jh-dot&quot;&gt;&lt;/span&gt;Audio local&lt;/span&gt;
+              &lt;span class=&quot;jh-pill&quot;&gt;English · Sinhala · Tamil&lt;/span&gt;
+              &lt;span class=&quot;jh-pill&quot;&gt;Text route: OpenRouter&lt;/span&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;jh-composer&quot;&gt;
+              &lt;input class=&quot;jh-input&quot; type=&quot;text&quot; aria-label=&quot;Message Friday&quot; placeholder=&quot;Type instead…&quot;&gt;
+              &lt;button class=&quot;jh-icon-button cursor-interaction&quot; type=&quot;button&quot; aria-label=&quot;Stop current response&quot;&gt;&lt;i data-lucide=&quot;square&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+              &lt;button class=&quot;jh-send cursor-interaction&quot; type=&quot;button&quot; aria-label=&quot;Send message&quot;&gt;&lt;i data-lucide=&quot;arrow-up&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;aside class=&quot;jh-side-status&quot; data-home-diagnostics aria-label=&quot;Current assistant status&quot;&gt;
+          &lt;h2&gt;Now&lt;/h2&gt;
+          &lt;div class=&quot;jh-status-list&quot;&gt;
+            &lt;div class=&quot;jh-status-item&quot;&gt;&lt;span&gt;Microphone&lt;/span&gt;&lt;span&gt;Default input · ready&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;jh-status-item&quot;&gt;&lt;span&gt;Speech recognition&lt;/span&gt;&lt;span&gt;faster-whisper · local&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;jh-status-item&quot;&gt;&lt;span&gt;Voice&lt;/span&gt;&lt;span&gt;Friday · Kokoro Emma&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;jh-status-item&quot;&gt;&lt;span&gt;Memory&lt;/span&gt;&lt;span&gt;Local · 12 remembered facts&lt;/span&gt;&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/aside&gt;
+      &lt;/section&gt;
+
+      &lt;section class=&quot;jh-view jh-chat-view&quot; data-view=&quot;chat&quot; aria-label=&quot;Conversation view&quot; hidden&gt;
+        &lt;div class=&quot;jh-panel-title&quot;&gt;
+          &lt;div&gt;&lt;h2&gt;Conversation&lt;/h2&gt;&lt;p&gt;Readable transcript with clear provider and language boundaries&lt;/p&gt;&lt;/div&gt;
+          &lt;span class=&quot;jh-pill&quot;&gt;&lt;span class=&quot;jh-dot&quot;&gt;&lt;/span&gt;Audio stays local&lt;/span&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;jh-thread&quot;&gt;
+          &lt;div class=&quot;jh-message&quot;&gt;&lt;div class=&quot;jh-message-meta&quot;&gt;&lt;span&gt;Friday&lt;/span&gt;&lt;span&gt;Local greeting&lt;/span&gt;&lt;/div&gt;Good evening. What would you like to work on?&lt;/div&gt;
+          &lt;div class=&quot;jh-message user&quot;&gt;&lt;div class=&quot;jh-message-meta&quot;&gt;&lt;span&gt;You · voice transcript&lt;/span&gt;&lt;span&gt;Sinhala&lt;/span&gt;&lt;/div&gt;Fourier series එක සරලව explain කරන්න.&lt;/div&gt;
+          &lt;div class=&quot;jh-message&quot;&gt;&lt;div class=&quot;jh-message-meta&quot;&gt;&lt;span&gt;Friday&lt;/span&gt;&lt;span&gt;OpenRouter · speaking locally&lt;/span&gt;&lt;/div&gt;Fourier series කියන්නේ periodic signal එකක් සරල sine සහ cosine තරංගවල එකතුවක් ලෙස ලියන ක්‍රමයක්.&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;jh-composer&quot;&gt;
+          &lt;button class=&quot;jh-icon-button cursor-interaction&quot; type=&quot;button&quot; data-voice-cycle aria-label=&quot;Talk to Friday&quot;&gt;&lt;i data-lucide=&quot;mic&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+          &lt;input class=&quot;jh-input&quot; type=&quot;text&quot; aria-label=&quot;Continue conversation&quot; placeholder=&quot;Continue the conversation…&quot;&gt;
+          &lt;button class=&quot;jh-send cursor-interaction&quot; type=&quot;button&quot; aria-label=&quot;Send message&quot;&gt;&lt;i data-lucide=&quot;arrow-up&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/section&gt;
+
+      &lt;section class=&quot;jh-view jh-memory-view&quot; data-view=&quot;memory&quot; aria-label=&quot;Memory graph view&quot; hidden&gt;
+        &lt;div class=&quot;jh-panel-title&quot;&gt;
+          &lt;div&gt;&lt;h2&gt;Memory&lt;/h2&gt;&lt;p&gt;A transparent map of what Friday remembers and how topics connect&lt;/p&gt;&lt;/div&gt;
+          &lt;span class=&quot;jh-pill&quot;&gt;&lt;span class=&quot;jh-dot&quot;&gt;&lt;/span&gt;Stored locally&lt;/span&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;jh-memory-layout&quot;&gt;
+          &lt;aside class=&quot;jh-memory-index&quot; aria-label=&quot;Memory groups&quot;&gt;
+            &lt;h3&gt;Memory groups&lt;/h3&gt;
+            &lt;div class=&quot;jh-memory-buttons&quot;&gt;
+              &lt;button class=&quot;jh-memory-button cursor-interaction&quot; type=&quot;button&quot; data-memory-key=&quot;core&quot; aria-pressed=&quot;true&quot;&gt;&lt;span&gt;Profile&lt;/span&gt;&lt;span class=&quot;jh-memory-count&quot;&gt;3&lt;/span&gt;&lt;/button&gt;
+              &lt;button class=&quot;jh-memory-button cursor-interaction&quot; type=&quot;button&quot; data-memory-key=&quot;study&quot; aria-pressed=&quot;false&quot;&gt;&lt;span&gt;Study&lt;/span&gt;&lt;span class=&quot;jh-memory-count&quot;&gt;4&lt;/span&gt;&lt;/button&gt;
+              &lt;button class=&quot;jh-memory-button cursor-interaction&quot; type=&quot;button&quot; data-memory-key=&quot;jarvis&quot; aria-pressed=&quot;false&quot;&gt;&lt;span&gt;Jarvis project&lt;/span&gt;&lt;span class=&quot;jh-memory-count&quot;&gt;5&lt;/span&gt;&lt;/button&gt;
+              &lt;button class=&quot;jh-memory-button cursor-interaction&quot; type=&quot;button&quot; data-memory-key=&quot;language&quot; aria-pressed=&quot;false&quot;&gt;&lt;span&gt;Languages&lt;/span&gt;&lt;span class=&quot;jh-memory-count&quot;&gt;3&lt;/span&gt;&lt;/button&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;jh-memory-detail&quot; aria-live=&quot;polite&quot;&gt;
+              &lt;h3&gt;Selected&lt;/h3&gt;
+              &lt;strong data-memory-title&gt;Profile&lt;/strong&gt;
+              &lt;span data-memory-detail&gt;High-level preferences and identity facts explicitly remembered by the user.&lt;/span&gt;
+            &lt;/div&gt;
+          &lt;/aside&gt;
+
+          &lt;div class=&quot;jh-graph-wrap&quot;&gt;
+            &lt;svg class=&quot;jh-knowledge-graph&quot; viewBox=&quot;0 0 700 440&quot; role=&quot;img&quot; aria-labelledby=&quot;jh-graph-title jh-graph-desc&quot;&gt;
+              &lt;title id=&quot;jh-graph-title&quot;&gt;Friday local memory connections&lt;/title&gt;
+              &lt;desc id=&quot;jh-graph-desc&quot;&gt;A network connecting the user profile, Jarvis project, university study, languages, and related remembered topics.&lt;/desc&gt;
+
+              &lt;g aria-hidden=&quot;true&quot;&gt;
+                &lt;line class=&quot;jh-edge strong&quot; x1=&quot;350&quot; y1=&quot;215&quot; x2=&quot;188&quot; y2=&quot;112&quot;&gt;&lt;/line&gt;
+                &lt;line class=&quot;jh-edge strong&quot; x1=&quot;350&quot; y1=&quot;215&quot; x2=&quot;520&quot; y2=&quot;110&quot;&gt;&lt;/line&gt;
+                &lt;line class=&quot;jh-edge strong&quot; x1=&quot;350&quot; y1=&quot;215&quot; x2=&quot;520&quot; y2=&quot;320&quot;&gt;&lt;/line&gt;
+                &lt;line class=&quot;jh-edge strong&quot; x1=&quot;350&quot; y1=&quot;215&quot; x2=&quot;180&quot; y2=&quot;325&quot;&gt;&lt;/line&gt;
+                &lt;line class=&quot;jh-edge&quot; x1=&quot;188&quot; y1=&quot;112&quot; x2=&quot;83&quot; y2=&quot;210&quot;&gt;&lt;/line&gt;
+                &lt;line class=&quot;jh-edge&quot; x1=&quot;188&quot; y1=&quot;112&quot; x2=&quot;292&quot; y2=&quot;64&quot;&gt;&lt;/line&gt;
+                &lt;line class=&quot;jh-edge&quot; x1=&quot;520&quot; y1=&quot;110&quot; x2=&quot;625&quot; y2=&quot;190&quot;&gt;&lt;/line&gt;
+                &lt;line class=&quot;jh-edge&quot; x1=&quot;520&quot; y1=&quot;110&quot; x2=&quot;430&quot; y2=&quot;48&quot;&gt;&lt;/line&gt;
+                &lt;line class=&quot;jh-edge&quot; x1=&quot;520&quot; y1=&quot;320&quot; x2=&quot;615&quot; y2=&quot;365&quot;&gt;&lt;/line&gt;
+                &lt;line class=&quot;jh-edge&quot; x1=&quot;520&quot; y1=&quot;320&quot; x2=&quot;425&quot; y2=&quot;385&quot;&gt;&lt;/line&gt;
+                &lt;line class=&quot;jh-edge&quot; x1=&quot;180&quot; y1=&quot;325&quot; x2=&quot;75&quot; y2=&quot;365&quot;&gt;&lt;/line&gt;
+                &lt;line class=&quot;jh-edge&quot; x1=&quot;180&quot; y1=&quot;325&quot; x2=&quot;275&quot; y2=&quot;390&quot;&gt;&lt;/line&gt;
+                &lt;line class=&quot;jh-edge&quot; x1=&quot;188&quot; y1=&quot;112&quot; x2=&quot;520&quot; y2=&quot;110&quot;&gt;&lt;/line&gt;
+                &lt;line class=&quot;jh-edge&quot; x1=&quot;180&quot; y1=&quot;325&quot; x2=&quot;520&quot; y2=&quot;320&quot;&gt;&lt;/line&gt;
+              &lt;/g&gt;
+
+              &lt;g class=&quot;jh-node&quot; data-graph-node=&quot;core&quot; data-kind=&quot;core&quot; transform=&quot;translate(350 215)&quot;&gt;&lt;circle r=&quot;47&quot;&gt;&lt;/circle&gt;&lt;text y=&quot;-2&quot;&gt;Profile&lt;/text&gt;&lt;text class=&quot;jh-sub-label&quot; y=&quot;16&quot;&gt;local memory&lt;/text&gt;&lt;/g&gt;
+              &lt;g class=&quot;jh-node&quot; data-graph-node=&quot;study&quot; data-kind=&quot;study&quot; transform=&quot;translate(188 112)&quot;&gt;&lt;circle r=&quot;40&quot;&gt;&lt;/circle&gt;&lt;text y=&quot;-2&quot;&gt;University&lt;/text&gt;&lt;text class=&quot;jh-sub-label&quot; y=&quot;16&quot;&gt;study topics&lt;/text&gt;&lt;/g&gt;
+              &lt;g class=&quot;jh-node&quot; data-graph-node=&quot;jarvis&quot; data-kind=&quot;core&quot; transform=&quot;translate(520 110)&quot;&gt;&lt;circle r=&quot;43&quot;&gt;&lt;/circle&gt;&lt;text y=&quot;-2&quot;&gt;Jarvis&lt;/text&gt;&lt;text class=&quot;jh-sub-label&quot; y=&quot;16&quot;&gt;project&lt;/text&gt;&lt;/g&gt;
+              &lt;g class=&quot;jh-node&quot; data-graph-node=&quot;language&quot; transform=&quot;translate(520 320)&quot;&gt;&lt;circle r=&quot;39&quot;&gt;&lt;/circle&gt;&lt;text y=&quot;-2&quot;&gt;Languages&lt;/text&gt;&lt;text class=&quot;jh-sub-label&quot; y=&quot;16&quot;&gt;EN · SI · TA&lt;/text&gt;&lt;/g&gt;
+              &lt;g class=&quot;jh-node&quot; data-graph-node=&quot;study&quot; data-kind=&quot;study&quot; transform=&quot;translate(180 325)&quot;&gt;&lt;circle r=&quot;38&quot;&gt;&lt;/circle&gt;&lt;text y=&quot;-2&quot;&gt;Study plan&lt;/text&gt;&lt;text class=&quot;jh-sub-label&quot; y=&quot;16&quot;&gt;schedule&lt;/text&gt;&lt;/g&gt;
+
+              &lt;g class=&quot;jh-node&quot; data-graph-node=&quot;study&quot; data-kind=&quot;study&quot; transform=&quot;translate(83 210)&quot;&gt;&lt;circle r=&quot;27&quot;&gt;&lt;/circle&gt;&lt;text y=&quot;4&quot;&gt;Algorithms&lt;/text&gt;&lt;/g&gt;
+              &lt;g class=&quot;jh-node&quot; data-graph-node=&quot;study&quot; data-kind=&quot;study&quot; transform=&quot;translate(292 64)&quot;&gt;&lt;circle r=&quot;25&quot;&gt;&lt;/circle&gt;&lt;text y=&quot;4&quot;&gt;Maths&lt;/text&gt;&lt;/g&gt;
+              &lt;g class=&quot;jh-node&quot; data-graph-node=&quot;jarvis&quot; transform=&quot;translate(625 190)&quot;&gt;&lt;circle r=&quot;28&quot;&gt;&lt;/circle&gt;&lt;text y=&quot;4&quot;&gt;Voice&lt;/text&gt;&lt;/g&gt;
+              &lt;g class=&quot;jh-node&quot; data-graph-node=&quot;jarvis&quot; transform=&quot;translate(430 48)&quot;&gt;&lt;circle r=&quot;27&quot;&gt;&lt;/circle&gt;&lt;text y=&quot;4&quot;&gt;Routing&lt;/text&gt;&lt;/g&gt;
+              &lt;g class=&quot;jh-node&quot; data-graph-node=&quot;language&quot; transform=&quot;translate(615 365)&quot;&gt;&lt;circle r=&quot;27&quot;&gt;&lt;/circle&gt;&lt;text y=&quot;4&quot;&gt;Sinhala&lt;/text&gt;&lt;/g&gt;
+              &lt;g class=&quot;jh-node&quot; data-graph-node=&quot;language&quot; transform=&quot;translate(425 385)&quot;&gt;&lt;circle r=&quot;25&quot;&gt;&lt;/circle&gt;&lt;text y=&quot;4&quot;&gt;Tamil&lt;/text&gt;&lt;/g&gt;
+              &lt;g class=&quot;jh-node&quot; data-graph-node=&quot;study&quot; transform=&quot;translate(75 365)&quot;&gt;&lt;circle r=&quot;24&quot;&gt;&lt;/circle&gt;&lt;text y=&quot;4&quot;&gt;Today&lt;/text&gt;&lt;/g&gt;
+              &lt;g class=&quot;jh-node&quot; data-graph-node=&quot;study&quot; transform=&quot;translate(275 390)&quot;&gt;&lt;circle r=&quot;26&quot;&gt;&lt;/circle&gt;&lt;text y=&quot;4&quot;&gt;Revision&lt;/text&gt;&lt;/g&gt;
+            &lt;/svg&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/section&gt;
+
+      &lt;section class=&quot;jh-view jh-system-view&quot; data-view=&quot;system&quot; aria-label=&quot;System dashboard&quot; hidden&gt;
+        &lt;div class=&quot;jh-panel-title&quot;&gt;
+          &lt;div&gt;&lt;h2&gt;System&lt;/h2&gt;&lt;p&gt;Advanced diagnostics—kept separate from the everyday assistant screen&lt;/p&gt;&lt;/div&gt;
+          &lt;span class=&quot;jh-pill&quot;&gt;&lt;span class=&quot;jh-dot&quot;&gt;&lt;/span&gt;All core services ready&lt;/span&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;jh-system-grid&quot;&gt;
+          &lt;div&gt;
+            &lt;section class=&quot;jh-module&quot; aria-label=&quot;Voice request pipeline&quot;&gt;
+              &lt;h3&gt;Live request pipeline&lt;/h3&gt;
+              &lt;div class=&quot;jh-pipeline&quot;&gt;
+                &lt;div class=&quot;jh-pipe-node&quot;&gt;&lt;div&gt;&lt;strong&gt;Mic&lt;/strong&gt;&lt;span&gt;capturing&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;span class=&quot;jh-pipe-arrow&quot;&gt;→&lt;/span&gt;
+                &lt;div class=&quot;jh-pipe-node&quot;&gt;&lt;div&gt;&lt;strong&gt;STT&lt;/strong&gt;&lt;span&gt;Whisper local&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;span class=&quot;jh-pipe-arrow&quot;&gt;→&lt;/span&gt;
+                &lt;div class=&quot;jh-pipe-node&quot;&gt;&lt;div&gt;&lt;strong&gt;Intent&lt;/strong&gt;&lt;span&gt;study explain&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;span class=&quot;jh-pipe-arrow&quot;&gt;→&lt;/span&gt;
+                &lt;div class=&quot;jh-pipe-node&quot;&gt;&lt;div&gt;&lt;strong&gt;LLM&lt;/strong&gt;&lt;span&gt;OpenRouter&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;span class=&quot;jh-pipe-arrow&quot;&gt;→&lt;/span&gt;
+                &lt;div class=&quot;jh-pipe-node&quot;&gt;&lt;div&gt;&lt;strong&gt;TTS&lt;/strong&gt;&lt;span&gt;Kokoro local&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;span class=&quot;jh-pipe-arrow&quot;&gt;→&lt;/span&gt;
+                &lt;div class=&quot;jh-pipe-node&quot;&gt;&lt;div&gt;&lt;strong&gt;Speaker&lt;/strong&gt;&lt;span&gt;streaming&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+              &lt;/div&gt;
+              &lt;div class=&quot;jh-legend&quot;&gt;&lt;span&gt;&lt;i&gt;&lt;/i&gt;Local&lt;/span&gt;&lt;span&gt;&lt;i&gt;&lt;/i&gt;Cloud text&lt;/span&gt;&lt;span&gt;&lt;i&gt;&lt;/i&gt;Active route&lt;/span&gt;&lt;/div&gt;
+            &lt;/section&gt;
+
+            &lt;div class=&quot;jh-lower-grid&quot;&gt;
+              &lt;section class=&quot;jh-module&quot; aria-label=&quot;Provider routes&quot;&gt;
+                &lt;h3&gt;Provider route&lt;/h3&gt;
+                &lt;div class=&quot;jh-route-list&quot;&gt;
+                  &lt;div class=&quot;jh-route-row&quot;&gt;&lt;span&gt;Selected&lt;/span&gt;&lt;span&gt;OpenRouter&lt;/span&gt;&lt;/div&gt;
+                  &lt;div class=&quot;jh-route-row&quot;&gt;&lt;span&gt;Fallback&lt;/span&gt;&lt;span&gt;Gemini&lt;/span&gt;&lt;/div&gt;
+                  &lt;div class=&quot;jh-route-row&quot;&gt;&lt;span&gt;Local option&lt;/span&gt;&lt;span&gt;Ollama&lt;/span&gt;&lt;/div&gt;
+                  &lt;div class=&quot;jh-route-row&quot;&gt;&lt;span&gt;Task class&lt;/span&gt;&lt;span&gt;Study&lt;/span&gt;&lt;/div&gt;
+                &lt;/div&gt;
+              &lt;/section&gt;
+              &lt;section class=&quot;jh-module&quot; aria-label=&quot;Turn timing&quot;&gt;
+                &lt;h3&gt;Example turn timing&lt;/h3&gt;
+                &lt;div class=&quot;jh-metric-list&quot;&gt;
+                  &lt;div class=&quot;jh-metric-row&quot;&gt;&lt;span&gt;Speech recognition&lt;/span&gt;&lt;span&gt;0.8 s&lt;/span&gt;&lt;/div&gt;
+                  &lt;div class=&quot;jh-metric-row&quot;&gt;&lt;span&gt;First model token&lt;/span&gt;&lt;span&gt;1.4 s&lt;/span&gt;&lt;/div&gt;
+                  &lt;div class=&quot;jh-metric-row&quot;&gt;&lt;span&gt;First audio&lt;/span&gt;&lt;span&gt;2.4 s&lt;/span&gt;&lt;/div&gt;
+                  &lt;div class=&quot;jh-metric-row&quot;&gt;&lt;span&gt;Total reply&lt;/span&gt;&lt;span&gt;5.8 s&lt;/span&gt;&lt;/div&gt;
+                &lt;/div&gt;
+              &lt;/section&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+
+          &lt;div&gt;
+            &lt;section class=&quot;jh-module&quot; aria-label=&quot;Privacy boundaries&quot;&gt;
+              &lt;h3&gt;Privacy boundary&lt;/h3&gt;
+              &lt;div class=&quot;jh-privacy-list&quot;&gt;
+                &lt;div class=&quot;jh-privacy-row&quot;&gt;&lt;span&gt;Raw microphone audio&lt;/span&gt;&lt;span&gt;Local&lt;/span&gt;&lt;/div&gt;
+                &lt;div class=&quot;jh-privacy-row&quot;&gt;&lt;span&gt;Speech recognition&lt;/span&gt;&lt;span&gt;Local&lt;/span&gt;&lt;/div&gt;
+                &lt;div class=&quot;jh-privacy-row&quot;&gt;&lt;span&gt;Memory file&lt;/span&gt;&lt;span&gt;Local&lt;/span&gt;&lt;/div&gt;
+                &lt;div class=&quot;jh-privacy-row&quot;&gt;&lt;span&gt;Prompt text&lt;/span&gt;&lt;span&gt;Cloud route&lt;/span&gt;&lt;/div&gt;
+                &lt;div class=&quot;jh-privacy-row&quot;&gt;&lt;span&gt;Voice synthesis&lt;/span&gt;&lt;span&gt;Local&lt;/span&gt;&lt;/div&gt;
+              &lt;/div&gt;
+            &lt;/section&gt;
+
+            &lt;section class=&quot;jh-module&quot; aria-label=&quot;Recent system events&quot; style=&quot;margin-top:14px&quot;&gt;
+              &lt;h3&gt;Recent events&lt;/h3&gt;
+              &lt;div class=&quot;jh-event-log&quot;&gt;
+                &lt;div class=&quot;jh-event&quot;&gt;&lt;time&gt;22:14:08&lt;/time&gt;&lt;span&gt;Voice turn completed normally&lt;/span&gt;&lt;/div&gt;
+                &lt;div class=&quot;jh-event&quot;&gt;&lt;time&gt;22:13:59&lt;/time&gt;&lt;span&gt;Provider route selected: study&lt;/span&gt;&lt;/div&gt;
+                &lt;div class=&quot;jh-event&quot;&gt;&lt;time&gt;22:13:57&lt;/time&gt;&lt;span&gt;Sinhala speech recognized&lt;/span&gt;&lt;/div&gt;
+                &lt;div class=&quot;jh-event&quot;&gt;&lt;time&gt;22:12:31&lt;/time&gt;&lt;span&gt;Memory written atomically&lt;/span&gt;&lt;/div&gt;
+              &lt;/div&gt;
+            &lt;/section&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/section&gt;
+    &lt;/main&gt;
+  &lt;/div&gt;
+
+  &lt;script&gt;
+    (() =&gt; {
+      const root = document.getElementById(&#x27;jarvis-hybrid-ui&#x27;);
+      if (!root) return;
+      const shell = root.querySelector(&#x27;.jh-shell&#x27;);
+      const navButtons = [...root.querySelectorAll(&#x27;[data-view-target]&#x27;)];
+      const views = [...root.querySelectorAll(&#x27;[data-view]&#x27;)];
+      const saved = window.openai?.widgetState?.privateContent;
+
+      const voiceStates = [
+        { key: &#x27;ready&#x27;, title: &#x27;Ready when you are&#x27;, detail: &#x27;Press the core or use your push-to-talk key&#x27;, orb: &#x27;Talk&#x27; },
+        { key: &#x27;listening&#x27;, title: &#x27;I’m listening&#x27;, detail: &#x27;Speak naturally · press the core again when finished&#x27;, orb: &#x27;Listening&#x27; },
+        { key: &#x27;thinking&#x27;, title: &#x27;Thinking&#x27;, detail: &#x27;Understanding the request and choosing the best route&#x27;, orb: &#x27;Working&#x27; },
+        { key: &#x27;speaking&#x27;, title: &#x27;Speaking&#x27;, detail: &#x27;Streaming sentences through the local voice engine&#x27;, orb: &#x27;Stop&#x27; }
+      ];
+
+      const ui = {
+        view: [&#x27;home&#x27;, &#x27;chat&#x27;, &#x27;memory&#x27;, &#x27;system&#x27;].includes(saved?.view) ? saved.view : &#x27;home&#x27;,
+        voiceIndex: Number.isInteger(saved?.voiceIndex) ? saved.voiceIndex % voiceStates.length : 0,
+        muted: Boolean(saved?.muted),
+        memoryNode: [&#x27;core&#x27;, &#x27;study&#x27;, &#x27;jarvis&#x27;, &#x27;language&#x27;].includes(saved?.memoryNode) ? saved.memoryNode : &#x27;core&#x27;
+      };
+
+      const memoryCopy = {
+        core: [&#x27;Profile&#x27;, &#x27;High-level preferences and identity facts explicitly remembered by the user.&#x27;],
+        study: [&#x27;Study&#x27;, &#x27;University subjects, revision topics, and the current study plan.&#x27;],
+        jarvis: [&#x27;Jarvis project&#x27;, &#x27;Voice, routing, model, and interface decisions connected to this assistant.&#x27;],
+        language: [&#x27;Languages&#x27;, &#x27;English, Sinhala, and Tamil preferences used for recognition and speech.&#x27;]
+      };
+
+      function persist() {
+        if (!window.openai?.setWidgetState) return;
+        window.openai.setWidgetState({
+          modelContent: { selectedJarvisView: ui.view, voiceState: voiceStates[ui.voiceIndex].key, muted: ui.muted },
+          privateContent: ui
+        }).catch(() =&gt; {});
+      }
+
+      function render() {
+        const voice = voiceStates[ui.voiceIndex];
+        shell.dataset.voiceState = voice.key;
+        navButtons.forEach(button =&gt; button.setAttribute(&#x27;aria-selected&#x27;, button.dataset.viewTarget === ui.view ? &#x27;true&#x27; : &#x27;false&#x27;));
+        views.forEach(view =&gt; { view.hidden = view.dataset.view !== ui.view; });
+        root.querySelectorAll(&#x27;[data-state-title]&#x27;).forEach(el =&gt; { el.textContent = voice.title; });
+        root.querySelectorAll(&#x27;[data-state-detail]&#x27;).forEach(el =&gt; { el.textContent = voice.detail; });
+        root.querySelectorAll(&#x27;[data-orb-state]&#x27;).forEach(el =&gt; { el.textContent = voice.orb; });
+        root.querySelectorAll(&#x27;[data-mute]&#x27;).forEach(button =&gt; {
+          button.setAttribute(&#x27;aria-pressed&#x27;, ui.muted ? &#x27;true&#x27; : &#x27;false&#x27;);
+          button.setAttribute(&#x27;aria-label&#x27;, ui.muted ? &#x27;Unmute Friday&#x27; : &#x27;Mute Friday&#x27;);
+        });
+        root.querySelectorAll(&#x27;[data-memory-key]&#x27;).forEach(button =&gt; {
+          button.setAttribute(&#x27;aria-pressed&#x27;, button.dataset.memoryKey === ui.memoryNode ? &#x27;true&#x27; : &#x27;false&#x27;);
+        });
+        const memoryText = memoryCopy[ui.memoryNode];
+        root.querySelectorAll(&#x27;[data-memory-title]&#x27;).forEach(el =&gt; { el.textContent = memoryText[0]; });
+        root.querySelectorAll(&#x27;[data-memory-detail]&#x27;).forEach(el =&gt; { el.textContent = memoryText[1]; });
+        root.querySelectorAll(&#x27;[data-graph-node]&#x27;).forEach(node =&gt; {
+          const selected = node.dataset.graphNode === ui.memoryNode;
+          node.classList.toggle(&#x27;is-selected&#x27;, selected);
+          node.classList.toggle(&#x27;is-dimmed&#x27;, !selected);
+        });
+      }
+
+      navButtons.forEach(button =&gt; {
+        button.addEventListener(&#x27;click&#x27;, () =&gt; {
+          ui.view = button.dataset.viewTarget;
+          render();
+          persist();
+        });
+      });
+
+      root.querySelectorAll(&#x27;[data-voice-cycle]&#x27;).forEach(button =&gt; {
+        button.addEventListener(&#x27;click&#x27;, () =&gt; {
+          ui.voiceIndex = (ui.voiceIndex + 1) % voiceStates.length;
+          render();
+          persist();
+        });
+      });
+
+      root.querySelectorAll(&#x27;[data-mute]&#x27;).forEach(button =&gt; {
+        button.addEventListener(&#x27;click&#x27;, () =&gt; {
+          ui.muted = !ui.muted;
+          render();
+          persist();
+        });
+      });
+
+      root.querySelectorAll(&#x27;[data-memory-key]&#x27;).forEach(button =&gt; {
+        button.addEventListener(&#x27;click&#x27;, () =&gt; {
+          ui.memoryNode = button.dataset.memoryKey;
+          render();
+          persist();
+        });
+      });
+
+      const design = { accent: &#x27;#ff8a1f&#x27;, orbSize: 270, glow: 64, showHomeDiagnostics: true };
+      function renderDesign() {
+        shell.style.setProperty(&#x27;--jh-accent&#x27;, design.accent);
+        shell.style.setProperty(&#x27;--jh-orb-size&#x27;, `${design.orbSize}px`);
+        shell.style.setProperty(&#x27;--jh-glow&#x27;, `${design.glow}%`);
+        shell.dataset.homeDiagnostics = design.showHomeDiagnostics ? &#x27;true&#x27; : &#x27;false&#x27;;
+        root.querySelectorAll(&#x27;[data-home-diagnostics]&#x27;).forEach(el =&gt; { el.hidden = !design.showHomeDiagnostics; });
+      }
+      renderDesign();
+
+      if (globalThis.Tweak) {
+        const tweak = new Tweak({ container: shell, onChange: renderDesign });
+        tweak.addColorPicker(design, &#x27;accent&#x27;, { label: &#x27;Core accent&#x27;, reference: &#x27;--jh-accent&#x27; });
+        tweak.addSlider(design, &#x27;orbSize&#x27;, { label: &#x27;Core size&#x27;, min: 190, max: 330, unit: &#x27;px&#x27;, reference: &#x27;--jh-orb-size&#x27; });
+        tweak.addSlider(design, &#x27;glow&#x27;, { label: &#x27;Core energy&#x27;, min: 25, max: 85, unit: &#x27;%&#x27;, reference: &#x27;--jh-glow&#x27; });
+        tweak.addToggle(design, &#x27;showHomeDiagnostics&#x27;, { label: &#x27;Show status panel&#x27;, reference: &#x27;home.diagnostics&#x27; });
+      }
+
+      window.addEventListener(&#x27;openai:set_globals&#x27;, event =&gt; {
+        const next = event.detail?.globals?.widgetState?.privateContent;
+        if (!next) return;
+        if ([&#x27;home&#x27;, &#x27;chat&#x27;, &#x27;memory&#x27;, &#x27;system&#x27;].includes(next.view)) ui.view = next.view;
+        if (Number.isInteger(next.voiceIndex)) ui.voiceIndex = next.voiceIndex % voiceStates.length;
+        ui.muted = Boolean(next.muted);
+        if ([&#x27;core&#x27;, &#x27;study&#x27;, &#x27;jarvis&#x27;, &#x27;language&#x27;].includes(next.memoryNode)) ui.memoryNode = next.memoryNode;
+        render();
+      });
+
+      render();
+    })();
+  &lt;/script&gt;
+&lt;/div&gt;
+
+&lt;script src=&quot;https://unpkg.com/@floating-ui/core@1.7.3/dist/floating-ui.core.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;https://unpkg.com/@floating-ui/dom@1.7.4/dist/floating-ui.dom.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  if (window.FloatingUIDOM == null) {
+    return;
+  }
+  const { autoUpdate, computePosition, flip, offset, shift, size } =
+    window.FloatingUIDOM;
+  const tooltipPlacements = new Set([&quot;top&quot;, &quot;right&quot;, &quot;bottom&quot;, &quot;left&quot;]);
+  const tooltipId = `codex-visualization-tooltip-${
+    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
+  }`;
+  const tooltipGap = 5;
+  const hoverDelay = 700;
+  const skipDelay = 300;
+  let activeTrigger = null;
+  let pendingTrigger = null;
+  let tooltip = null;
+  let openTimeout = null;
+  let autoUpdateCleanup = null;
+  let positionRequest = 0;
+  let skipDelayUntil = 0;
+  let lastPointerWasTouch = false;
+  let pinnedByTouch = false;
+
+  const getTrigger = (event) =&gt; {
+    for (const target of event.composedPath()) {
+      if (target?.nodeType === Node.ELEMENT_NODE) {
+        const trigger = target.closest(&quot;[data-tooltip]&quot;);
+        if (trigger) return trigger;
+      }
+    }
+    return null;
+  };
+  const containsTarget = (trigger, target) =&gt;
+    target?.nodeType != null &amp;&amp; trigger.contains(target);
+  const getContent = (trigger) =&gt;
+    trigger.getAttribute(&quot;data-tooltip&quot;)?.trim() ?? &quot;&quot;;
+  const getPlacement = (trigger) =&gt; {
+    const placement = trigger.getAttribute(&quot;data-tooltip-placement&quot;);
+    return tooltipPlacements.has(placement) ? placement : &quot;top&quot;;
+  };
+  const getTooltip = () =&gt; {
+    if (tooltip == null) {
+      tooltip = document.createElement(&quot;div&quot;);
+      tooltip.id = tooltipId;
+      tooltip.className = &quot;tooltip&quot;;
+      tooltip.setAttribute(&quot;role&quot;, &quot;tooltip&quot;);
+    }
+    return tooltip;
+  };
+  const setDescribedBy = (trigger, described) =&gt; {
+    const ids = new Set(
+      (trigger.getAttribute(&quot;aria-describedby&quot;) ?? &quot;&quot;)
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    if (described) {
+      ids.add(tooltipId);
+    } else {
+      ids.delete(tooltipId);
+    }
+    if (ids.size === 0) {
+      trigger.removeAttribute(&quot;aria-describedby&quot;);
+    } else {
+      trigger.setAttribute(&quot;aria-describedby&quot;, [...ids].join(&quot; &quot;));
+    }
+  };
+  const clearOpenTimeout = () =&gt; {
+    if (openTimeout != null) {
+      window.clearTimeout(openTimeout);
+      openTimeout = null;
+    }
+    pendingTrigger = null;
+  };
+  const closeTooltip = (activateSkipDelay = true) =&gt; {
+    clearOpenTimeout();
+    pinnedByTouch = false;
+    positionRequest += 1;
+    autoUpdateCleanup?.();
+    autoUpdateCleanup = null;
+    if (activeTrigger == null) {
+      return;
+    }
+    setDescribedBy(activeTrigger, false);
+    activeTrigger = null;
+    tooltip?.remove();
+    if (activateSkipDelay) {
+      skipDelayUntil = Date.now() + skipDelay;
+    }
+  };
+  const updatePosition = (trigger, floating) =&gt; {
+    const request = ++positionRequest;
+    void computePosition(trigger, floating, {
+      middleware: [
+        offset(tooltipGap),
+        flip({ padding: tooltipGap }),
+        shift({ padding: tooltipGap }),
+        size({
+          padding: tooltipGap,
+          apply({ availableHeight, availableWidth, elements }) {
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-width&quot;,
+              `${Math.max(0, availableWidth)}px`,
+            );
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-height&quot;,
+              `${Math.max(0, availableHeight)}px`,
+            );
+          },
+        }),
+      ],
+      placement: getPlacement(trigger),
+      strategy: &quot;fixed&quot;,
+    })
+      .then(({ x, y }) =&gt; {
+        if (activeTrigger !== trigger || request !== positionRequest) {
+          return;
+        }
+        const scale = window.devicePixelRatio || 1;
+        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
+        floating.style.visibility = &quot;visible&quot;;
+      })
+      .catch(() =&gt; {
+        if (activeTrigger === trigger &amp;&amp; request === positionRequest) {
+          closeTooltip(false);
+        }
+      });
+  };
+  const openTooltip = (trigger) =&gt; {
+    const content = getContent(trigger);
+    if (!trigger.isConnected || content.length === 0) {
+      return;
+    }
+    clearOpenTimeout();
+    if (activeTrigger === trigger) {
+      return;
+    }
+    closeTooltip();
+    const floating = getTooltip();
+    floating.textContent = content;
+    floating.style.visibility = &quot;hidden&quot;;
+    floating.style.transform = &quot;translate(0, 0)&quot;;
+    document.body.appendChild(floating);
+    activeTrigger = trigger;
+    setDescribedBy(trigger, true);
+    autoUpdateCleanup = autoUpdate(trigger, floating, () =&gt; {
+      updatePosition(trigger, floating);
+    });
+  };
+  const requestOpen = (trigger, immediate = false) =&gt; {
+    if (
+      getContent(trigger).length === 0 ||
+      activeTrigger === trigger ||
+      pendingTrigger === trigger
+    ) {
+      return;
+    }
+    clearOpenTimeout();
+    pendingTrigger = trigger;
+    const delay =
+      immediate || activeTrigger != null || Date.now() &lt; skipDelayUntil
+        ? 0
+        : hoverDelay;
+    if (delay === 0) {
+      openTooltip(trigger);
+      return;
+    }
+    openTimeout = window.setTimeout(() =&gt; {
+      openTimeout = null;
+      pendingTrigger = null;
+      openTooltip(trigger);
+    }, delay);
+  };
+  const handlePointerOpen = (event) =&gt; {
+    if (event.pointerType === &quot;touch&quot;) {
+      return;
+    }
+    const trigger = getTrigger(event);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    requestOpen(trigger);
+  };
+  const handlePointer = (event) =&gt; {
+    lastPointerWasTouch =
+      event.type === &quot;pointerdown&quot; &amp;&amp; event.pointerType === &quot;touch&quot;;
+  };
+  const handleTouchClick = (event) =&gt; {
+    const isTouch = event.pointerType === &quot;touch&quot; || lastPointerWasTouch;
+    lastPointerWasTouch = false;
+    if (!isTouch || event.detail === 0) {
+      return;
+    }
+    const trigger = getTrigger(event);
+    if (
+      trigger == null ||
+      !trigger.isConnected ||
+      getContent(trigger).length === 0 ||
+      (pinnedByTouch &amp;&amp; activeTrigger === trigger)
+    ) {
+      if (pinnedByTouch) {
+        closeTooltip();
+      }
+      return;
+    }
+    openTooltip(trigger);
+    pinnedByTouch = activeTrigger === trigger;
+    window.setTimeout(() =&gt; {
+      if (activeTrigger === trigger &amp;&amp; !trigger.isConnected) {
+        closeTooltip(false);
+      }
+    }, 0);
+  };
+  const handleLeave = (event) =&gt; {
+    if (pinnedByTouch) {
+      return;
+    }
+    const trigger = getTrigger(event);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handleFocusIn = (event) =&gt; {
+    const trigger = getTrigger(event);
+    if (trigger?.matches(&quot;:focus-visible&quot;)) {
+      requestOpen(trigger, true);
+    }
+  };
+  const handleKeyDown = (event) =&gt; {
+    if (event.key === &quot;Escape&quot;) {
+      closeTooltip();
+    }
+  };
+  const handleContextMenu = (event) =&gt; {
+    lastPointerWasTouch = false;
+    const trigger = getTrigger(event);
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handlers = {
+    pointerover: handlePointerOpen,
+    pointerdown: handlePointer,
+    pointercancel: handlePointer,
+    click: handleTouchClick,
+    pointerout: handleLeave,
+    focusin: handleFocusIn,
+    focusout: handleLeave,
+    keydown: handleKeyDown,
+    contextmenu: handleContextMenu,
+  };
+  const roots = new Map();
+  const handledEvents = new WeakSet();
+  const handleEvent = (event) =&gt; {
+    if (handledEvents.has(event)) return;
+    handledEvents.add(event);
+    handlers[event.type](event);
+  };
+  const discoverRoots = (node) =&gt; {
+    if (node.shadowRoot) listen(node.shadowRoot);
+    for (const element of node.querySelectorAll(&quot;*&quot;)) {
+      if (element.shadowRoot) listen(element.shadowRoot);
+    }
+  };
+  const listen = (root) =&gt; {
+    if (roots.has(root)) return;
+    for (const type of Object.keys(handlers)) root.addEventListener(type, handleEvent);
+    const observer = new window.MutationObserver((records) =&gt; {
+      for (const { addedNodes } of records) {
+        for (const node of addedNodes) {
+          if (node.nodeType === Node.ELEMENT_NODE) discoverRoots(node);
+        }
+      }
+      for (const [root, cleanup] of roots) {
+        if (root.host &amp;&amp; !root.host.isConnected) {
+          cleanup();
+          roots.delete(root);
+        }
+      }
+      if (activeTrigger &amp;&amp; !activeTrigger.isConnected) closeTooltip(false);
+    });
+    observer.observe(root, { childList: true, subtree: true });
+    roots.set(root, () =&gt; {
+      observer.disconnect();
+      for (const type of Object.keys(handlers)) root.removeEventListener(type, handleEvent);
+    });
+    discoverRoots(root);
+  };
+  const destroy = () =&gt; {
+    closeTooltip(false);
+    lastPointerWasTouch = false;
+    for (const cleanup of roots.values()) cleanup();
+    roots.clear();
+    tooltip = null;
+  };
+
+  // Events between children of one shadow root never reach the document.
+  listen(document);
+  window.addEventListener(&quot;pagehide&quot;, destroy, { once: true });
+})();
+&lt;/script&gt;
+&lt;script id=&quot;codex-visualization-tabs&quot;&gt;
+(() =&gt; {
+  const selector = &#x27;.nav[role=&quot;tablist&quot;] [role=&quot;tab&quot;]&#x27;;
+  const disabled = &#x27;:disabled,[aria-disabled=&quot;true&quot;]&#x27;;
+  const selectTab = (selected) =&gt; {
+    const panelId = selected.getAttribute(&quot;aria-controls&quot;);
+    for (const tab of selected.closest(&#x27;[role=&quot;tablist&quot;]&#x27;).querySelectorAll(&#x27;[role=&quot;tab&quot;]&#x27;)) {
+      const active = tab === selected;
+      tab.classList.toggle(&quot;active&quot;, active);
+      tab.setAttribute(&quot;aria-selected&quot;, String(active));
+      const id = tab.getAttribute(&quot;aria-controls&quot;);
+      const panel = id &amp;&amp; document.getElementById(id);
+      if (panel != null) {
+        panel.hidden = id !== panelId;
+        if (!panel.hidden &amp;&amp; selected.id) {
+          panel.setAttribute(&quot;aria-labelledby&quot;, selected.id);
+        }
+      }
+    }
+  };
+  const interact = (event) =&gt; {
+    const tab = event.target?.closest?.(selector);
+    if (event.defaultPrevented || tab == null || tab.matches(disabled)) {
+      return;
+    }
+    if (event.type === &quot;click&quot;) {
+      selectTab(tab);
+      return;
+    }
+    const tabs = Array.from(
+      tab.closest(&#x27;[role=&quot;tablist&quot;]&#x27;).querySelectorAll(&#x27;[role=&quot;tab&quot;]&#x27;),
+    ).filter((candidate) =&gt; !candidate.matches(disabled));
+    const current = tabs.indexOf(tab);
+    let next;
+    if (event.key === &quot;ArrowRight&quot; || event.key === &quot;ArrowDown&quot;) {
+      next = (current + 1) % tabs.length;
+    } else if (event.key === &quot;ArrowLeft&quot; || event.key === &quot;ArrowUp&quot;) {
+      next = (current + tabs.length - 1) % tabs.length;
+    } else if (event.key === &quot;Home&quot;) {
+      next = 0;
+    } else if (event.key === &quot;End&quot;) {
+      next = tabs.length - 1;
+    } else {
+      return;
+    }
+    event.preventDefault();
+    tabs[next].focus();
+    selectTab(tabs[next]);
+  };
+
+  for (const list of document.querySelectorAll(&#x27;.nav[role=&quot;tablist&quot;]&#x27;)) {
+    const selected =
+      list.querySelector(&#x27;[role=&quot;tab&quot;][aria-selected=&quot;true&quot;]&#x27;) ??
+      list.querySelector(&#x27;[role=&quot;tab&quot;].active&#x27;) ??
+      list.querySelector(&#x27;[role=&quot;tab&quot;]&#x27;);
+    if (selected != null) {
+      selectTab(selected);
+    }
+  }
+  document.addEventListener(&quot;click&quot;, interact);
+  document.addEventListener(&quot;keydown&quot;, interact);
+  window.addEventListener(&quot;pagehide&quot;, () =&gt; {
+    document.removeEventListener(&quot;click&quot;, interact);
+    document.removeEventListener(&quot;keydown&quot;, interact);
+  }, { once: true });
+})();
+&lt;/script&gt;
+&lt;script id=&quot;codex-visualization-carousel&quot;&gt;
+  (() =&gt; {
+    for (const root of document.querySelectorAll(&quot;.viz-carousel&quot;)) {
+      const panels = Array.from(
+        root.querySelectorAll(&quot;:scope &gt; [data-variant]&quot;),
+      );
+      if (panels.length === 0) {
+        continue;
+      }
+      root.setAttribute(&quot;role&quot;, &quot;group&quot;);
+      panels.forEach((panel, index) =&gt; {
+        panel.hidden = index !== 0;
+        panel.setAttribute(&quot;role&quot;, &quot;group&quot;);
+        if (!panel.hasAttribute(&quot;aria-label&quot;)) {
+          panel.setAttribute(&quot;aria-label&quot;, panel.dataset.variant);
+        }
+      });
+      root.dataset.activeVariant = panels[0].dataset.variant;
+      if (panels.length === 1) {
+        continue;
+      }
+
+      const controls = document.createElement(&quot;div&quot;);
+      controls.className = &quot;viz-carousel-controls&quot;;
+      // Portable copy of the settings dropdown&#x27;s legacy glyph; no 14px icon-package preset matches it.
+      // https://github.com/openai/openai/blob/master/codex/codex-apps/webview/src/icons/chevron.svg
+      controls.innerHTML = `
+      &lt;button type=&quot;button&quot; class=&quot;viz-carousel-previous cursor-interaction&quot;&gt;&lt;i data-lucide=&quot;chevron-left&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+      &lt;details class=&quot;viz-carousel-picker&quot;&gt;
+        &lt;summary class=&quot;cursor-interaction&quot;&gt;
+          &lt;span class=&quot;viz-carousel-count tabular-nums&quot;&gt;&lt;/span&gt;
+          &lt;span class=&quot;viz-carousel-name&quot;&gt;&lt;/span&gt;
+          &lt;svg class=&quot;viz-carousel-caret&quot; width=&quot;14&quot; height=&quot;14&quot; viewBox=&quot;0 0 20 21&quot; fill=&quot;none&quot; aria-hidden=&quot;true&quot; focusable=&quot;false&quot;&gt;
+            &lt;path d=&quot;M15.2793 7.71101C15.539 7.45131 15.961 7.45131 16.2207 7.71101C16.4804 7.97071 16.4804 8.39272 16.2207 8.65242L10.4707 14.4024C10.211 14.6621 9.78902 14.6621 9.52932 14.4024L3.77932 8.65242L3.69436 8.54792C3.52385 8.28979 3.55205 7.93828 3.77932 7.71101C4.00659 7.48374 4.3581 7.45554 4.61623 7.62605L4.72073 7.71101L10 12.9903L15.2793 7.71101Z&quot; fill=&quot;currentColor&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;0.6&quot; /&gt;
+          &lt;/svg&gt;
+        &lt;/summary&gt;
+        &lt;div class=&quot;viz-carousel-options&quot;&gt;&lt;/div&gt;
+      &lt;/details&gt;
+      &lt;button type=&quot;button&quot; class=&quot;viz-carousel-next cursor-interaction&quot;&gt;&lt;i data-lucide=&quot;chevron-right&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;`;
+      const previous = controls.querySelector(&quot;.viz-carousel-previous&quot;);
+      const next = controls.querySelector(&quot;.viz-carousel-next&quot;);
+      const picker = controls.querySelector(&quot;.viz-carousel-picker&quot;);
+      const summary = picker.querySelector(&quot;summary&quot;);
+      const count = controls.querySelector(&quot;.viz-carousel-count&quot;);
+      const name = controls.querySelector(&quot;.viz-carousel-name&quot;);
+      const options = controls.querySelector(&quot;.viz-carousel-options&quot;);
+      const status = document.createElement(&quot;span&quot;);
+      status.className = &quot;sr-only&quot;;
+      status.setAttribute(&quot;role&quot;, &quot;status&quot;);
+      status.setAttribute(&quot;aria-live&quot;, &quot;polite&quot;);
+      status.setAttribute(&quot;aria-atomic&quot;, &quot;true&quot;);
+      previous.setAttribute(
+        &quot;aria-label&quot;,
+        root.dataset.previousLabel ?? &quot;Previous variant&quot;,
+      );
+      next.setAttribute(&quot;aria-label&quot;, root.dataset.nextLabel ?? &quot;Next variant&quot;);
+
+      let active = 0;
+      let mousePointerId = null;
+      let summaryPointerHandled = false;
+      summary.addEventListener(&quot;pointerdown&quot;, (event) =&gt; {
+        summaryPointerHandled =
+          event.pointerType === &quot;mouse&quot; &amp;&amp; event.button === 0 &amp;&amp; !event.ctrlKey;
+        if (!summaryPointerHandled) {
+          return;
+        }
+        event.preventDefault();
+        summary.focus({ preventScroll: true });
+        picker.open = !picker.open;
+        mousePointerId = picker.open ? event.pointerId : null;
+      });
+      summary.addEventListener(&quot;click&quot;, (event) =&gt; {
+        if (summaryPointerHandled &amp;&amp; event.detail &gt; 0) {
+          event.preventDefault();
+        }
+      });
+      const choices = panels.map((panel, index) =&gt; {
+        const choice = document.createElement(&quot;button&quot;);
+        choice.type = &quot;button&quot;;
+        choice.className = &quot;cursor-interaction&quot;;
+        choice.textContent = panel.dataset.variant;
+        choice.addEventListener(&quot;click&quot;, () =&gt; {
+          select(index);
+          summary.focus();
+        });
+        choice.addEventListener(&quot;pointerup&quot;, (event) =&gt; {
+          if (
+            picker.open &amp;&amp;
+            event.pointerType === &quot;mouse&quot; &amp;&amp;
+            event.button === 0 &amp;&amp;
+            event.pointerId === mousePointerId
+          ) {
+            choice.click();
+          }
+        });
+        options.appendChild(choice);
+        return choice;
+      });
+      const select = (index) =&gt; {
+        const changed = active !== index;
+        active = index;
+        panels.forEach((panel, position) =&gt; {
+          panel.hidden = position !== active;
+          choices[position].setAttribute(
+            &quot;aria-current&quot;,
+            String(position === active),
+          );
+        });
+        root.dataset.activeVariant = panels[active].dataset.variant;
+        count.textContent = `${active + 1} / ${panels.length}`;
+        name.textContent = panels[active].dataset.variant;
+        picker.open = false;
+        mousePointerId = null;
+        if (changed) {
+          status.textContent = `${count.textContent}: ${name.textContent}`;
+        }
+      };
+      previous.addEventListener(&quot;click&quot;, () =&gt;
+        select((active + panels.length - 1) % panels.length),
+      );
+      next.addEventListener(&quot;click&quot;, () =&gt;
+        select((active + 1) % panels.length),
+      );
+      picker.addEventListener(&quot;keydown&quot;, (event) =&gt; {
+        if (event.key === &quot;Escape&quot; &amp;&amp; picker.open) {
+          event.preventDefault();
+          picker.open = false;
+          mousePointerId = null;
+          summary.focus();
+          return;
+        }
+        if (event.altKey || event.ctrlKey || event.metaKey) {
+          return;
+        }
+        const index = choices.indexOf(document.activeElement);
+        let nextIndex;
+        if (event.key === &quot;ArrowDown&quot;) {
+          nextIndex = index &lt; 0 ? active : (index + 1) % choices.length;
+        } else if (event.key === &quot;ArrowUp&quot;) {
+          nextIndex = index &lt; 0 ? active : (index + choices.length - 1) % choices.length;
+        } else if (picker.open &amp;&amp; event.key === &quot;Home&quot;) {
+          nextIndex = 0;
+        } else if (picker.open &amp;&amp; event.key === &quot;End&quot;) {
+          nextIndex = choices.length - 1;
+        } else {
+          return;
+        }
+        event.preventDefault();
+        picker.open = true;
+        choices[nextIndex].focus();
+      });
+      picker.addEventListener(&quot;focusout&quot;, (event) =&gt; {
+        if (!picker.contains(event.relatedTarget)) {
+          picker.open = false;
+          mousePointerId = null;
+        }
+      });
+      const dismiss = (event) =&gt; {
+        if (!summary.contains(event.target)) {
+          mousePointerId = null;
+        }
+        if (!picker.contains(event.target)) {
+          picker.open = false;
+        }
+      };
+      const endPointerSelection = () =&gt; {
+        mousePointerId = null;
+      };
+      const sizePicker = () =&gt; {
+        root.style.setProperty(
+          &quot;--viz-carousel-picker-height&quot;,
+          `${picker.open ? options.offsetHeight : 0}px`,
+        );
+      };
+      picker.addEventListener(&quot;toggle&quot;, sizePicker);
+      window.addEventListener(&quot;resize&quot;, sizePicker);
+      document.addEventListener(&quot;pointerdown&quot;, dismiss);
+      document.addEventListener(&quot;pointerup&quot;, endPointerSelection);
+      document.addEventListener(&quot;pointercancel&quot;, endPointerSelection);
+      window.addEventListener(&quot;blur&quot;, endPointerSelection);
+      window.addEventListener(
+        &quot;pagehide&quot;,
+        () =&gt; {
+          document.removeEventListener(&quot;pointerdown&quot;, dismiss);
+          document.removeEventListener(&quot;pointerup&quot;, endPointerSelection);
+          document.removeEventListener(&quot;pointercancel&quot;, endPointerSelection);
+          window.removeEventListener(&quot;blur&quot;, endPointerSelection);
+          window.removeEventListener(&quot;resize&quot;, sizePicker);
+        },
+        { once: true },
+      );
+      root.append(controls, status);
+      select(0);
+    }
+  })();
+&lt;/script&gt;
+&lt;script id=&quot;codex-visualization-lucide&quot; async src=&quot;https://unpkg.com/lucide@1.17.0/dist/umd/lucide.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  const initialize = () =&gt; {
+    globalThis.lucide?.createIcons({ attrs: { width: 16, height: 16 } });
+  };
+  if (globalThis.lucide != null) {
+    initialize();
+    return;
+  }
+  document
+    .getElementById(&quot;codex-visualization-lucide&quot;)
+    ?.addEventListener(&quot;load&quot;, initialize, { once: true });
+})();
+&lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+"></iframe>
+
+<script>(() => {
+  const frame = document.getElementById("codex-visualization");
+  if (!(frame instanceof HTMLIFrameElement)) {
+    return;
+  }
+  const isShare = document.documentElement.classList.contains(
+    "visualization-share-root",
+  );
+  let viewportHeight = globalThis.innerHeight;
+  let sizeFingerprint = null;
+  let sizeWriteTimeout;
+  let lastSize = null;
+  let pendingSize = null;
+  const storageKey = `codex:visualization-widget-state-v2:${JSON.stringify([
+    globalThis.location.pathname,
+    globalThis.location.search,
+  ])}`;
+  const sizeStorageKey = `${storageKey}:share-size-v1`;
+  const parseState = (serializedState) => {
+    if (
+      typeof serializedState !== "string" ||
+      new TextEncoder().encode(serializedState).length > 16 * 1024
+    ) {
+      throw new TypeError(
+        "Widget state must be a JSON object of at most 16 KiB",
+      );
+    }
+    /** @type {unknown} */
+    const state = JSON.parse(serializedState);
+    if (
+      state == null ||
+      typeof state !== "object" ||
+      Array.isArray(state) ||
+      ("imageIds" in state &&
+        (!Array.isArray(state.imageIds) || state.imageIds.length > 0))
+    ) {
+      throw new TypeError("Widget state must be a JSON object");
+    }
+    const storedState = { modelContent: null, privateContent: null, ...state };
+    const canonicalState = JSON.stringify(
+      storedState,
+      (_key, /** @type {unknown} */ value) => {
+        if (typeof value === "number" && !Number.isFinite(value)) {
+          throw new TypeError("Widget state must contain finite numbers");
+        }
+        return value;
+      },
+    );
+    if (new TextEncoder().encode(canonicalState).length > 16 * 1024) {
+      throw new TypeError(
+        "Widget state must be a JSON object of at most 16 KiB",
+      );
+    }
+    return storedState;
+  };
+  let storage = null;
+  let state = null;
+  try {
+    const localStorage = globalThis.localStorage;
+    const probeKey = `${storageKey}:probe`;
+    localStorage.setItem(probeKey, "1");
+    localStorage.removeItem(probeKey);
+    storage = localStorage;
+    const savedState = storage.getItem(storageKey);
+    if (savedState != null) {
+      try {
+        state = parseState(savedState);
+      } catch {
+        // Invalid saved state does not disable future writes.
+      }
+    }
+  } catch {
+    storage = null;
+  }
+  const persistSize = () => {
+    globalThis.clearTimeout(sizeWriteTimeout);
+    if (pendingSize == null) {
+      return;
+    }
+    try {
+      storage?.setItem(sizeStorageKey, pendingSize);
+    } catch {
+      // A denied or full cache must not affect the visualization.
+    }
+    pendingSize = null;
+  };
+  if (isShare) {
+    globalThis.addEventListener("pagehide", persistSize);
+  }
+  const initialGlobals = {
+    widgetState: state,
+    statePersistence: storage == null ? "none" : "local",
+  };
+
+  const channel = new MessageChannel();
+  channel.port1.addEventListener("message", (event) => {
+    const data = event.data;
+    if (typeof data !== "object" || data == null) {
+      return;
+    }
+    if (data.type === "widget-state-write") {
+      if (!Number.isSafeInteger(data.id) || data.id <= 0) {
+        return;
+      }
+      let ok = false;
+      try {
+        if (storage != null) {
+          const state = parseState(data.state);
+          storage.setItem(storageKey, JSON.stringify(state));
+          ok = true;
+        }
+      } catch {
+        // Storage denial, quota limits, and invalid state return a failed receipt.
+      }
+      channel.port1.postMessage({
+        type: "widget-state-result",
+        id: data.id,
+        ok,
+      });
+      return;
+    }
+    if (data.type === "height") {
+      const height = data.height;
+      if (
+        typeof height !== "number" ||
+        !Number.isFinite(height) ||
+        height < 0
+      ) {
+        return;
+      }
+      if (height <= 10_000) {
+        const width = isShare && storage != null ? frame.clientWidth : null;
+        frame.style.height = Math.ceil(height) + "px";
+        if (isShare && storage != null) {
+          const size = JSON.stringify({
+            fingerprint: sizeFingerprint,
+            width,
+            viewportHeight: globalThis.innerHeight,
+            dark: globalThis.matchMedia("(prefers-color-scheme: dark)").matches,
+            scale: globalThis.devicePixelRatio,
+            height: Math.ceil(height),
+          });
+          if (size !== lastSize) {
+            lastSize = size;
+            pendingSize = size;
+            globalThis.clearTimeout(sizeWriteTimeout);
+            sizeWriteTimeout = globalThis.setTimeout(persistSize, 100);
+          }
+        }
+      }
+      if (isShare) {
+        // Keep unusually tall content accessible without accepting an unbounded height.
+        if (height > 10_000 && Number.parseFloat(frame.style.height) === 0) {
+          frame.style.removeProperty("height");
+        }
+        frame.scrolling = height > 10_000 ? "auto" : "no";
+        document.documentElement.classList.add("visualization-share-ready");
+      }
+      return;
+    }
+    if (data.type === "scroll-to") {
+      const top = data.top;
+      if (
+        typeof top === "number" &&
+        Number.isFinite(top) &&
+        top >= 0 &&
+        globalThis.navigator.userActivation?.isActive === true
+      ) {
+        globalThis.scrollTo({
+          top: Math.ceil(
+            globalThis.scrollY + frame.getBoundingClientRect().top + top,
+          ),
+        });
+      }
+      return;
+    }
+    if (data.type === "open-external") {
+      const rawHref = data.href;
+      if (typeof rawHref !== "string") {
+        return;
+      }
+      let href;
+      try {
+        const url = new URL(rawHref, document.baseURI);
+        if (url.protocol !== "https:") {
+          return;
+        }
+        href = url.href;
+      } catch {
+        return;
+      }
+      if (globalThis.navigator.userActivation?.isActive === true) {
+        const anchor = document.createElement("a");
+        anchor.href = href;
+        anchor.rel = "noopener noreferrer";
+        anchor.target = "_blank";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+      }
+      return;
+    }
+    if (data.type === "follow-up") {
+      const prompt = data.prompt;
+      if (
+        typeof prompt !== "string" ||
+        globalThis.navigator.userActivation?.isActive !== true
+      ) {
+        return;
+      }
+      const title = data.title;
+      globalThis.prompt(typeof title === "string" ? title : prompt, prompt);
+    }
+  });
+  channel.port1.start();
+  const srcdoc = frame.dataset.srcdoc;
+  if (srcdoc == null) {
+    return;
+  }
+  globalThis.addEventListener("resize", () => {
+    const height = Number.parseFloat(frame.style.height);
+    if (!isShare && (!Number.isFinite(height) || height <= viewportHeight)) {
+      frame.style.removeProperty("height");
+    }
+    viewportHeight = globalThis.innerHeight;
+    channel.port1.postMessage({ type: "measure" });
+  });
+  frame.addEventListener(
+    "load",
+    () => {
+      frame.contentWindow?.postMessage(
+        { type: "codex-visualization-initialize" },
+        "*",
+        [channel.port2],
+      );
+    },
+    { once: true },
+  );
+  // Match the trusted bootstrap element, not the same text in an authored title.
+  const frameHtml = srcdoc.replace(
+    '<script type="application/json" id="codex-visualization-widget-state">__CODEX_VISUALIZATION_WIDGET_STATE__<\/script>',
+    () =>
+      '<script type="application/json" id="codex-visualization-widget-state">' +
+      JSON.stringify(initialGlobals).replaceAll("<", "\\u003c") +
+      "<\/script>",
+  );
+  if (isShare && storage != null) {
+    // Fingerprint the rendered document, including restored widget state, without
+    // storing its content. This is a layout cache, not a security identity.
+    let hash = 5381;
+    for (let index = 0; index < frameHtml.length; index += 1) {
+      hash = (hash * 33 + frameHtml.charCodeAt(index)) % 4_294_967_296;
+    }
+    sizeFingerprint = hash.toString(36);
+    try {
+      const size = JSON.parse(storage.getItem(sizeStorageKey) ?? "null");
+      if (
+        size?.fingerprint === sizeFingerprint &&
+        size.width === frame.clientWidth &&
+        size.viewportHeight === globalThis.innerHeight &&
+        size.dark ===
+          globalThis.matchMedia("(prefers-color-scheme: dark)").matches &&
+        size.scale === globalThis.devicePixelRatio &&
+        typeof size.height === "number" &&
+        Number.isFinite(size.height) &&
+        size.height >= 0 &&
+        size.height <= 10_000
+      ) {
+        frame.style.height = size.height + "px";
+      }
+    } catch {
+      // Ignore missing or invalid cache entries and measure the live frame.
+    }
+  }
+  frame.srcdoc = frameHtml;
+  delete frame.dataset.srcdoc;
+})();
+</script>
+</body>
+</html>

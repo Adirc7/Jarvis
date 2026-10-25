@@ -1,0 +1,1241 @@
+<div id="jarvis-hybrid-ui">
+  <style>
+    #jarvis-hybrid-ui {
+      width: 100%;
+    }
+
+    #jarvis-hybrid-ui .jh-shell {
+      --jh-accent: #ff8a1f;
+      --jh-orb-size: 270px;
+      --jh-glow: 64%;
+      --jh-bg: #060708;
+      --jh-panel: #0d1117;
+      --jh-panel-2: #121923;
+      --jh-panel-3: #182231;
+      --jh-text: #f5f7fa;
+      --jh-muted: #8d99aa;
+      --jh-line: #243142;
+      --jh-green: #57d99b;
+      --jh-cyan: #54c9e8;
+      --jh-red: #ff6b67;
+      color-scheme: dark;
+      position: relative;
+      overflow: hidden;
+      min-height: 680px;
+      border: 1px solid var(--jh-line);
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at 50% 25%, color-mix(in srgb, var(--jh-accent) 7%, transparent), transparent 34%),
+        var(--jh-bg);
+      color: var(--jh-text);
+      box-shadow: 0 28px 72px rgba(0, 0, 0, .42);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    #jarvis-hybrid-ui .jh-shell * {
+      box-sizing: border-box;
+    }
+
+    #jarvis-hybrid-ui .jh-shell button,
+    #jarvis-hybrid-ui .jh-shell input {
+      font: inherit;
+    }
+
+    #jarvis-hybrid-ui .jh-topbar {
+      position: relative;
+      z-index: 4;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      min-height: 64px;
+      align-items: center;
+      gap: 16px;
+      padding: 0 20px;
+      border-bottom: 1px solid rgba(141, 153, 170, .16);
+      background: rgba(6, 7, 8, .72);
+      backdrop-filter: blur(18px);
+    }
+
+    #jarvis-hybrid-ui .jh-brand,
+    #jarvis-hybrid-ui .jh-nav,
+    #jarvis-hybrid-ui .jh-top-actions,
+    #jarvis-hybrid-ui .jh-status-row,
+    #jarvis-hybrid-ui .jh-composer,
+    #jarvis-hybrid-ui .jh-pipeline,
+    #jarvis-hybrid-ui .jh-legend,
+    #jarvis-hybrid-ui .jh-message-meta {
+      display: flex;
+      align-items: center;
+    }
+
+    #jarvis-hybrid-ui .jh-brand {
+      gap: 10px;
+      font-weight: 500;
+      letter-spacing: .02em;
+    }
+
+    #jarvis-hybrid-ui .jh-brand-core {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fff5c4 0 11%, #ffd35a 12% 26%, var(--jh-accent) 27% 58%, transparent 60%);
+      box-shadow: 0 0 20px color-mix(in srgb, var(--jh-accent) 70%, transparent);
+    }
+
+    #jarvis-hybrid-ui .jh-nav {
+      gap: 5px;
+      padding: 4px;
+      border-radius: 12px;
+      background: rgba(18, 25, 35, .72);
+    }
+
+    #jarvis-hybrid-ui .jh-nav-button,
+    #jarvis-hybrid-ui .jh-icon-button,
+    #jarvis-hybrid-ui .jh-action,
+    #jarvis-hybrid-ui .jh-orb-button,
+    #jarvis-hybrid-ui .jh-send,
+    #jarvis-hybrid-ui .jh-quick-action {
+      border: 0;
+      color: inherit;
+    }
+
+    #jarvis-hybrid-ui .jh-nav-button {
+      min-height: 36px;
+      padding: 0 13px;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--jh-muted);
+      font-size: 13px;
+    }
+
+    #jarvis-hybrid-ui .jh-nav-button[aria-selected="true"] {
+      background: var(--jh-panel-3);
+      color: var(--jh-text);
+    }
+
+    #jarvis-hybrid-ui .jh-top-actions {
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    #jarvis-hybrid-ui .jh-icon-button,
+    #jarvis-hybrid-ui .jh-send {
+      display: inline-grid;
+      width: 40px;
+      height: 40px;
+      place-items: center;
+      border-radius: 11px;
+      background: var(--jh-panel-2);
+    }
+
+    #jarvis-hybrid-ui .jh-icon-button[aria-pressed="true"] {
+      background: color-mix(in srgb, var(--jh-accent) 18%, var(--jh-panel-2));
+      color: var(--jh-accent);
+    }
+
+    #jarvis-hybrid-ui .jh-view {
+      min-height: 615px;
+    }
+
+    #jarvis-hybrid-ui .jh-view[hidden] {
+      display: none;
+    }
+
+    #jarvis-hybrid-ui .jh-home {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr) 250px;
+      gap: 26px;
+      align-items: stretch;
+      min-height: 615px;
+      padding: 28px;
+    }
+
+    #jarvis-hybrid-ui .jh-shell[data-home-diagnostics="false"] .jh-home {
+      grid-template-columns: 1fr;
+    }
+
+    #jarvis-hybrid-ui .jh-core-stage {
+      display: grid;
+      min-width: 0;
+      place-items: center;
+      text-align: center;
+    }
+
+    #jarvis-hybrid-ui .jh-core-inner {
+      width: min(100%, 600px);
+    }
+
+    #jarvis-hybrid-ui .jh-kicker {
+      margin: 0 0 8px;
+      color: var(--jh-accent);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    #jarvis-hybrid-ui .jh-core-inner h1,
+    #jarvis-hybrid-ui .jh-core-inner p,
+    #jarvis-hybrid-ui .jh-panel-title h2,
+    #jarvis-hybrid-ui .jh-panel-title p {
+      margin: 0;
+    }
+
+    #jarvis-hybrid-ui .jh-core-inner h1 {
+      font-size: 25px;
+      font-weight: 500;
+    }
+
+    #jarvis-hybrid-ui .jh-core-inner > p:not(.jh-kicker) {
+      margin-top: 7px;
+      color: var(--jh-muted);
+      font-size: 13px;
+    }
+
+    #jarvis-hybrid-ui .jh-orb-button {
+      position: relative;
+      display: grid;
+      width: var(--jh-orb-size);
+      height: var(--jh-orb-size);
+      margin: 26px auto 24px;
+      place-items: center;
+      border-radius: 50%;
+      background: transparent;
+      isolation: isolate;
+    }
+
+    #jarvis-hybrid-ui .jh-orb-glow,
+    #jarvis-hybrid-ui .jh-orb-ring,
+    #jarvis-hybrid-ui .jh-orb-core,
+    #jarvis-hybrid-ui .jh-orb-grid {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    #jarvis-hybrid-ui .jh-orb-glow {
+      inset: 5%;
+      z-index: -2;
+      background: radial-gradient(circle, color-mix(in srgb, var(--jh-accent) var(--jh-glow), transparent), transparent 67%);
+      filter: blur(18px);
+    }
+
+    #jarvis-hybrid-ui .jh-orb-grid {
+      inset: 16%;
+      opacity: .54;
+      background:
+        repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--jh-accent) 70%, transparent) 0 1deg, transparent 1deg 12deg),
+        repeating-radial-gradient(circle, transparent 0 12px, color-mix(in srgb, var(--jh-accent) 38%, transparent) 13px 14px);
+      mask: radial-gradient(circle, transparent 0 17%, #000 18% 72%, transparent 73%);
+    }
+
+    #jarvis-hybrid-ui .jh-orb-ring {
+      border: 1px solid color-mix(in srgb, var(--jh-accent) 72%, transparent);
+      box-shadow: inset 0 0 13px color-mix(in srgb, var(--jh-accent) 30%, transparent), 0 0 12px color-mix(in srgb, var(--jh-accent) 30%, transparent);
+    }
+
+    #jarvis-hybrid-ui .jh-ring-a {
+      inset: 8%;
+      border-width: 2px 1px 1px 2px;
+    }
+
+    #jarvis-hybrid-ui .jh-ring-b {
+      inset: 22%;
+      transform: rotate(34deg) scaleY(.66);
+      border-width: 1px 2px 2px 1px;
+    }
+
+    #jarvis-hybrid-ui .jh-ring-c {
+      inset: 29%;
+      transform: rotate(-42deg) scaleX(.68);
+    }
+
+    #jarvis-hybrid-ui .jh-orb-core {
+      inset: 38%;
+      background: radial-gradient(circle at 43% 40%, #ffffff 0 8%, #fff4b0 9% 23%, #ffc33a 24% 52%, var(--jh-accent) 53% 100%);
+      box-shadow:
+        0 0 20px #fff0a5,
+        0 0 52px color-mix(in srgb, var(--jh-accent) 85%, transparent),
+        0 0 90px color-mix(in srgb, var(--jh-accent) 52%, transparent);
+    }
+
+    #jarvis-hybrid-ui .jh-orb-state {
+      position: relative;
+      z-index: 2;
+      margin-top: calc(var(--jh-orb-size) + 24px);
+      color: var(--jh-text);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    #jarvis-hybrid-ui .jh-shell[data-voice-state="listening"] .jh-ring-a,
+    #jarvis-hybrid-ui .jh-shell[data-voice-state="speaking"] .jh-ring-c {
+      animation: jh-spin 7s linear infinite;
+    }
+
+    #jarvis-hybrid-ui .jh-shell[data-voice-state="thinking"] .jh-ring-b {
+      animation: jh-spin-reverse 4s linear infinite;
+    }
+
+    #jarvis-hybrid-ui .jh-shell[data-voice-state="listening"] .jh-orb-glow,
+    #jarvis-hybrid-ui .jh-shell[data-voice-state="speaking"] .jh-orb-glow {
+      filter: blur(12px);
+    }
+
+    @keyframes jh-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes jh-spin-reverse {
+      from { transform: rotate(34deg) scaleY(.66); }
+      to { transform: rotate(-326deg) scaleY(.66); }
+    }
+
+    #jarvis-hybrid-ui .jh-status-row {
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    #jarvis-hybrid-ui .jh-pill {
+      display: inline-flex;
+      min-height: 28px;
+      align-items: center;
+      gap: 6px;
+      padding: 0 9px;
+      border: 1px solid rgba(141, 153, 170, .17);
+      border-radius: 999px;
+      background: rgba(18, 25, 35, .68);
+      color: var(--jh-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-hybrid-ui .jh-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--jh-green);
+      box-shadow: 0 0 8px color-mix(in srgb, var(--jh-green) 55%, transparent);
+    }
+
+    #jarvis-hybrid-ui .jh-composer {
+      gap: 8px;
+      width: min(100%, 560px);
+      margin: 0 auto;
+      padding: 8px;
+      border: 1px solid var(--jh-line);
+      border-radius: 15px;
+      background: var(--jh-panel);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, .24);
+    }
+
+    #jarvis-hybrid-ui .jh-input {
+      flex: 1;
+      min-width: 0;
+      min-height: 40px;
+      padding: 0 10px;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--jh-text);
+    }
+
+    #jarvis-hybrid-ui .jh-input::placeholder {
+      color: var(--jh-muted);
+    }
+
+    #jarvis-hybrid-ui .jh-send {
+      background: var(--jh-accent);
+      color: #15100a;
+    }
+
+    #jarvis-hybrid-ui .jh-side-status {
+      align-self: center;
+      padding: 16px;
+      border: 1px solid var(--jh-line);
+      border-radius: 15px;
+      background: rgba(13, 17, 23, .86);
+    }
+
+    #jarvis-hybrid-ui .jh-home-rail {
+      align-self: center;
+      padding: 16px;
+      border: 1px solid var(--jh-line);
+      border-radius: 15px;
+      background: rgba(13, 17, 23, .86);
+    }
+
+    #jarvis-hybrid-ui .jh-home-rail h2 {
+      margin: 0 0 14px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    #jarvis-hybrid-ui .jh-home-events {
+      display: grid;
+      gap: 10px;
+    }
+
+    #jarvis-hybrid-ui .jh-home-event {
+      display: grid;
+      grid-template-columns: 7px minmax(0, 1fr);
+      gap: 9px;
+      align-items: start;
+      color: var(--jh-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-hybrid-ui .jh-home-event i {
+      width: 7px;
+      height: 7px;
+      margin-top: 4px;
+      border-radius: 50%;
+      background: var(--jh-cyan);
+      box-shadow: 0 0 8px color-mix(in srgb, var(--jh-cyan) 50%, transparent);
+    }
+
+    #jarvis-hybrid-ui .jh-home-event strong,
+    #jarvis-hybrid-ui .jh-home-event span {
+      display: block;
+    }
+
+    #jarvis-hybrid-ui .jh-home-event strong {
+      margin-bottom: 2px;
+      color: var(--jh-text);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    #jarvis-hybrid-ui .jh-side-status h2 {
+      margin: 0 0 14px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    #jarvis-hybrid-ui .jh-status-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    #jarvis-hybrid-ui .jh-status-item {
+      display: grid;
+      gap: 4px;
+      padding: 10px;
+      border-radius: 11px;
+      background: var(--jh-panel-2);
+      font-size: 12px;
+    }
+
+    #jarvis-hybrid-ui .jh-status-item span:last-child {
+      color: var(--jh-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-hybrid-ui .jh-chat-view {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      min-height: 615px;
+      padding: 22px 28px 24px;
+    }
+
+    #jarvis-hybrid-ui .jh-panel-title {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--jh-line);
+    }
+
+    #jarvis-hybrid-ui .jh-panel-title h2 {
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    #jarvis-hybrid-ui .jh-panel-title p {
+      margin-top: 4px;
+      color: var(--jh-muted);
+      font-size: 12px;
+    }
+
+    #jarvis-hybrid-ui .jh-thread {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 13px;
+      width: min(100%, 720px);
+      margin: 0 auto;
+      padding: 24px 0;
+    }
+
+    #jarvis-hybrid-ui .jh-message {
+      max-width: 78%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: var(--jh-panel-2);
+      font-size: 14px;
+    }
+
+    #jarvis-hybrid-ui .jh-message.user {
+      align-self: flex-end;
+      background: color-mix(in srgb, var(--jh-accent) 17%, var(--jh-panel-2));
+    }
+
+    #jarvis-hybrid-ui .jh-message-meta {
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+      color: var(--jh-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-hybrid-ui .jh-memory-view {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      min-height: 615px;
+      padding: 22px 28px 24px;
+    }
+
+    #jarvis-hybrid-ui .jh-memory-layout {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: 16px;
+      min-height: 0;
+      padding-top: 16px;
+    }
+
+    #jarvis-hybrid-ui .jh-memory-index {
+      padding: 14px;
+      border: 1px solid var(--jh-line);
+      border-radius: 13px;
+      background: var(--jh-panel);
+    }
+
+    #jarvis-hybrid-ui .jh-memory-index h3,
+    #jarvis-hybrid-ui .jh-memory-detail h3 {
+      margin: 0 0 11px;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    #jarvis-hybrid-ui .jh-memory-buttons {
+      display: grid;
+      gap: 6px;
+    }
+
+    #jarvis-hybrid-ui .jh-memory-button {
+      display: flex;
+      min-height: 42px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 0 10px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--jh-muted);
+      text-align: left;
+    }
+
+    #jarvis-hybrid-ui .jh-memory-button[aria-pressed="true"] {
+      background: var(--jh-panel-3);
+      color: var(--jh-text);
+    }
+
+    #jarvis-hybrid-ui .jh-memory-count {
+      color: var(--jh-cyan);
+      font-size: 11px;
+    }
+
+    #jarvis-hybrid-ui .jh-memory-detail {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--jh-line);
+      color: var(--jh-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-hybrid-ui .jh-memory-detail strong {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--jh-text);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    #jarvis-hybrid-ui .jh-graph-wrap {
+      min-height: 480px;
+      padding: 10px;
+      border: 1px solid var(--jh-line);
+      border-radius: 13px;
+      background:
+        radial-gradient(circle at 52% 48%, rgba(84, 201, 232, .07), transparent 31%),
+        var(--jh-bg);
+    }
+
+    #jarvis-hybrid-ui .jh-knowledge-graph {
+      display: block;
+      width: 100%;
+      height: auto;
+      min-height: 440px;
+    }
+
+    #jarvis-hybrid-ui .jh-knowledge-graph .jh-edge {
+      stroke: rgba(84, 201, 232, .25);
+      stroke-width: 1.3;
+    }
+
+    #jarvis-hybrid-ui .jh-knowledge-graph .jh-edge.strong {
+      stroke: rgba(255, 138, 31, .42);
+      stroke-width: 1.8;
+    }
+
+    #jarvis-hybrid-ui .jh-knowledge-graph .jh-node circle {
+      fill: #182231;
+      stroke: rgba(84, 201, 232, .72);
+      stroke-width: 2;
+    }
+
+    #jarvis-hybrid-ui .jh-knowledge-graph .jh-node[data-kind="core"] circle {
+      fill: color-mix(in srgb, var(--jh-accent) 24%, #182231);
+      stroke: var(--jh-accent);
+    }
+
+    #jarvis-hybrid-ui .jh-knowledge-graph .jh-node[data-kind="study"] circle {
+      fill: rgba(87, 217, 155, .16);
+      stroke: var(--jh-green);
+    }
+
+    #jarvis-hybrid-ui .jh-knowledge-graph .jh-node text {
+      fill: var(--jh-text);
+      font-size: 12px;
+      font-weight: 500;
+      text-anchor: middle;
+    }
+
+    #jarvis-hybrid-ui .jh-knowledge-graph .jh-node .jh-sub-label {
+      fill: var(--jh-muted);
+      font-size: 11px;
+      font-weight: 400;
+    }
+
+    #jarvis-hybrid-ui .jh-knowledge-graph .jh-node.is-dimmed {
+      opacity: .28;
+    }
+
+    #jarvis-hybrid-ui .jh-knowledge-graph .jh-node.is-selected circle {
+      stroke-width: 4;
+      filter: drop-shadow(0 0 9px color-mix(in srgb, var(--jh-accent) 72%, transparent));
+    }
+
+    #jarvis-hybrid-ui .jh-system-view {
+      min-height: 615px;
+      padding: 20px;
+      background:
+        linear-gradient(rgba(84, 201, 232, .025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(84, 201, 232, .025) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    #jarvis-hybrid-ui .jh-system-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(260px, .75fr);
+      gap: 14px;
+      margin-top: 15px;
+    }
+
+    #jarvis-hybrid-ui .jh-module {
+      padding: 15px;
+      border: 1px solid var(--jh-line);
+      border-radius: 13px;
+      background: rgba(13, 17, 23, .92);
+    }
+
+    #jarvis-hybrid-ui .jh-module h3 {
+      margin: 0 0 13px;
+      color: var(--jh-cyan);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    #jarvis-hybrid-ui .jh-pipeline {
+      align-items: stretch;
+      gap: 6px;
+    }
+
+    #jarvis-hybrid-ui .jh-pipe-node {
+      display: grid;
+      flex: 1;
+      min-width: 0;
+      min-height: 84px;
+      place-items: center;
+      padding: 8px;
+      border: 1px solid color-mix(in srgb, var(--jh-cyan) 24%, var(--jh-line));
+      border-radius: 10px;
+      background: color-mix(in srgb, var(--jh-cyan) 6%, var(--jh-panel-2));
+      text-align: center;
+    }
+
+    #jarvis-hybrid-ui .jh-pipe-node strong,
+    #jarvis-hybrid-ui .jh-pipe-node span {
+      display: block;
+    }
+
+    #jarvis-hybrid-ui .jh-pipe-node strong {
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    #jarvis-hybrid-ui .jh-pipe-node span {
+      margin-top: 4px;
+      color: var(--jh-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-hybrid-ui .jh-pipe-arrow {
+      display: grid;
+      place-items: center;
+      color: var(--jh-cyan);
+      opacity: .62;
+    }
+
+    #jarvis-hybrid-ui .jh-lower-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    #jarvis-hybrid-ui .jh-route-list,
+    #jarvis-hybrid-ui .jh-metric-list,
+    #jarvis-hybrid-ui .jh-privacy-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    #jarvis-hybrid-ui .jh-route-row,
+    #jarvis-hybrid-ui .jh-metric-row,
+    #jarvis-hybrid-ui .jh-privacy-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 36px;
+      padding: 0 9px;
+      border-radius: 9px;
+      background: var(--jh-panel-2);
+      font-size: 11px;
+    }
+
+    #jarvis-hybrid-ui .jh-route-row span:last-child,
+    #jarvis-hybrid-ui .jh-metric-row span:last-child {
+      color: var(--jh-cyan);
+    }
+
+    #jarvis-hybrid-ui .jh-privacy-row span:last-child {
+      color: var(--jh-green);
+    }
+
+    #jarvis-hybrid-ui .jh-event-log {
+      display: grid;
+      gap: 7px;
+    }
+
+    #jarvis-hybrid-ui .jh-event {
+      display: grid;
+      grid-template-columns: 54px 1fr;
+      gap: 10px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(141, 153, 170, .10);
+      color: var(--jh-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-hybrid-ui .jh-event:last-child {
+      border-bottom: 0;
+    }
+
+    #jarvis-hybrid-ui .jh-event time {
+      color: var(--jh-cyan);
+      font-variant-numeric: tabular-nums;
+    }
+
+    #jarvis-hybrid-ui .jh-legend {
+      gap: 12px;
+      margin-top: 12px;
+      color: var(--jh-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-hybrid-ui .jh-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    #jarvis-hybrid-ui .jh-legend i {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--jh-green);
+    }
+
+    #jarvis-hybrid-ui .jh-legend span:nth-child(2) i {
+      background: var(--jh-cyan);
+    }
+
+    #jarvis-hybrid-ui .jh-legend span:nth-child(3) i {
+      background: var(--jh-accent);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #jarvis-hybrid-ui .jh-shell[data-voice-state] .jh-orb-ring {
+        animation: none;
+      }
+    }
+
+    @media (max-width: 780px) {
+      #jarvis-hybrid-ui .jh-shell {
+        min-height: 930px;
+      }
+
+      #jarvis-hybrid-ui .jh-topbar {
+        grid-template-columns: 1fr auto;
+      }
+
+      #jarvis-hybrid-ui .jh-nav {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        justify-self: stretch;
+        justify-content: center;
+        margin-bottom: 9px;
+      }
+
+      #jarvis-hybrid-ui .jh-home {
+        grid-template-columns: 1fr;
+      }
+
+      #jarvis-hybrid-ui .jh-memory-layout {
+        grid-template-columns: 1fr;
+      }
+
+      #jarvis-hybrid-ui .jh-memory-buttons {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      #jarvis-hybrid-ui .jh-side-status {
+        align-self: auto;
+      }
+
+      #jarvis-hybrid-ui .jh-system-grid,
+      #jarvis-hybrid-ui .jh-lower-grid {
+        grid-template-columns: 1fr;
+      }
+
+      #jarvis-hybrid-ui .jh-pipeline {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      #jarvis-hybrid-ui .jh-pipe-arrow {
+        display: none;
+      }
+    }
+
+    @media (max-width: 480px) {
+      #jarvis-hybrid-ui .jh-shell {
+        min-height: 990px;
+        border-radius: 13px;
+      }
+
+      #jarvis-hybrid-ui .jh-topbar {
+        padding: 8px 11px 0;
+      }
+
+      #jarvis-hybrid-ui .jh-top-actions .jh-icon-button:first-child {
+        display: none;
+      }
+
+      #jarvis-hybrid-ui .jh-nav-button {
+        flex: 1;
+        padding: 0 8px;
+      }
+
+      #jarvis-hybrid-ui .jh-home,
+      #jarvis-hybrid-ui .jh-chat-view,
+      #jarvis-hybrid-ui .jh-memory-view,
+      #jarvis-hybrid-ui .jh-system-view {
+        padding-left: 13px;
+        padding-right: 13px;
+      }
+
+      #jarvis-hybrid-ui .jh-orb-button {
+        transform: scale(.86);
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      #jarvis-hybrid-ui .jh-message {
+        max-width: 94%;
+      }
+
+      #jarvis-hybrid-ui .jh-pipeline {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      #jarvis-hybrid-ui .jh-memory-buttons {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+
+  <div class="jh-shell" data-voice-state="ready" aria-label="Jarvis hybrid desktop UI">
+    <header class="jh-topbar">
+      <div class="jh-brand"><span class="jh-brand-core" aria-hidden="true"></span><span>Friday</span></div>
+      <nav class="jh-nav" aria-label="Primary views">
+        <button class="jh-nav-button cursor-interaction" type="button" data-view-target="home" aria-selected="true">Home</button>
+        <button class="jh-nav-button cursor-interaction" type="button" data-view-target="chat" aria-selected="false">Chat</button>
+        <button class="jh-nav-button cursor-interaction" type="button" data-view-target="memory" aria-selected="false">Memory</button>
+        <button class="jh-nav-button cursor-interaction" type="button" data-view-target="system" aria-selected="false">System</button>
+      </nav>
+      <div class="jh-top-actions">
+        <button class="jh-icon-button cursor-interaction" type="button" data-mute aria-pressed="false" aria-label="Mute Friday"><i data-lucide="volume-2" aria-hidden="true"></i></button>
+        <button class="jh-icon-button cursor-interaction" type="button" aria-label="Settings"><i data-lucide="settings" aria-hidden="true"></i></button>
+      </div>
+    </header>
+
+    <main>
+      <section class="jh-view jh-home" data-view="home" aria-label="Home voice view">
+        <aside class="jh-home-rail" data-home-diagnostics aria-label="Recent assistant activity">
+          <h2>Core activity</h2>
+          <div class="jh-home-events">
+            <div class="jh-home-event"><i></i><div><strong>Voice ready</strong><span>Microphone and local STT warmed</span></div></div>
+            <div class="jh-home-event"><i></i><div><strong>Route available</strong><span>OpenRouter → Gemini → Ollama</span></div></div>
+            <div class="jh-home-event"><i></i><div><strong>Memory loaded</strong><span>12 facts · recent conversation</span></div></div>
+            <div class="jh-home-event"><i></i><div><strong>Language ready</strong><span>English · Sinhala · Tamil</span></div></div>
+          </div>
+        </aside>
+        <div class="jh-core-stage">
+          <div class="jh-core-inner">
+            <p class="jh-kicker">Voice core online</p>
+            <h1 data-state-title>Ready when you are</h1>
+            <p data-state-detail>Press the core or use your push-to-talk key</p>
+
+            <button class="jh-orb-button cursor-interaction" type="button" data-voice-cycle aria-label="Talk to Friday">
+              <span class="jh-orb-glow" aria-hidden="true"></span>
+              <span class="jh-orb-grid" aria-hidden="true"></span>
+              <span class="jh-orb-ring jh-ring-a" aria-hidden="true"></span>
+              <span class="jh-orb-ring jh-ring-b" aria-hidden="true"></span>
+              <span class="jh-orb-ring jh-ring-c" aria-hidden="true"></span>
+              <span class="jh-orb-core" aria-hidden="true"></span>
+              <span class="jh-orb-state" data-orb-state>Talk</span>
+            </button>
+
+            <div class="jh-status-row" aria-label="Privacy and route status">
+              <span class="jh-pill"><span class="jh-dot"></span>Audio local</span>
+              <span class="jh-pill">English · Sinhala · Tamil</span>
+              <span class="jh-pill">Text route: OpenRouter</span>
+            </div>
+
+            <div class="jh-composer">
+              <input class="jh-input" type="text" aria-label="Message Friday" placeholder="Type instead…">
+              <button class="jh-icon-button cursor-interaction" type="button" aria-label="Stop current response"><i data-lucide="square" aria-hidden="true"></i></button>
+              <button class="jh-send cursor-interaction" type="button" aria-label="Send message"><i data-lucide="arrow-up" aria-hidden="true"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <aside class="jh-side-status" data-home-diagnostics aria-label="Current assistant status">
+          <h2>Now</h2>
+          <div class="jh-status-list">
+            <div class="jh-status-item"><span>Microphone</span><span>Default input · ready</span></div>
+            <div class="jh-status-item"><span>Speech recognition</span><span>faster-whisper · local</span></div>
+            <div class="jh-status-item"><span>Voice</span><span>Friday · Kokoro Emma</span></div>
+            <div class="jh-status-item"><span>Memory</span><span>Local · 12 remembered facts</span></div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="jh-view jh-chat-view" data-view="chat" aria-label="Conversation view" hidden>
+        <div class="jh-panel-title">
+          <div><h2>Conversation</h2><p>Readable transcript with clear provider and language boundaries</p></div>
+          <span class="jh-pill"><span class="jh-dot"></span>Audio stays local</span>
+        </div>
+        <div class="jh-thread">
+          <div class="jh-message"><div class="jh-message-meta"><span>Friday</span><span>Local greeting</span></div>Good evening. What would you like to work on?</div>
+          <div class="jh-message user"><div class="jh-message-meta"><span>You · voice transcript</span><span>Sinhala</span></div>Fourier series එක සරලව explain කරන්න.</div>
+          <div class="jh-message"><div class="jh-message-meta"><span>Friday</span><span>OpenRouter · speaking locally</span></div>Fourier series කියන්නේ periodic signal එකක් සරල sine සහ cosine තරංගවල එකතුවක් ලෙස ලියන ක්‍රමයක්.</div>
+        </div>
+        <div class="jh-composer">
+          <button class="jh-icon-button cursor-interaction" type="button" data-voice-cycle aria-label="Talk to Friday"><i data-lucide="mic" aria-hidden="true"></i></button>
+          <input class="jh-input" type="text" aria-label="Continue conversation" placeholder="Continue the conversation…">
+          <button class="jh-send cursor-interaction" type="button" aria-label="Send message"><i data-lucide="arrow-up" aria-hidden="true"></i></button>
+        </div>
+      </section>
+
+      <section class="jh-view jh-memory-view" data-view="memory" aria-label="Memory graph view" hidden>
+        <div class="jh-panel-title">
+          <div><h2>Memory</h2><p>A transparent map of what Friday remembers and how topics connect</p></div>
+          <span class="jh-pill"><span class="jh-dot"></span>Stored locally</span>
+        </div>
+
+        <div class="jh-memory-layout">
+          <aside class="jh-memory-index" aria-label="Memory groups">
+            <h3>Memory groups</h3>
+            <div class="jh-memory-buttons">
+              <button class="jh-memory-button cursor-interaction" type="button" data-memory-key="core" aria-pressed="true"><span>Profile</span><span class="jh-memory-count">3</span></button>
+              <button class="jh-memory-button cursor-interaction" type="button" data-memory-key="study" aria-pressed="false"><span>Study</span><span class="jh-memory-count">4</span></button>
+              <button class="jh-memory-button cursor-interaction" type="button" data-memory-key="jarvis" aria-pressed="false"><span>Jarvis project</span><span class="jh-memory-count">5</span></button>
+              <button class="jh-memory-button cursor-interaction" type="button" data-memory-key="language" aria-pressed="false"><span>Languages</span><span class="jh-memory-count">3</span></button>
+            </div>
+            <div class="jh-memory-detail" aria-live="polite">
+              <h3>Selected</h3>
+              <strong data-memory-title>Profile</strong>
+              <span data-memory-detail>High-level preferences and identity facts explicitly remembered by the user.</span>
+            </div>
+          </aside>
+
+          <div class="jh-graph-wrap">
+            <svg class="jh-knowledge-graph" viewBox="0 0 700 440" role="img" aria-labelledby="jh-graph-title jh-graph-desc">
+              <title id="jh-graph-title">Friday local memory connections</title>
+              <desc id="jh-graph-desc">A network connecting the user profile, Jarvis project, university study, languages, and related remembered topics.</desc>
+
+              <g aria-hidden="true">
+                <line class="jh-edge strong" x1="350" y1="215" x2="188" y2="112"></line>
+                <line class="jh-edge strong" x1="350" y1="215" x2="520" y2="110"></line>
+                <line class="jh-edge strong" x1="350" y1="215" x2="520" y2="320"></line>
+                <line class="jh-edge strong" x1="350" y1="215" x2="180" y2="325"></line>
+                <line class="jh-edge" x1="188" y1="112" x2="83" y2="210"></line>
+                <line class="jh-edge" x1="188" y1="112" x2="292" y2="64"></line>
+                <line class="jh-edge" x1="520" y1="110" x2="625" y2="190"></line>
+                <line class="jh-edge" x1="520" y1="110" x2="430" y2="48"></line>
+                <line class="jh-edge" x1="520" y1="320" x2="615" y2="365"></line>
+                <line class="jh-edge" x1="520" y1="320" x2="425" y2="385"></line>
+                <line class="jh-edge" x1="180" y1="325" x2="75" y2="365"></line>
+                <line class="jh-edge" x1="180" y1="325" x2="275" y2="390"></line>
+                <line class="jh-edge" x1="188" y1="112" x2="520" y2="110"></line>
+                <line class="jh-edge" x1="180" y1="325" x2="520" y2="320"></line>
+              </g>
+
+              <g class="jh-node" data-graph-node="core" data-kind="core" transform="translate(350 215)"><circle r="47"></circle><text y="-2">Profile</text><text class="jh-sub-label" y="16">local memory</text></g>
+              <g class="jh-node" data-graph-node="study" data-kind="study" transform="translate(188 112)"><circle r="40"></circle><text y="-2">University</text><text class="jh-sub-label" y="16">study topics</text></g>
+              <g class="jh-node" data-graph-node="jarvis" data-kind="core" transform="translate(520 110)"><circle r="43"></circle><text y="-2">Jarvis</text><text class="jh-sub-label" y="16">project</text></g>
+              <g class="jh-node" data-graph-node="language" transform="translate(520 320)"><circle r="39"></circle><text y="-2">Languages</text><text class="jh-sub-label" y="16">EN · SI · TA</text></g>
+              <g class="jh-node" data-graph-node="study" data-kind="study" transform="translate(180 325)"><circle r="38"></circle><text y="-2">Study plan</text><text class="jh-sub-label" y="16">schedule</text></g>
+
+              <g class="jh-node" data-graph-node="study" data-kind="study" transform="translate(83 210)"><circle r="27"></circle><text y="4">Algorithms</text></g>
+              <g class="jh-node" data-graph-node="study" data-kind="study" transform="translate(292 64)"><circle r="25"></circle><text y="4">Maths</text></g>
+              <g class="jh-node" data-graph-node="jarvis" transform="translate(625 190)"><circle r="28"></circle><text y="4">Voice</text></g>
+              <g class="jh-node" data-graph-node="jarvis" transform="translate(430 48)"><circle r="27"></circle><text y="4">Routing</text></g>
+              <g class="jh-node" data-graph-node="language" transform="translate(615 365)"><circle r="27"></circle><text y="4">Sinhala</text></g>
+              <g class="jh-node" data-graph-node="language" transform="translate(425 385)"><circle r="25"></circle><text y="4">Tamil</text></g>
+              <g class="jh-node" data-graph-node="study" transform="translate(75 365)"><circle r="24"></circle><text y="4">Today</text></g>
+              <g class="jh-node" data-graph-node="study" transform="translate(275 390)"><circle r="26"></circle><text y="4">Revision</text></g>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <section class="jh-view jh-system-view" data-view="system" aria-label="System dashboard" hidden>
+        <div class="jh-panel-title">
+          <div><h2>System</h2><p>Advanced diagnostics—kept separate from the everyday assistant screen</p></div>
+          <span class="jh-pill"><span class="jh-dot"></span>All core services ready</span>
+        </div>
+
+        <div class="jh-system-grid">
+          <div>
+            <section class="jh-module" aria-label="Voice request pipeline">
+              <h3>Live request pipeline</h3>
+              <div class="jh-pipeline">
+                <div class="jh-pipe-node"><div><strong>Mic</strong><span>capturing</span></div></div><span class="jh-pipe-arrow">→</span>
+                <div class="jh-pipe-node"><div><strong>STT</strong><span>Whisper local</span></div></div><span class="jh-pipe-arrow">→</span>
+                <div class="jh-pipe-node"><div><strong>Intent</strong><span>study explain</span></div></div><span class="jh-pipe-arrow">→</span>
+                <div class="jh-pipe-node"><div><strong>LLM</strong><span>OpenRouter</span></div></div><span class="jh-pipe-arrow">→</span>
+                <div class="jh-pipe-node"><div><strong>TTS</strong><span>Kokoro local</span></div></div><span class="jh-pipe-arrow">→</span>
+                <div class="jh-pipe-node"><div><strong>Speaker</strong><span>streaming</span></div></div>
+              </div>
+              <div class="jh-legend"><span><i></i>Local</span><span><i></i>Cloud text</span><span><i></i>Active route</span></div>
+            </section>
+
+            <div class="jh-lower-grid">
+              <section class="jh-module" aria-label="Provider routes">
+                <h3>Provider route</h3>
+                <div class="jh-route-list">
+                  <div class="jh-route-row"><span>Selected</span><span>OpenRouter</span></div>
+                  <div class="jh-route-row"><span>Fallback</span><span>Gemini</span></div>
+                  <div class="jh-route-row"><span>Local option</span><span>Ollama</span></div>
+                  <div class="jh-route-row"><span>Task class</span><span>Study</span></div>
+                </div>
+              </section>
+              <section class="jh-module" aria-label="Turn timing">
+                <h3>Example turn timing</h3>
+                <div class="jh-metric-list">
+                  <div class="jh-metric-row"><span>Speech recognition</span><span>0.8 s</span></div>
+                  <div class="jh-metric-row"><span>First model token</span><span>1.4 s</span></div>
+                  <div class="jh-metric-row"><span>First audio</span><span>2.4 s</span></div>
+                  <div class="jh-metric-row"><span>Total reply</span><span>5.8 s</span></div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div>
+            <section class="jh-module" aria-label="Privacy boundaries">
+              <h3>Privacy boundary</h3>
+              <div class="jh-privacy-list">
+                <div class="jh-privacy-row"><span>Raw microphone audio</span><span>Local</span></div>
+                <div class="jh-privacy-row"><span>Speech recognition</span><span>Local</span></div>
+                <div class="jh-privacy-row"><span>Memory file</span><span>Local</span></div>
+                <div class="jh-privacy-row"><span>Prompt text</span><span>Cloud route</span></div>
+                <div class="jh-privacy-row"><span>Voice synthesis</span><span>Local</span></div>
+              </div>
+            </section>
+
+            <section class="jh-module" aria-label="Recent system events" style="margin-top:14px">
+              <h3>Recent events</h3>
+              <div class="jh-event-log">
+                <div class="jh-event"><time>22:14:08</time><span>Voice turn completed normally</span></div>
+                <div class="jh-event"><time>22:13:59</time><span>Provider route selected: study</span></div>
+                <div class="jh-event"><time>22:13:57</time><span>Sinhala speech recognized</span></div>
+                <div class="jh-event"><time>22:12:31</time><span>Memory written atomically</span></div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    (() => {
+      const root = document.getElementById('jarvis-hybrid-ui');
+      if (!root) return;
+      const shell = root.querySelector('.jh-shell');
+      const navButtons = [...root.querySelectorAll('[data-view-target]')];
+      const views = [...root.querySelectorAll('[data-view]')];
+      const saved = window.openai?.widgetState?.privateContent;
+
+      const voiceStates = [
+        { key: 'ready', title: 'Ready when you are', detail: 'Press the core or use your push-to-talk key', orb: 'Talk' },
+        { key: 'listening', title: 'I’m listening', detail: 'Speak naturally · press the core again when finished', orb: 'Listening' },
+        { key: 'thinking', title: 'Thinking', detail: 'Understanding the request and choosing the best route', orb: 'Working' },
+        { key: 'speaking', title: 'Speaking', detail: 'Streaming sentences through the local voice engine', orb: 'Stop' }
+      ];
+
+      const ui = {
+        view: ['home', 'chat', 'memory', 'system'].includes(saved?.view) ? saved.view : 'home',
+        voiceIndex: Number.isInteger(saved?.voiceIndex) ? saved.voiceIndex % voiceStates.length : 0,
+        muted: Boolean(saved?.muted),
+        memoryNode: ['core', 'study', 'jarvis', 'language'].includes(saved?.memoryNode) ? saved.memoryNode : 'core'
+      };
+
+      const memoryCopy = {
+        core: ['Profile', 'High-level preferences and identity facts explicitly remembered by the user.'],
+        study: ['Study', 'University subjects, revision topics, and the current study plan.'],
+        jarvis: ['Jarvis project', 'Voice, routing, model, and interface decisions connected to this assistant.'],
+        language: ['Languages', 'English, Sinhala, and Tamil preferences used for recognition and speech.']
+      };
+
+      function persist() {
+        if (!window.openai?.setWidgetState) return;
+        window.openai.setWidgetState({
+          modelContent: { selectedJarvisView: ui.view, voiceState: voiceStates[ui.voiceIndex].key, muted: ui.muted },
+          privateContent: ui
+        }).catch(() => {});
+      }
+
+      function render() {
+        const voice = voiceStates[ui.voiceIndex];
+        shell.dataset.voiceState = voice.key;
+        navButtons.forEach(button => button.setAttribute('aria-selected', button.dataset.viewTarget === ui.view ? 'true' : 'false'));
+        views.forEach(view => { view.hidden = view.dataset.view !== ui.view; });
+        root.querySelectorAll('[data-state-title]').forEach(el => { el.textContent = voice.title; });
+        root.querySelectorAll('[data-state-detail]').forEach(el => { el.textContent = voice.detail; });
+        root.querySelectorAll('[data-orb-state]').forEach(el => { el.textContent = voice.orb; });
+        root.querySelectorAll('[data-mute]').forEach(button => {
+          button.setAttribute('aria-pressed', ui.muted ? 'true' : 'false');
+          button.setAttribute('aria-label', ui.muted ? 'Unmute Friday' : 'Mute Friday');
+        });
+        root.querySelectorAll('[data-memory-key]').forEach(button => {
+          button.setAttribute('aria-pressed', button.dataset.memoryKey === ui.memoryNode ? 'true' : 'false');
+        });
+        const memoryText = memoryCopy[ui.memoryNode];
+        root.querySelectorAll('[data-memory-title]').forEach(el => { el.textContent = memoryText[0]; });
+        root.querySelectorAll('[data-memory-detail]').forEach(el => { el.textContent = memoryText[1]; });
+        root.querySelectorAll('[data-graph-node]').forEach(node => {
+          const selected = node.dataset.graphNode === ui.memoryNode;
+          node.classList.toggle('is-selected', selected);
+          node.classList.toggle('is-dimmed', !selected);
+        });
+      }
+
+      navButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          ui.view = button.dataset.viewTarget;
+          render();
+          persist();
+        });
+      });
+
+      root.querySelectorAll('[data-voice-cycle]').forEach(button => {
+        button.addEventListener('click', () => {
+          ui.voiceIndex = (ui.voiceIndex + 1) % voiceStates.length;
+          render();
+          persist();
+        });
+      });
+
+      root.querySelectorAll('[data-mute]').forEach(button => {
+        button.addEventListener('click', () => {
+          ui.muted = !ui.muted;
+          render();
+          persist();
+        });
+      });
+
+      root.querySelectorAll('[data-memory-key]').forEach(button => {
+        button.addEventListener('click', () => {
+          ui.memoryNode = button.dataset.memoryKey;
+          render();
+          persist();
+        });
+      });
+
+      const design = { accent: '#ff8a1f', orbSize: 270, glow: 64, showHomeDiagnostics: true };
+      function renderDesign() {
+        shell.style.setProperty('--jh-accent', design.accent);
+        shell.style.setProperty('--jh-orb-size', `${design.orbSize}px`);
+        shell.style.setProperty('--jh-glow', `${design.glow}%`);
+        shell.dataset.homeDiagnostics = design.showHomeDiagnostics ? 'true' : 'false';
+        root.querySelectorAll('[data-home-diagnostics]').forEach(el => { el.hidden = !design.showHomeDiagnostics; });
+      }
+      renderDesign();
+
+      if (globalThis.Tweak) {
+        const tweak = new Tweak({ container: shell, onChange: renderDesign });
+        tweak.addColorPicker(design, 'accent', { label: 'Core accent', reference: '--jh-accent' });
+        tweak.addSlider(design, 'orbSize', { label: 'Core size', min: 190, max: 330, unit: 'px', reference: '--jh-orb-size' });
+        tweak.addSlider(design, 'glow', { label: 'Core energy', min: 25, max: 85, unit: '%', reference: '--jh-glow' });
+        tweak.addToggle(design, 'showHomeDiagnostics', { label: 'Show status panel', reference: 'home.diagnostics' });
+      }
+
+      window.addEventListener('openai:set_globals', event => {
+        const next = event.detail?.globals?.widgetState?.privateContent;
+        if (!next) return;
+        if (['home', 'chat', 'memory', 'system'].includes(next.view)) ui.view = next.view;
+        if (Number.isInteger(next.voiceIndex)) ui.voiceIndex = next.voiceIndex % voiceStates.length;
+        ui.muted = Boolean(next.muted);
+        if (['core', 'study', 'jarvis', 'language'].includes(next.memoryNode)) ui.memoryNode = next.memoryNode;
+        render();
+      });
+
+      render();
+    })();
+  </script>
+</div>

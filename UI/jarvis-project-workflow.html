@@ -1,0 +1,400 @@
+<div id="jarvis-project-workflow">
+  <style>
+    #jarvis-project-workflow {
+      color: var(--foreground);
+      width: 100%;
+    }
+
+    #jarvis-project-workflow .jw-header {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 14px;
+      padding-right: 96px;
+    }
+
+    #jarvis-project-workflow .jw-header p,
+    #jarvis-project-workflow .jw-header h2 {
+      margin: 0;
+    }
+
+    #jarvis-project-workflow .jw-tabs {
+      margin-bottom: 16px;
+    }
+
+    #jarvis-project-workflow .jw-flow {
+      display: flex;
+      align-items: stretch;
+      gap: 7px;
+      width: 100%;
+      margin: 16px 0;
+    }
+
+    #jarvis-project-workflow .jw-node {
+      appearance: none;
+      flex: 1 1 0;
+      min-width: 0;
+      min-height: 92px;
+      padding: 11px 9px;
+      border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+      border-radius: 10px;
+      background: color-mix(in srgb, var(--viz-series-1) 11%, transparent);
+      color: var(--foreground);
+      text-align: left;
+      font: inherit;
+    }
+
+    #jarvis-project-workflow .jw-node[data-kind="state"] {
+      background: color-mix(in srgb, var(--viz-series-3) 12%, transparent);
+    }
+
+    #jarvis-project-workflow .jw-node[data-kind="provider"] {
+      background: color-mix(in srgb, var(--viz-series-2) 12%, transparent);
+    }
+
+    #jarvis-project-workflow .jw-node[data-kind="risk"] {
+      background: color-mix(in srgb, var(--destructive) 12%, transparent);
+      border-color: color-mix(in srgb, var(--destructive) 35%, var(--border));
+    }
+
+    #jarvis-project-workflow .jw-node[aria-pressed="true"] {
+      background: var(--primary);
+      color: var(--primary-foreground);
+      border-color: transparent;
+    }
+
+    #jarvis-project-workflow .jw-step {
+      display: block;
+      margin-bottom: 7px;
+      color: inherit;
+      opacity: .72;
+    }
+
+    #jarvis-project-workflow .jw-node-title {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+
+    #jarvis-project-workflow .jw-node-detail {
+      display: block;
+      color: inherit;
+      opacity: .78;
+    }
+
+    #jarvis-project-workflow .jw-arrow {
+      display: grid;
+      flex: 0 0 15px;
+      place-items: center;
+      color: var(--muted-foreground);
+      font-weight: 500;
+    }
+
+    #jarvis-project-workflow .jw-detail-line {
+      display: grid;
+      grid-template-columns: minmax(100px, auto) 1fr;
+      gap: 12px;
+      align-items: baseline;
+    }
+
+    #jarvis-project-workflow .jw-detail-line strong,
+    #jarvis-project-workflow .jw-detail-line span {
+      min-width: 0;
+    }
+
+    #jarvis-project-workflow .jw-branches {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    #jarvis-project-workflow .jw-branch {
+      padding-top: 10px;
+      border-top: 2px solid var(--border);
+    }
+
+    #jarvis-project-workflow .jw-branch[data-kind="state"] {
+      border-top-color: var(--viz-series-3);
+    }
+
+    #jarvis-project-workflow .jw-branch[data-kind="provider"] {
+      border-top-color: var(--viz-series-2);
+    }
+
+    #jarvis-project-workflow .jw-branch[data-kind="risk"] {
+      border-top-color: var(--destructive);
+    }
+
+    #jarvis-project-workflow .jw-branch strong,
+    #jarvis-project-workflow .jw-branch span {
+      display: block;
+    }
+
+    #jarvis-project-workflow .jw-branch strong {
+      margin-bottom: 4px;
+    }
+
+    #jarvis-project-workflow .jw-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 14px;
+      color: var(--muted-foreground);
+    }
+
+    #jarvis-project-workflow .jw-key {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #jarvis-project-workflow .jw-swatch {
+      width: 11px;
+      height: 11px;
+      border-radius: 3px;
+      background: var(--viz-series-1);
+    }
+
+    #jarvis-project-workflow .jw-swatch.state {
+      background: var(--viz-series-3);
+    }
+
+    #jarvis-project-workflow .jw-swatch.provider {
+      background: var(--viz-series-2);
+    }
+
+    #jarvis-project-workflow .jw-swatch.risk {
+      background: var(--destructive);
+    }
+
+    @media (max-width: 680px) {
+      #jarvis-project-workflow .jw-header {
+        padding-right: 0;
+      }
+
+      #jarvis-project-workflow .jw-flow {
+        flex-direction: column;
+      }
+
+      #jarvis-project-workflow .jw-node {
+        min-height: 0;
+        width: 100%;
+      }
+
+      #jarvis-project-workflow .jw-arrow {
+        flex-basis: 14px;
+        transform: rotate(90deg);
+      }
+
+      #jarvis-project-workflow .jw-branches {
+        grid-template-columns: 1fr;
+      }
+
+      #jarvis-project-workflow .jw-detail-line {
+        grid-template-columns: 1fr;
+        gap: 4px;
+      }
+    }
+  </style>
+
+  <div class="jw-header">
+    <h2>Jarvis project workflow</h2>
+    <p class="text-muted">Choose a path, then select any stage to inspect what it does.</p>
+  </div>
+
+  <div class="nav nav-pills jw-tabs" role="tablist" aria-label="Workflow path">
+    <button class="nav-link active" id="jw-voice-tab" type="button" role="tab" aria-selected="true" aria-controls="jw-flow-panel" data-mode="voice">Voice turn</button>
+    <button class="nav-link" id="jw-text-tab" type="button" role="tab" aria-selected="false" aria-controls="jw-flow-panel" data-mode="text">Typed turn</button>
+    <button class="nav-link" id="jw-control-tab" type="button" role="tab" aria-selected="false" aria-controls="jw-flow-panel" data-mode="control">Stop &amp; mute</button>
+    <button class="nav-link" id="jw-state-tab" type="button" role="tab" aria-selected="false" aria-controls="jw-flow-panel" data-mode="state">State &amp; providers</button>
+  </div>
+
+  <div id="jw-flow-panel" role="tabpanel" aria-labelledby="jw-voice-tab">
+    <div class="jw-flow" id="jw-flow" role="list" aria-label="Voice turn workflow"></div>
+
+    <div class="card" aria-live="polite">
+      <div class="jw-detail-line">
+        <strong id="jw-selected-title">Capture</strong>
+        <span id="jw-selected-detail">A keyboard or controller event starts one request, and the persistent recorder returns an in-memory audio array.</span>
+      </div>
+    </div>
+
+    <div class="jw-branches" id="jw-branches" aria-label="Related systems"></div>
+
+    <div class="jw-legend text-small" aria-label="Legend">
+      <span class="jw-key"><span class="jw-swatch"></span>Main processing</span>
+      <span class="jw-key"><span class="jw-swatch provider"></span>Provider or model</span>
+      <span class="jw-key"><span class="jw-swatch state"></span>State or storage</span>
+      <span class="jw-key"><span class="jw-swatch risk"></span>Known reliability risk</span>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const root = document.getElementById('jarvis-project-workflow');
+      if (!root) return;
+
+      const flows = {
+        voice: {
+          label: 'Voice turn workflow',
+          steps: [
+            { title: 'Capture', short: 'PTT → microphone audio', detail: 'A keyboard or controller event starts one request, and the persistent recorder returns an in-memory audio array.', kind: 'main' },
+            { title: 'Speech recognition', short: 'Whisper → language check', detail: 'Local faster-whisper converts speech to text, then language and clarity checks prepare the transcript.', kind: 'provider' },
+            { title: 'Turn handling', short: 'App.voice_turn', detail: 'The app checks language and clarity, then passes the transcript into the shared request path. Cancellation during this stage is currently incomplete.', kind: 'risk' },
+            { title: 'Prompt context', short: 'Persona + history + memory', detail: 'Persona instructions, recent messages, and remembered facts are assembled into the model request.', kind: 'state' },
+            { title: 'Model routing', short: 'Intent → fallback chain', detail: 'The request category selects an ordered provider route, with cooldowns and fallback behavior.', kind: 'provider' },
+            { title: 'Stream and speak', short: 'Sentences → TTS → player', detail: 'Streaming model text is split into sentences, synthesized with the language engine, processed, and played.', kind: 'main' }
+          ],
+          branches: [
+            { title: 'History & memory', text: 'Successful user and assistant messages are persisted for later context.', kind: 'state' },
+            { title: 'Cloud boundary', text: 'Configured cloud providers receive text context, but not the raw microphone audio.', kind: 'provider' },
+            { title: 'Current weak point', text: 'An old transcript can survive a stop event and still reach the model.', kind: 'risk' }
+          ]
+        },
+        text: {
+          label: 'Typed turn workflow',
+          steps: [
+            { title: 'Terminal input', short: 'stdin command or question', detail: 'Typed text enters through the asynchronous command loop.', kind: 'main' },
+            { title: 'Command or turn', short: 'Slash command / handle_text', detail: 'Commands update local state; ordinary text enters the shared request function, where concurrent turns are currently possible.', kind: 'risk' },
+            { title: 'Prompt context', short: 'Persona + history + memory', detail: 'The prompt combines Friday’s persona with recent conversation and remembered facts.', kind: 'state' },
+            { title: 'Model routing', short: 'Route + provider fallback', detail: 'The router selects OpenRouter, Gemini, or Ollama according to task type and availability.', kind: 'provider' },
+            { title: 'Streaming reply', short: 'Text and optional voice', detail: 'Text is emitted incrementally and may also be sent through the voice sink.', kind: 'main' },
+            { title: 'Persist result', short: 'History + memory + metrics', detail: 'Completed replies update conversation state and latency telemetry.', kind: 'state' }
+          ],
+          branches: [
+            { title: 'Shared resources', text: 'Typed and voice turns share history, mode, memory, sink, and provider state.', kind: 'state' },
+            { title: 'Provider failure', text: 'A disconnect after streaming begins can currently escape the normal error path.', kind: 'risk' },
+            { title: 'Local fallback', text: 'Ollama can provide a local text route when configured and selected.', kind: 'provider' }
+          ]
+        },
+        control: {
+          label: 'Stop and mute workflow',
+          steps: [
+            { title: 'User control', short: 'Kill, barge-in, or mute', detail: 'A control input requests cancellation or changes whether generated speech may play.', kind: 'main' },
+            { title: 'Event bus', short: 'Bounded subscriber queues', detail: 'Control events are broadcast to subscribers. A full queue can currently drop a critical stop event.', kind: 'risk' },
+            { title: 'App mode', short: 'IDLE / LISTENING / SPEAKING / PAUSED', detail: 'The app updates its mode and advances the cancellation generation.', kind: 'state' },
+            { title: 'Active turn', short: 'STT → LLM stream', detail: 'LLM and output stages observe cancellation, but STT does not yet own the same turn token end-to-end.', kind: 'risk' },
+            { title: 'Voice sink', short: 'Sentence and synthesis queues', detail: 'Queued synthesis should stop on mute, but later sentences can currently resume playback.', kind: 'risk' },
+            { title: 'Audio player', short: 'Stop current output', detail: 'The player stops active audio; a timing race can allow a newly started clip to escape that stop.', kind: 'risk' }
+          ],
+          branches: [
+            { title: 'Desired invariant', text: 'After stop is acknowledged, no older turn may call the LLM, write history, synthesize, or play.', kind: 'state' },
+            { title: 'Recommended owner', text: 'One TurnCoordinator should own task lifetime, phase, token, and terminal result.', kind: 'main' },
+            { title: 'Safety priority', text: 'Kill events and microphone cleanup should be treated as first-priority work.', kind: 'risk' }
+          ]
+        },
+        state: {
+          label: 'State and provider workflow',
+          steps: [
+            { title: 'TOML settings', short: 'App, audio, routes, languages', detail: 'Repository configuration selects devices, thresholds, provider routes, and language engines.', kind: 'state' },
+            { title: 'Environment keys', short: 'Provider credentials', detail: 'Credentials are currently loaded whenever settings are created; safer behavior is explicit CLI opt-in.', kind: 'risk' },
+            { title: 'Prompt builder', short: 'Persona + untrusted user state', detail: 'Name, facts, and recent messages are added to the prompt; remembered facts need stronger boundaries and limits.', kind: 'risk' },
+            { title: 'Route and fallback', short: 'OpenRouter / Gemini / Ollama', detail: 'Task classification selects an ordered provider route with cooldowns; some combinations can exclude an otherwise usable provider.', kind: 'provider' },
+            { title: 'Local state', short: 'memory.json + presence.json', detail: 'Atomic JSON writes retain remembered facts, recent messages, and presence information.', kind: 'state' },
+            { title: 'Telemetry', short: 'Latency and routing events', detail: 'Timing data is appended locally; synchronous write failures can currently interrupt a request.', kind: 'risk' }
+          ],
+          branches: [
+            { title: 'Privacy boundary', text: 'Recent messages and remembered facts can be sent to the selected cloud provider.', kind: 'provider' },
+            { title: 'Install boundary', text: 'Built wheels omit root configuration resources required by the current loader.', kind: 'risk' },
+            { title: 'Local-first strength', text: 'Raw audio, STT, TTS, presence, and memory remain on the laptop by default.', kind: 'state' }
+          ]
+        }
+      };
+
+      const flowEl = root.querySelector('#jw-flow');
+      const branchesEl = root.querySelector('#jw-branches');
+      const titleEl = root.querySelector('#jw-selected-title');
+      const detailEl = root.querySelector('#jw-selected-detail');
+      const panelEl = root.querySelector('#jw-flow-panel');
+      const tabButtons = [...root.querySelectorAll('[data-mode]')];
+
+      const saved = window.openai?.widgetState?.privateContent;
+      let mode = saved && flows[saved.mode] ? saved.mode : 'voice';
+      let selectedIndex = saved && Number.isInteger(saved.selectedIndex) ? saved.selectedIndex : 0;
+
+      function persist() {
+        if (!window.openai?.setWidgetState) return;
+        window.openai.setWidgetState({
+          modelContent: { selectedWorkflow: mode, selectedStage: flows[mode].steps[selectedIndex]?.title || null },
+          privateContent: { mode, selectedIndex }
+        }).catch(() => {});
+      }
+
+      function selectStep(index, shouldPersist = true) {
+        const current = flows[mode];
+        selectedIndex = Math.max(0, Math.min(index, current.steps.length - 1));
+        [...flowEl.querySelectorAll('.jw-node')].forEach((node, nodeIndex) => {
+          node.setAttribute('aria-pressed', nodeIndex === selectedIndex ? 'true' : 'false');
+        });
+        titleEl.textContent = current.steps[selectedIndex].title;
+        detailEl.textContent = current.steps[selectedIndex].detail;
+        if (shouldPersist) persist();
+      }
+
+      function render(shouldPersist = true) {
+        const current = flows[mode];
+        selectedIndex = Math.max(0, Math.min(selectedIndex, current.steps.length - 1));
+        flowEl.replaceChildren();
+        flowEl.setAttribute('aria-label', current.label);
+
+        current.steps.forEach((step, index) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'jw-node cursor-interaction';
+          button.dataset.kind = step.kind;
+          button.setAttribute('role', 'listitem');
+          button.setAttribute('aria-pressed', index === selectedIndex ? 'true' : 'false');
+          button.setAttribute('aria-label', `Stage ${index + 1}: ${step.title}. ${step.detail}`);
+          button.innerHTML = `<span class="jw-step text-small">${index + 1}</span><span class="jw-node-title">${step.title}</span><span class="jw-node-detail text-small">${step.short}</span>`;
+          button.addEventListener('click', () => selectStep(index));
+          flowEl.appendChild(button);
+
+          if (index < current.steps.length - 1) {
+            const arrow = document.createElement('span');
+            arrow.className = 'jw-arrow';
+            arrow.setAttribute('aria-hidden', 'true');
+            arrow.textContent = '→';
+            flowEl.appendChild(arrow);
+          }
+        });
+
+        branchesEl.replaceChildren();
+        current.branches.forEach(branch => {
+          const item = document.createElement('div');
+          item.className = 'jw-branch';
+          item.dataset.kind = branch.kind;
+          item.innerHTML = `<strong>${branch.title}</strong><span class="text-small text-muted">${branch.text}</span>`;
+          branchesEl.appendChild(item);
+        });
+
+        tabButtons.forEach(tab => {
+          const active = tab.dataset.mode === mode;
+          tab.classList.toggle('active', active);
+          tab.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        const activeTab = tabButtons.find(tab => tab.dataset.mode === mode);
+        panelEl.setAttribute('aria-labelledby', activeTab?.id || 'jw-voice-tab');
+        selectStep(selectedIndex, false);
+        if (shouldPersist) persist();
+      }
+
+      tabButtons.forEach(tab => {
+        tab.addEventListener('click', () => {
+          mode = tab.dataset.mode;
+          selectedIndex = 0;
+          render();
+        });
+      });
+
+      window.addEventListener('openai:set_globals', event => {
+        const next = event.detail?.globals?.widgetState?.privateContent;
+        if (!next || !flows[next.mode]) return;
+        mode = next.mode;
+        selectedIndex = Number.isInteger(next.selectedIndex) ? next.selectedIndex : 0;
+        render(false);
+      });
+
+      render(false);
+    })();
+  </script>
+</div>

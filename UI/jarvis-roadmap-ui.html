@@ -1,0 +1,3025 @@
+<div id="jarvis-roadmap-ui">
+  <style>
+    #jarvis-roadmap-ui {
+      width: 100%;
+    }
+
+    #jarvis-roadmap-ui .jr-shell {
+      --jr-accent: #ff8a1f;
+      --jr-accent-soft: rgba(255, 138, 31, .13);
+      --jr-bg: #05070a;
+      --jr-panel: #0b1118;
+      --jr-panel-2: #111a25;
+      --jr-panel-3: #172332;
+      --jr-text: #f3f6f9;
+      --jr-muted: #95a2b2;
+      --jr-line: #243244;
+      --jr-cyan: #55d7f3;
+      --jr-green: #5ce0a3;
+      --jr-amber: #ffc45f;
+      --jr-red: #ff736d;
+      color-scheme: dark;
+      position: relative;
+      overflow: hidden;
+      min-height: 780px;
+      border: 1px solid var(--jr-line);
+      border-radius: 18px;
+      background: var(--jr-bg);
+      color: var(--jr-text);
+      box-shadow: 0 30px 76px rgba(0, 0, 0, .42);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    #jarvis-roadmap-ui .jr-shell * {
+      box-sizing: border-box;
+    }
+
+    #jarvis-roadmap-ui button,
+    #jarvis-roadmap-ui input,
+    #jarvis-roadmap-ui select,
+    #jarvis-roadmap-ui textarea {
+      font: inherit;
+    }
+
+    #jarvis-roadmap-ui button {
+      color: inherit;
+    }
+
+    #jarvis-roadmap-ui .jr-topbar {
+      position: relative;
+      z-index: 8;
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) auto minmax(180px, 1fr);
+      min-height: 64px;
+      align-items: center;
+      gap: 14px;
+      padding: 0 16px;
+      border-bottom: 1px solid rgba(149, 162, 178, .14);
+      background: rgba(5, 7, 10, .92);
+      backdrop-filter: blur(18px);
+    }
+
+    #jarvis-roadmap-ui .jr-brand,
+    #jarvis-roadmap-ui .jr-top-status,
+    #jarvis-roadmap-ui .jr-top-actions,
+    #jarvis-roadmap-ui .jr-row,
+    #jarvis-roadmap-ui .jr-chip,
+    #jarvis-roadmap-ui .jr-panel-heading,
+    #jarvis-roadmap-ui .jr-state-actions,
+    #jarvis-roadmap-ui .jr-context-heading,
+    #jarvis-roadmap-ui .jr-composer-actions,
+    #jarvis-roadmap-ui .jr-map-actions,
+    #jarvis-roadmap-ui .jr-dialog-actions {
+      display: flex;
+      align-items: center;
+    }
+
+    #jarvis-roadmap-ui .jr-brand {
+      min-width: 0;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: .08em;
+    }
+
+    #jarvis-roadmap-ui .jr-brand-orb {
+      width: 28px;
+      height: 28px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fff8d6 0 8%, #ffd75f 9% 24%, var(--jr-accent) 25% 58%, transparent 60%);
+      box-shadow: 0 0 20px color-mix(in srgb, var(--jr-accent) 72%, transparent);
+    }
+
+    #jarvis-roadmap-ui .jr-preview-label {
+      overflow: hidden;
+      max-width: 210px;
+      color: var(--jr-muted);
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 0;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #jarvis-roadmap-ui .jr-top-status {
+      justify-content: center;
+      gap: 7px;
+    }
+
+    #jarvis-roadmap-ui .jr-top-actions {
+      justify-content: flex-end;
+      gap: 7px;
+    }
+
+    #jarvis-roadmap-ui .jr-chip {
+      min-height: 28px;
+      gap: 6px;
+      padding: 0 9px;
+      border: 1px solid rgba(149, 162, 178, .16);
+      border-radius: 999px;
+      background: rgba(17, 26, 37, .82);
+      color: var(--jr-muted);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    #jarvis-roadmap-ui .jr-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--jr-green);
+      box-shadow: 0 0 8px color-mix(in srgb, var(--jr-green) 60%, transparent);
+    }
+
+    #jarvis-roadmap-ui .jr-icon-button,
+    #jarvis-roadmap-ui .jr-button,
+    #jarvis-roadmap-ui .jr-nav-button,
+    #jarvis-roadmap-ui .jr-country-button,
+    #jarvis-roadmap-ui .jr-memory-action {
+      border: 0;
+      border-radius: 10px;
+      background: var(--jr-panel-2);
+    }
+
+    #jarvis-roadmap-ui .jr-icon-button {
+      display: inline-grid;
+      width: 40px;
+      height: 40px;
+      flex: 0 0 auto;
+      place-items: center;
+    }
+
+    #jarvis-roadmap-ui .jr-icon-button[aria-pressed="true"] {
+      background: var(--jr-accent-soft);
+      color: var(--jr-accent);
+    }
+
+    #jarvis-roadmap-ui .jr-layout {
+      display: grid;
+      grid-template-columns: 196px minmax(0, 1fr) 248px;
+      min-height: 715px;
+    }
+
+    @media (min-width: 901px) {
+      #jarvis-roadmap-ui .jr-shell {
+        --jr-topbar-height: 64px;
+        display: grid;
+        height: 760px;
+        min-height: 0;
+        grid-template-rows: var(--jr-topbar-height) minmax(0, 1fr);
+      }
+
+      #jarvis-roadmap-ui .jr-topbar {
+        height: var(--jr-topbar-height);
+        min-height: 0;
+      }
+
+      #jarvis-roadmap-ui .jr-layout {
+        height: auto;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      #jarvis-roadmap-ui .jr-sidebar,
+      #jarvis-roadmap-ui .jr-context {
+        min-height: 0;
+        overflow-y: auto;
+        scrollbar-width: thin;
+      }
+
+      #jarvis-roadmap-ui .jr-main {
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      #jarvis-roadmap-ui .jr-main > div:first-child {
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+        scrollbar-width: thin;
+      }
+
+      #jarvis-roadmap-ui .jr-shell[data-focus="true"] {
+        --jr-topbar-height: 56px;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      #jarvis-roadmap-ui .jr-shell[data-focus="true"] .jr-topbar {
+        min-height: 56px;
+      }
+
+      #jarvis-roadmap-ui .jr-shell[data-focus="true"] .jr-layout {
+        grid-template-columns: 144px minmax(0, 1fr);
+        min-height: 0;
+      }
+
+      #jarvis-roadmap-ui .jr-shell[data-focus="true"] .jr-context {
+        display: none;
+      }
+
+      #jarvis-roadmap-ui .jr-shell[data-focus="true"] .jr-sidebar {
+        padding: 12px 8px;
+      }
+
+      #jarvis-roadmap-ui .jr-shell[data-focus="true"] .jr-nav-button {
+        grid-template-columns: 22px minmax(0, 1fr);
+        padding: 0 7px;
+      }
+
+      #jarvis-roadmap-ui .jr-shell[data-focus="true"] .jr-nav-button .jr-status,
+      #jarvis-roadmap-ui .jr-shell[data-focus="true"] .jr-roadmap-card {
+        display: none;
+      }
+
+      #jarvis-roadmap-ui .jr-shell[data-focus="true"] .jr-panel {
+        padding: 16px;
+      }
+
+      #jarvis-roadmap-ui .jr-shell[data-focus="true"] .jr-assistant-stage {
+        height: 420px;
+        min-height: 0;
+      }
+
+      #jarvis-roadmap-ui .jr-shell[data-focus="true"] .jr-spatial-stage {
+        height: 340px;
+        min-height: 0;
+      }
+
+      #jarvis-roadmap-ui .jr-shell[data-focus="true"] .jr-map-shell {
+        position: relative;
+        height: 520px;
+        grid-template-columns: minmax(0, 1fr);
+        min-height: 0;
+      }
+
+      #jarvis-roadmap-ui .jr-shell[data-focus="true"] .jr-map-main {
+        min-height: inherit;
+        padding: 18px;
+      }
+
+      #jarvis-roadmap-ui .jr-shell[data-focus="true"] .jr-world-map {
+        width: 100%;
+        height: 100%;
+        max-height: none;
+      }
+
+      #jarvis-roadmap-ui .jr-shell[data-focus="true"] .jr-map-side {
+        position: absolute;
+        z-index: 4;
+        top: 18px;
+        right: 18px;
+        width: 272px;
+        border: 1px solid var(--jr-line);
+        border-radius: 13px;
+        background: rgba(11, 17, 24, .94);
+        backdrop-filter: blur(16px);
+      }
+
+      #jarvis-roadmap-ui .jr-shell[data-focus="true"] .jr-composer {
+        gap: 6px;
+        padding: 8px 10px;
+      }
+
+      #jarvis-roadmap-ui .jr-shell[data-focus="true"] .jr-composer input {
+        min-height: 38px;
+      }
+
+      #jarvis-roadmap-ui .jr-shell[data-focus="true"] .jr-form-note {
+        min-height: 14px;
+      }
+
+      #jarvis-roadmap-ui .jr-shell[data-focus="true"] .jr-system-stage {
+        min-height: 82px;
+      }
+    }
+
+    @media (min-width: 901px) and (max-width: 1100px) {
+      #jarvis-roadmap-ui .jr-preview-label,
+      #jarvis-roadmap-ui .jr-top-status .jr-chip:nth-child(n + 2) {
+        display: none;
+      }
+    }
+
+    #jarvis-roadmap-ui .jr-sidebar,
+    #jarvis-roadmap-ui .jr-context {
+      position: relative;
+      z-index: 4;
+      padding: 15px 12px;
+      background: rgba(11, 17, 24, .94);
+    }
+
+    #jarvis-roadmap-ui .jr-sidebar {
+      border-right: 1px solid var(--jr-line);
+    }
+
+    #jarvis-roadmap-ui .jr-context {
+      border-left: 1px solid var(--jr-line);
+    }
+
+    #jarvis-roadmap-ui .jr-nav-group + .jr-nav-group {
+      margin-top: 18px;
+    }
+
+    #jarvis-roadmap-ui .jr-nav-label,
+    #jarvis-roadmap-ui .jr-kicker {
+      display: block;
+      margin: 0 8px 7px;
+      color: var(--jr-muted);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    #jarvis-roadmap-ui .jr-nav-list {
+      display: grid;
+      gap: 4px;
+    }
+
+    #jarvis-roadmap-ui .jr-nav-button {
+      display: grid;
+      grid-template-columns: 24px minmax(0, 1fr) auto;
+      min-height: 42px;
+      align-items: center;
+      gap: 7px;
+      padding: 0 9px;
+      background: transparent;
+      color: var(--jr-muted);
+      text-align: left;
+    }
+
+    #jarvis-roadmap-ui .jr-nav-button[aria-selected="true"] {
+      background: var(--jr-panel-3);
+      color: var(--jr-text);
+    }
+
+    #jarvis-roadmap-ui .jr-nav-button i {
+      width: 17px;
+      height: 17px;
+    }
+
+    #jarvis-roadmap-ui .jr-status {
+      display: inline-flex;
+      min-height: 20px;
+      align-items: center;
+      padding: 0 6px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    #jarvis-roadmap-ui .jr-status.live {
+      background: rgba(92, 224, 163, .12);
+      color: var(--jr-green);
+    }
+
+    #jarvis-roadmap-ui .jr-status.beta,
+    #jarvis-roadmap-ui .jr-status.foundation {
+      background: rgba(255, 196, 95, .12);
+      color: var(--jr-amber);
+    }
+
+    #jarvis-roadmap-ui .jr-status.planned,
+    #jarvis-roadmap-ui .jr-status.later {
+      background: rgba(149, 162, 178, .11);
+      color: var(--jr-muted);
+    }
+
+    #jarvis-roadmap-ui .jr-roadmap-card {
+      margin-top: 20px;
+      padding: 11px;
+      border-radius: 12px;
+      background: var(--jr-panel-2);
+    }
+
+    #jarvis-roadmap-ui .jr-roadmap-card strong,
+    #jarvis-roadmap-ui .jr-roadmap-card span {
+      display: block;
+    }
+
+    #jarvis-roadmap-ui .jr-roadmap-card strong {
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    #jarvis-roadmap-ui .jr-roadmap-card span {
+      margin-top: 4px;
+      color: var(--jr-muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    #jarvis-roadmap-ui .jr-progress {
+      height: 6px;
+      margin-top: 10px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(149, 162, 178, .12);
+    }
+
+    #jarvis-roadmap-ui .jr-progress > span {
+      width: 28%;
+      height: 100%;
+      margin: 0;
+      border-radius: inherit;
+      background: var(--jr-accent);
+    }
+
+    #jarvis-roadmap-ui .jr-main {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      min-width: 0;
+      grid-template-rows: minmax(0, 1fr) auto;
+      background:
+        radial-gradient(circle at 48% 30%, color-mix(in srgb, var(--jr-accent) 6%, transparent), transparent 36%),
+        linear-gradient(rgba(85, 215, 243, .016) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(85, 215, 243, .016) 1px, transparent 1px),
+        var(--jr-bg);
+      background-size: auto, 34px 34px, 34px 34px, auto;
+    }
+
+    #jarvis-roadmap-ui .jr-panel {
+      min-width: 0;
+      padding: 18px;
+    }
+
+    #jarvis-roadmap-ui .jr-panel[hidden] {
+      display: none;
+    }
+
+    #jarvis-roadmap-ui .jr-panel-heading {
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    #jarvis-roadmap-ui .jr-panel-heading h1,
+    #jarvis-roadmap-ui .jr-panel-heading h2,
+    #jarvis-roadmap-ui .jr-panel-heading p {
+      margin: 0;
+    }
+
+    #jarvis-roadmap-ui .jr-panel-heading h1,
+    #jarvis-roadmap-ui .jr-panel-heading h2 {
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    #jarvis-roadmap-ui .jr-panel-heading p {
+      margin-top: 4px;
+      color: var(--jr-muted);
+      font-size: 12px;
+    }
+
+    #jarvis-roadmap-ui .jr-assistant-stage {
+      position: relative;
+      min-height: 375px;
+      overflow: hidden;
+      border: 1px solid rgba(149, 162, 178, .13);
+      border-radius: 16px;
+      background: radial-gradient(circle at 50% 50%, var(--jr-accent-soft), transparent 40%), rgba(5, 7, 10, .72);
+    }
+
+    #jarvis-roadmap-ui .jr-spatial-stage {
+      min-height: 342px;
+      margin-bottom: 12px;
+    }
+
+    #jarvis-roadmap-ui .jr-spatial-renderer {
+      position: absolute;
+      z-index: 1;
+      inset: 0;
+    }
+
+    #jarvis-roadmap-ui .jr-assistant-stage::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 190px;
+      aspect-ratio: 1;
+      transform: translate(-50%, -52%);
+      border: 1px solid color-mix(in srgb, var(--jr-accent) 30%, transparent);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 245, 214, .32), var(--jr-accent-soft) 15%, transparent 61%);
+      box-shadow: 0 0 65px var(--jr-accent-soft);
+    }
+
+    #jarvis-roadmap-ui .jr-core-canvas {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: pan-y;
+    }
+
+    #jarvis-roadmap-ui .jr-core-fallback {
+      position: absolute;
+      z-index: 2;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 32px;
+      background: radial-gradient(circle, rgba(255, 247, 221, .96) 0 8px, color-mix(in srgb, var(--jr-accent) 64%, transparent) 9px 31px, transparent 105px);
+      color: var(--jr-muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    #jarvis-roadmap-ui .jr-core-fallback[hidden] {
+      display: none;
+    }
+
+    #jarvis-roadmap-ui .jr-stage-top,
+    #jarvis-roadmap-ui .jr-stage-bottom {
+      position: absolute;
+      z-index: 3;
+      right: 15px;
+      left: 15px;
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      pointer-events: none;
+    }
+
+    #jarvis-roadmap-ui .jr-stage-top {
+      top: 14px;
+      align-items: flex-start;
+    }
+
+    #jarvis-roadmap-ui .jr-stage-bottom {
+      bottom: 14px;
+      align-items: flex-end;
+    }
+
+    #jarvis-roadmap-ui .jr-spatial-note {
+      max-width: 100%;
+      white-space: normal;
+      line-height: 1.35;
+    }
+
+    #jarvis-roadmap-ui .jr-stage-copy strong,
+    #jarvis-roadmap-ui .jr-stage-copy span {
+      display: block;
+    }
+
+    #jarvis-roadmap-ui .jr-stage-copy strong {
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    #jarvis-roadmap-ui .jr-stage-copy span {
+      margin-top: 4px;
+      color: var(--jr-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-roadmap-ui .jr-state-card {
+      max-width: 410px;
+      padding: 11px 12px;
+      border: 1px solid rgba(149, 162, 178, .16);
+      border-radius: 13px;
+      background: rgba(11, 17, 24, .86);
+      backdrop-filter: blur(14px);
+      pointer-events: auto;
+    }
+
+    #jarvis-roadmap-ui .jr-state-actions {
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 9px;
+    }
+
+    #jarvis-roadmap-ui .jr-button {
+      min-height: 36px;
+      padding: 0 12px;
+      font-size: 12px;
+    }
+
+    #jarvis-roadmap-ui .jr-button.primary {
+      background: var(--jr-text);
+      color: #091018;
+      font-weight: 500;
+    }
+
+    #jarvis-roadmap-ui .jr-button.danger {
+      background: rgba(255, 115, 109, .15);
+      color: var(--jr-red);
+    }
+
+    #jarvis-roadmap-ui .jr-button:disabled {
+      opacity: .5;
+    }
+
+    #jarvis-roadmap-ui .jr-transcript {
+      display: grid;
+      grid-template-columns: 1fr 1.35fr;
+      gap: 9px;
+      margin-top: 10px;
+    }
+
+    #jarvis-roadmap-ui .jr-message,
+    #jarvis-roadmap-ui .jr-surface,
+    #jarvis-roadmap-ui .jr-stat,
+    #jarvis-roadmap-ui .jr-flow-step,
+    #jarvis-roadmap-ui .jr-source-plan,
+    #jarvis-roadmap-ui .jr-memory-row {
+      border: 1px solid rgba(149, 162, 178, .13);
+      border-radius: 12px;
+      background: rgba(17, 26, 37, .84);
+    }
+
+    #jarvis-roadmap-ui .jr-message {
+      padding: 10px 11px;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    #jarvis-roadmap-ui .jr-message.user {
+      background: rgba(24, 35, 50, .92);
+    }
+
+    #jarvis-roadmap-ui .jr-message-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 5px;
+      color: var(--jr-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-roadmap-ui .jr-composer {
+      position: relative;
+      z-index: 5;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 9px;
+      padding: 11px 13px;
+      border-top: 1px solid var(--jr-line);
+      background: rgba(11, 17, 24, .96);
+    }
+
+    #jarvis-roadmap-ui .jr-composer input {
+      min-width: 0;
+      min-height: 42px;
+      border: 1px solid rgba(149, 162, 178, .18);
+      border-radius: 11px;
+      background: var(--jr-bg);
+      color: var(--jr-text);
+      padding: 0 12px;
+      font-size: 13px;
+    }
+
+    #jarvis-roadmap-ui .jr-composer input:focus {
+      border-color: var(--jr-accent);
+      box-shadow: 0 0 0 3px var(--jr-accent-soft);
+    }
+
+    #jarvis-roadmap-ui .jr-composer-actions {
+      gap: 7px;
+    }
+
+    #jarvis-roadmap-ui .jr-form-note {
+      grid-column: 1 / -1;
+      min-height: 16px;
+      color: var(--jr-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-roadmap-ui .jr-surface {
+      padding: 14px;
+    }
+
+    #jarvis-roadmap-ui .jr-surface h3,
+    #jarvis-roadmap-ui .jr-surface p,
+    #jarvis-roadmap-ui .jr-context h2,
+    #jarvis-roadmap-ui .jr-context h3,
+    #jarvis-roadmap-ui .jr-context p {
+      margin: 0;
+    }
+
+    #jarvis-roadmap-ui .jr-surface h3,
+    #jarvis-roadmap-ui .jr-context h2,
+    #jarvis-roadmap-ui .jr-context h3 {
+      font-weight: 500;
+    }
+
+    #jarvis-roadmap-ui .jr-surface h3 {
+      font-size: 13px;
+    }
+
+    #jarvis-roadmap-ui .jr-surface p {
+      margin-top: 6px;
+      color: var(--jr-muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    #jarvis-roadmap-ui .jr-grid-2,
+    #jarvis-roadmap-ui .jr-grid-3,
+    #jarvis-roadmap-ui .jr-stats {
+      display: grid;
+      gap: 10px;
+    }
+
+    #jarvis-roadmap-ui .jr-grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    #jarvis-roadmap-ui .jr-grid-3,
+    #jarvis-roadmap-ui .jr-stats {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    #jarvis-roadmap-ui .jr-stat {
+      padding: 12px;
+    }
+
+    #jarvis-roadmap-ui .jr-stat span,
+    #jarvis-roadmap-ui .jr-stat strong {
+      display: block;
+    }
+
+    #jarvis-roadmap-ui .jr-stat span {
+      color: var(--jr-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-roadmap-ui .jr-stat strong {
+      margin-top: 4px;
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    #jarvis-roadmap-ui .jr-memory-list,
+    #jarvis-roadmap-ui .jr-flow,
+    #jarvis-roadmap-ui .jr-source-list,
+    #jarvis-roadmap-ui .jr-settings-list,
+    #jarvis-roadmap-ui .jr-context-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    #jarvis-roadmap-ui .jr-memory-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 12px;
+    }
+
+    #jarvis-roadmap-ui .jr-memory-row strong,
+    #jarvis-roadmap-ui .jr-memory-row span {
+      display: block;
+    }
+
+    #jarvis-roadmap-ui .jr-memory-row strong {
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    #jarvis-roadmap-ui .jr-memory-row span {
+      margin-top: 3px;
+      color: var(--jr-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-roadmap-ui .jr-memory-action {
+      min-height: 32px;
+      padding: 0 9px;
+      color: var(--jr-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-roadmap-ui .jr-memory-layout {
+      display: grid;
+      grid-template-columns: 210px minmax(0, 1fr);
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    #jarvis-roadmap-ui .jr-memory-layers {
+      display: grid;
+      align-content: start;
+      gap: 7px;
+    }
+
+    #jarvis-roadmap-ui .jr-memory-layer {
+      display: grid;
+      grid-template-columns: 30px minmax(0, 1fr) auto;
+      min-height: 54px;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(149, 162, 178, .13);
+      border-radius: 11px;
+      background: var(--jr-panel-2);
+      padding: 7px 9px;
+      text-align: left;
+    }
+
+    #jarvis-roadmap-ui .jr-memory-layer[aria-selected="true"] {
+      border-color: color-mix(in srgb, var(--jr-accent) 55%, transparent);
+      background: var(--jr-accent-soft);
+    }
+
+    #jarvis-roadmap-ui .jr-memory-layer-index {
+      display: grid;
+      width: 28px;
+      height: 28px;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--jr-bg);
+      color: var(--jr-cyan);
+      font-size: 11px;
+    }
+
+    #jarvis-roadmap-ui .jr-memory-layer strong,
+    #jarvis-roadmap-ui .jr-memory-layer small {
+      display: block;
+    }
+
+    #jarvis-roadmap-ui .jr-memory-layer strong {
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    #jarvis-roadmap-ui .jr-memory-layer small {
+      margin-top: 2px;
+      color: var(--jr-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-roadmap-ui .jr-memory-detail {
+      min-height: 176px;
+    }
+
+    #jarvis-roadmap-ui .jr-memory-detail-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px;
+      margin-top: 12px;
+    }
+
+    #jarvis-roadmap-ui .jr-memory-detail-cell {
+      padding: 9px;
+      border-radius: 9px;
+      background: var(--jr-bg);
+    }
+
+    #jarvis-roadmap-ui .jr-memory-detail-cell span,
+    #jarvis-roadmap-ui .jr-memory-detail-cell strong {
+      display: block;
+    }
+
+    #jarvis-roadmap-ui .jr-memory-detail-cell span {
+      color: var(--jr-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-roadmap-ui .jr-memory-detail-cell strong {
+      margin-top: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    #jarvis-roadmap-ui .jr-memory-form {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 8px;
+    }
+
+    #jarvis-roadmap-ui .jr-memory-form label,
+    #jarvis-roadmap-ui .jr-memory-form label span {
+      display: block;
+    }
+
+    #jarvis-roadmap-ui .jr-memory-form label span {
+      margin-bottom: 5px;
+      color: var(--jr-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-roadmap-ui .jr-field {
+      width: 100%;
+      min-height: 36px;
+      border: 1px solid var(--jr-line);
+      border-radius: 9px;
+      background: var(--jr-bg);
+      color: var(--jr-text);
+      padding: 0 10px;
+      font-size: 12px;
+    }
+
+    #jarvis-roadmap-ui .jr-system-pipeline {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    #jarvis-roadmap-ui .jr-system-stage {
+      position: relative;
+      display: grid;
+      min-height: 92px;
+      align-content: start;
+      gap: 5px;
+      border: 1px solid rgba(149, 162, 178, .13);
+      border-radius: 11px;
+      background: var(--jr-panel-2);
+      padding: 10px;
+      text-align: left;
+    }
+
+    #jarvis-roadmap-ui .jr-system-stage[aria-selected="true"] {
+      border-color: color-mix(in srgb, var(--jr-cyan) 52%, transparent);
+      background: rgba(85, 215, 243, .09);
+    }
+
+    #jarvis-roadmap-ui .jr-system-stage.is-cluster-related:not([aria-selected="true"]) {
+      border-color: rgba(85, 215, 243, .24);
+      box-shadow: inset 0 2px 0 rgba(85, 215, 243, .14);
+    }
+
+    #jarvis-roadmap-ui .jr-system-stage span,
+    #jarvis-roadmap-ui .jr-system-stage strong,
+    #jarvis-roadmap-ui .jr-system-stage small {
+      display: block;
+    }
+
+    #jarvis-roadmap-ui .jr-system-stage span {
+      color: var(--jr-cyan);
+      font-size: 11px;
+      letter-spacing: .05em;
+    }
+
+    #jarvis-roadmap-ui .jr-system-stage strong {
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    #jarvis-roadmap-ui .jr-system-stage small {
+      color: var(--jr-muted);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    #jarvis-roadmap-ui .jr-system-detail {
+      margin-top: 10px;
+    }
+
+    #jarvis-roadmap-ui .jr-system-detail-row {
+      display: grid;
+      grid-template-columns: 80px minmax(0, 1fr);
+      gap: 9px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(149, 162, 178, .1);
+      font-size: 11px;
+    }
+
+    #jarvis-roadmap-ui .jr-system-detail-row:last-child {
+      border-bottom: 0;
+    }
+
+    #jarvis-roadmap-ui .jr-system-detail-row span:first-child {
+      color: var(--jr-muted);
+    }
+
+    #jarvis-roadmap-ui .jr-flow {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    #jarvis-roadmap-ui .jr-flow-step {
+      position: relative;
+      min-height: 104px;
+      padding: 12px;
+    }
+
+    #jarvis-roadmap-ui .jr-flow-step:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      top: 42px;
+      right: -14px;
+      z-index: 2;
+      color: var(--jr-cyan);
+    }
+
+    #jarvis-roadmap-ui .jr-flow-step span,
+    #jarvis-roadmap-ui .jr-flow-step strong {
+      display: block;
+    }
+
+    #jarvis-roadmap-ui .jr-flow-step span {
+      color: var(--jr-cyan);
+      font-size: 11px;
+    }
+
+    #jarvis-roadmap-ui .jr-flow-step strong {
+      margin-top: 7px;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    #jarvis-roadmap-ui .jr-tier {
+      border-left: 3px solid var(--jr-muted);
+    }
+
+    #jarvis-roadmap-ui .jr-tier.safe {
+      border-left-color: var(--jr-green);
+    }
+
+    #jarvis-roadmap-ui .jr-tier.log {
+      border-left-color: var(--jr-cyan);
+    }
+
+    #jarvis-roadmap-ui .jr-tier.ask {
+      border-left-color: var(--jr-amber);
+    }
+
+    #jarvis-roadmap-ui .jr-tier.never {
+      border-left-color: var(--jr-red);
+    }
+
+    #jarvis-roadmap-ui .jr-study-layout {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr);
+      gap: 10px;
+    }
+
+    #jarvis-roadmap-ui .jr-topic-list {
+      display: grid;
+      gap: 5px;
+    }
+
+    #jarvis-roadmap-ui .jr-topic-list button {
+      min-height: 38px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--jr-muted);
+      padding: 0 9px;
+      text-align: left;
+    }
+
+    #jarvis-roadmap-ui .jr-topic-list button[aria-selected="true"] {
+      background: var(--jr-panel-3);
+      color: var(--jr-text);
+    }
+
+    #jarvis-roadmap-ui .jr-equation {
+      margin: 14px 0;
+      padding: 16px;
+      border-radius: 11px;
+      background: var(--jr-bg);
+      color: var(--jr-text);
+      font-family: Cambria, "Times New Roman", serif;
+      font-size: 17px;
+      text-align: center;
+    }
+
+    #jarvis-roadmap-ui .jr-map-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 180px;
+      min-height: 430px;
+      overflow: hidden;
+      border: 1px solid rgba(149, 162, 178, .13);
+      border-radius: 15px;
+      background: rgba(5, 7, 10, .7);
+    }
+
+    #jarvis-roadmap-ui .jr-map-main {
+      position: relative;
+      min-width: 0;
+      padding: 12px;
+      background: radial-gradient(circle at 48% 48%, rgba(85, 215, 243, .055), transparent 42%);
+    }
+
+    #jarvis-roadmap-ui .jr-world-map {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: 380px;
+      color: var(--jr-muted);
+    }
+
+    #jarvis-roadmap-ui .jr-world-map .jr-sphere {
+      fill: rgba(17, 26, 37, .45);
+      stroke: rgba(85, 215, 243, .2);
+      stroke-width: 1;
+    }
+
+    #jarvis-roadmap-ui .jr-world-map .jr-country {
+      fill: rgba(149, 162, 178, .16);
+      stroke: rgba(5, 7, 10, .8);
+      stroke-width: .55;
+      vector-effect: non-scaling-stroke;
+    }
+
+    #jarvis-roadmap-ui .jr-world-map .jr-country:hover,
+    #jarvis-roadmap-ui .jr-world-map .jr-country:focus {
+      fill: rgba(85, 215, 243, .38);
+    }
+
+    #jarvis-roadmap-ui .jr-world-map .jr-country:focus-visible {
+      stroke: var(--jr-text);
+      stroke-width: 2;
+    }
+
+    #jarvis-roadmap-ui .jr-world-map .jr-country.is-selected {
+      fill: var(--jr-accent);
+    }
+
+    #jarvis-roadmap-ui .jr-map-status {
+      position: absolute;
+      right: 14px;
+      bottom: 12px;
+      left: 14px;
+      color: var(--jr-muted);
+      font-size: 11px;
+      text-align: center;
+    }
+
+    #jarvis-roadmap-ui .jr-map-side {
+      padding: 13px;
+      border-left: 1px solid var(--jr-line);
+      background: var(--jr-panel);
+    }
+
+    #jarvis-roadmap-ui .jr-map-side h3,
+    #jarvis-roadmap-ui .jr-map-side p {
+      margin: 0;
+    }
+
+    #jarvis-roadmap-ui .jr-map-side h3 {
+      margin-top: 10px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    #jarvis-roadmap-ui .jr-map-side p {
+      margin-top: 7px;
+      color: var(--jr-muted);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    #jarvis-roadmap-ui .jr-map-actions {
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 12px;
+    }
+
+    #jarvis-roadmap-ui .jr-country-button {
+      min-height: 31px;
+      padding: 0 8px;
+      color: var(--jr-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-roadmap-ui .jr-country-button[aria-pressed="true"] {
+      background: var(--jr-accent-soft);
+      color: var(--jr-accent);
+    }
+
+    #jarvis-roadmap-ui .jr-source-plan {
+      padding: 11px;
+    }
+
+    #jarvis-roadmap-ui .jr-source-plan strong,
+    #jarvis-roadmap-ui .jr-source-plan span {
+      display: block;
+    }
+
+    #jarvis-roadmap-ui .jr-source-plan strong {
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    #jarvis-roadmap-ui .jr-source-plan span {
+      margin-top: 4px;
+      color: var(--jr-muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    #jarvis-roadmap-ui .jr-context-heading {
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    #jarvis-roadmap-ui .jr-context h2 {
+      font-size: 14px;
+    }
+
+    #jarvis-roadmap-ui .jr-context-summary {
+      color: var(--jr-muted);
+      font-size: 12px;
+      line-height: 1.52;
+    }
+
+    #jarvis-roadmap-ui .jr-context-section {
+      margin-top: 17px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(149, 162, 178, .12);
+    }
+
+    #jarvis-roadmap-ui .jr-context h3 {
+      color: var(--jr-cyan);
+      font-size: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    #jarvis-roadmap-ui .jr-context-list {
+      margin-top: 9px;
+    }
+
+    #jarvis-roadmap-ui .jr-context-row {
+      display: flex;
+      min-height: 36px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 0 9px;
+      border-radius: 9px;
+      background: var(--jr-panel-2);
+      font-size: 11px;
+    }
+
+    #jarvis-roadmap-ui .jr-context-row span:last-child {
+      color: var(--jr-cyan);
+      text-align: right;
+    }
+
+    #jarvis-roadmap-ui .jr-context-note {
+      margin-top: 12px;
+      padding: 10px;
+      border-left: 3px solid var(--jr-amber);
+      border-radius: 0 9px 9px 0;
+      background: rgba(255, 196, 95, .07);
+      color: var(--jr-muted);
+      font-size: 11px;
+      line-height: 1.48;
+    }
+
+    #jarvis-roadmap-ui .jr-tray-preview {
+      position: absolute;
+      z-index: 14;
+      top: 72px;
+      right: 14px;
+      width: min(310px, calc(100% - 28px));
+      padding: 13px;
+      border: 1px solid var(--jr-line);
+      border-radius: 14px;
+      background: var(--jr-panel);
+      box-shadow: 0 24px 54px rgba(0, 0, 0, .5);
+    }
+
+    #jarvis-roadmap-ui .jr-tray-preview[hidden] {
+      display: none;
+    }
+
+    #jarvis-roadmap-ui .jr-tray-preview h2,
+    #jarvis-roadmap-ui .jr-tray-preview p {
+      margin: 0;
+    }
+
+    #jarvis-roadmap-ui .jr-tray-preview h2 {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    #jarvis-roadmap-ui .jr-tray-preview p {
+      margin-top: 5px;
+      color: var(--jr-muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    #jarvis-roadmap-ui dialog {
+      width: min(500px, calc(100% - 28px));
+      border: 1px solid var(--jr-line);
+      border-radius: 16px;
+      background: var(--jr-panel);
+      color: var(--jr-text);
+      padding: 0;
+      box-shadow: 0 28px 74px rgba(0, 0, 0, .62);
+    }
+
+    #jarvis-roadmap-ui dialog::backdrop {
+      background: rgba(0, 0, 0, .66);
+      backdrop-filter: blur(5px);
+    }
+
+    #jarvis-roadmap-ui .jr-dialog-body {
+      padding: 18px;
+    }
+
+    #jarvis-roadmap-ui .jr-dialog-body h2,
+    #jarvis-roadmap-ui .jr-dialog-body p {
+      margin: 0;
+    }
+
+    #jarvis-roadmap-ui .jr-dialog-body h2 {
+      font-size: 17px;
+      font-weight: 500;
+    }
+
+    #jarvis-roadmap-ui .jr-dialog-body p {
+      margin-top: 7px;
+      color: var(--jr-muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    #jarvis-roadmap-ui .jr-dialog-actions {
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 12px 18px;
+      border-top: 1px solid var(--jr-line);
+      background: var(--jr-bg);
+    }
+
+    #jarvis-roadmap-ui .jr-setting-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      min-height: 46px;
+      padding: 0 10px;
+      border-radius: 9px;
+      background: var(--jr-panel-2);
+      font-size: 12px;
+    }
+
+    #jarvis-roadmap-ui .jr-setting-row span {
+      color: var(--jr-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-roadmap-ui .jr-setting-row input,
+    #jarvis-roadmap-ui .jr-setting-row select {
+      min-height: 30px;
+      border: 1px solid var(--jr-line);
+      border-radius: 8px;
+      background: var(--jr-bg);
+      color: var(--jr-text);
+      padding: 0 7px;
+    }
+
+    #jarvis-roadmap-ui .jr-sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 900px) {
+      #jarvis-roadmap-ui .jr-topbar {
+        grid-template-columns: 1fr auto;
+      }
+
+      #jarvis-roadmap-ui .jr-top-status {
+        display: none;
+      }
+
+      #jarvis-roadmap-ui .jr-layout {
+        grid-template-columns: 184px minmax(0, 1fr);
+      }
+
+      #jarvis-roadmap-ui .jr-context {
+        display: none;
+      }
+
+      #jarvis-roadmap-ui .jr-preview-label {
+        max-width: 130px;
+      }
+    }
+
+    @media (max-width: 680px) {
+      #jarvis-roadmap-ui .jr-shell {
+        min-height: 980px;
+        border-radius: 14px;
+      }
+
+      #jarvis-roadmap-ui .jr-topbar {
+        padding: 0 10px;
+      }
+
+      #jarvis-roadmap-ui .jr-preview-label,
+      #jarvis-roadmap-ui .jr-top-actions .jr-chip {
+        display: none;
+      }
+
+      #jarvis-roadmap-ui .jr-layout {
+        display: block;
+      }
+
+      #jarvis-roadmap-ui .jr-sidebar {
+        border-right: 0;
+        border-bottom: 1px solid var(--jr-line);
+        padding: 9px;
+      }
+
+      #jarvis-roadmap-ui .jr-nav-group {
+        margin: 0;
+      }
+
+      #jarvis-roadmap-ui .jr-nav-group + .jr-nav-group,
+      #jarvis-roadmap-ui .jr-nav-label,
+      #jarvis-roadmap-ui .jr-roadmap-card {
+        display: none;
+      }
+
+      #jarvis-roadmap-ui .jr-nav-list {
+        display: flex;
+        gap: 5px;
+        overflow-x: auto;
+        scrollbar-width: thin;
+      }
+
+      #jarvis-roadmap-ui .jr-nav-button {
+        display: inline-flex;
+        min-width: max-content;
+        padding: 0 10px;
+      }
+
+      #jarvis-roadmap-ui .jr-nav-button .jr-status {
+        display: none;
+      }
+
+      #jarvis-roadmap-ui .jr-panel {
+        padding: 13px;
+      }
+
+      #jarvis-roadmap-ui .jr-assistant-stage {
+        min-height: 420px;
+      }
+
+      #jarvis-roadmap-ui .jr-spatial-stage {
+        min-height: 360px;
+      }
+
+      #jarvis-roadmap-ui .jr-stage-bottom {
+        display: block;
+      }
+
+      #jarvis-roadmap-ui .jr-state-card {
+        max-width: none;
+      }
+
+      #jarvis-roadmap-ui .jr-transcript,
+      #jarvis-roadmap-ui .jr-grid-2,
+      #jarvis-roadmap-ui .jr-grid-3,
+      #jarvis-roadmap-ui .jr-stats,
+      #jarvis-roadmap-ui .jr-study-layout,
+      #jarvis-roadmap-ui .jr-map-shell,
+      #jarvis-roadmap-ui .jr-memory-layout,
+      #jarvis-roadmap-ui .jr-memory-detail-grid {
+        grid-template-columns: 1fr;
+      }
+
+      #jarvis-roadmap-ui .jr-flow,
+      #jarvis-roadmap-ui .jr-system-pipeline {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      #jarvis-roadmap-ui .jr-flow-step::after {
+        display: none;
+      }
+
+      #jarvis-roadmap-ui .jr-map-side {
+        border-top: 1px solid var(--jr-line);
+        border-left: 0;
+      }
+
+      #jarvis-roadmap-ui .jr-composer {
+        grid-template-columns: 1fr;
+      }
+
+      #jarvis-roadmap-ui .jr-composer-actions {
+        justify-content: flex-end;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #jarvis-roadmap-ui *,
+      #jarvis-roadmap-ui *::before,
+      #jarvis-roadmap-ui *::after {
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+
+  <div class="jr-shell" data-mode="assistant" data-voice-state="ready" data-focus="true" aria-label="Jarvis roadmap-aware desktop interface concept">
+    <header class="jr-topbar">
+      <div class="jr-brand">
+        <span class="jr-brand-orb" aria-hidden="true"></span>
+        <span>JARVIS</span>
+        <span class="jr-preview-label">Concept preview · sample data</span>
+      </div>
+
+      <div class="jr-top-status" aria-label="Assistant status">
+        <span class="jr-chip"><span class="jr-dot"></span><span data-top-state>Ready</span></span>
+        <span class="jr-chip">Mic ready</span>
+        <span class="jr-chip">Audio local · cloud text</span>
+      </div>
+
+      <div class="jr-top-actions">
+        <button class="jr-chip" type="button" data-language-switch aria-label="Switch assistant language and voice identity"><i data-lucide="languages" aria-hidden="true"></i><span data-identity-chip>English · Jarvis</span></button>
+        <button class="jr-icon-button" type="button" data-focus-toggle aria-pressed="true" aria-label="Show the standard layout with context panel" data-tooltip="Toggle wide visualization workspace"><i data-lucide="maximize-2" aria-hidden="true"></i></button>
+        <button class="jr-icon-button" type="button" data-tray-toggle aria-expanded="false" aria-label="Preview mini orb and tray"><i data-lucide="picture-in-picture-2" aria-hidden="true"></i></button>
+        <button class="jr-icon-button" type="button" data-global-mute aria-pressed="false" aria-label="Mute Jarvis"><i data-lucide="volume-2" aria-hidden="true"></i></button>
+        <button class="jr-icon-button" type="button" data-open-settings aria-label="Open settings and privacy"><i data-lucide="settings" aria-hidden="true"></i></button>
+      </div>
+    </header>
+
+    <div class="jr-layout">
+      <aside class="jr-sidebar" aria-label="Jarvis destinations">
+        <div class="jr-nav-group">
+          <span class="jr-nav-label">Works now</span>
+          <nav class="jr-nav-list" aria-label="Current features">
+            <button class="jr-nav-button" type="button" data-view="assistant" aria-selected="true"><i data-lucide="message-circle" aria-hidden="true"></i><span>Assistant</span><span class="jr-status live">LIVE</span></button>
+            <button class="jr-nav-button" type="button" data-view="memory" aria-selected="false"><i data-lucide="brain" aria-hidden="true"></i><span>Memory</span><span class="jr-status live">LIVE</span></button>
+            <button class="jr-nav-button" type="button" data-view="system" aria-selected="false"><i data-lucide="workflow" aria-hidden="true"></i><span>System</span><span class="jr-status live">LIVE</span></button>
+            <button class="jr-nav-button" type="button" data-view="diagnostics" aria-selected="false"><i data-lucide="activity" aria-hidden="true"></i><span>Diagnostics</span><span class="jr-status live">LIVE</span></button>
+          </nav>
+        </div>
+
+        <div class="jr-nav-group" data-future-nav>
+          <span class="jr-nav-label">Next</span>
+          <nav class="jr-nav-list" aria-label="Foundation features">
+            <button class="jr-nav-button" type="button" data-view="tools" aria-selected="false"><i data-lucide="shield-check" aria-hidden="true"></i><span>Tools</span><span class="jr-status foundation">M3</span></button>
+            <button class="jr-nav-button" type="button" data-view="study" aria-selected="false"><i data-lucide="graduation-cap" aria-hidden="true"></i><span>Study</span><span class="jr-status foundation">M4</span></button>
+          </nav>
+        </div>
+
+        <div class="jr-nav-group" data-future-nav>
+          <span class="jr-nav-label">Later</span>
+          <nav class="jr-nav-list" aria-label="Planned features">
+            <button class="jr-nav-button" type="button" data-view="news" aria-selected="false"><i data-lucide="globe-2" aria-hidden="true"></i><span>News map</span><span class="jr-status planned">M7</span></button>
+            <button class="jr-nav-button" type="button" data-view="research" aria-selected="false"><i data-lucide="library" aria-hidden="true"></i><span>Research</span><span class="jr-status planned">M7</span></button>
+          </nav>
+        </div>
+
+        <div class="jr-roadmap-card">
+          <strong>Project progress · 25–30%</strong>
+          <span>Voice foundation is nearly complete. Acting, skills, desktop shell, and gestures follow.</span>
+          <div class="jr-progress" role="progressbar" aria-label="Estimated project completion" aria-valuenow="28" aria-valuemin="0" aria-valuemax="100"><span></span></div>
+        </div>
+      </aside>
+
+      <main class="jr-main">
+        <div>
+          <section class="jr-panel" data-panel="assistant" aria-labelledby="jr-assistant-title">
+            <div class="jr-panel-heading">
+              <div><h1 id="jr-assistant-title">Assistant</h1><p>The focused home screen: voice, transcript, state, and privacy.</p></div>
+              <span class="jr-status live">VOICE CORE LIVE</span>
+            </div>
+
+            <div class="jr-assistant-stage" data-spatial-host="assistant">
+              <div class="jr-spatial-renderer" data-spatial-renderer>
+                <canvas class="jr-core-canvas" aria-label="Interactive three-dimensional Jarvis visualisation. Drag to orbit; select nodes to inspect them."></canvas>
+                <div class="jr-core-fallback" data-core-fallback hidden>Static concept view · 3D rendering unavailable</div>
+              </div>
+              <div class="jr-stage-top">
+                <div class="jr-stage-copy"><strong data-assistant-name>Jarvis</strong><span data-voice-profile>English · calm British-inspired original voice</span></div>
+                <span class="jr-chip"><span class="jr-dot"></span><span data-render-label>3D core active</span></span>
+              </div>
+              <div class="jr-stage-bottom">
+                <div class="jr-state-card" aria-live="polite">
+                  <div class="jr-stage-copy"><strong data-voice-title>Ready when you are</strong><span data-voice-detail>Hold push-to-talk or type below</span></div>
+                  <div class="jr-state-actions">
+                    <button class="jr-button primary" type="button" data-cycle-state>Preview listening</button>
+                    <button class="jr-button" type="button" data-stop>Stop</button>
+                    <button class="jr-button" type="button" data-global-mute aria-pressed="false">Mute</button>
+                  </div>
+                </div>
+                <span class="jr-chip" data-voice-build-status>MAIN CHARACTER · ENGLISH</span>
+              </div>
+            </div>
+
+            <div class="jr-transcript" aria-label="Sample conversation">
+              <div class="jr-message user"><div class="jr-message-meta"><span>You</span><span>Sample transcript</span></div>Explain Fourier series simply.</div>
+              <div class="jr-message"><div class="jr-message-meta"><span>Jarvis</span><span>Teach route</span></div>A Fourier series describes a repeating signal as a sum of simple sine and cosine waves.</div>
+            </div>
+          </section>
+
+          <section class="jr-panel" data-panel="memory" aria-labelledby="jr-memory-title" hidden>
+            <div class="jr-panel-heading">
+              <div><h2 id="jr-memory-title">Memory & privacy</h2><p>Name, explicit facts, and up to 12 recent exchanges stored on this device.</p></div>
+              <span class="jr-status live">LIGHT MEMORY LIVE</span>
+            </div>
+
+            <div class="jr-assistant-stage jr-spatial-stage" data-spatial-host="memory">
+              <div class="jr-stage-top">
+                <div class="jr-stage-copy"><strong>Memory constellation</strong><span>Drag to orbit · select a node or a memory layer below</span></div>
+                <span class="jr-chip"><span class="jr-dot"></span><span data-spatial-render-label>WebGL active</span></span>
+              </div>
+              <div class="jr-stage-bottom">
+                <span class="jr-chip jr-spatial-note">Concept view · positions and links are illustrative, not semantic relationships</span>
+              </div>
+            </div>
+
+            <div class="jr-memory-layout">
+              <div class="jr-memory-layers" aria-label="Memory layers">
+                <button class="jr-memory-layer" type="button" data-memory-layer="profile" aria-selected="true"><span class="jr-memory-layer-index">01</span><span><strong>Your name</strong><small>One profile field</small></span><span class="jr-status live">LOCAL</span></button>
+                <button class="jr-memory-layer" type="button" data-memory-layer="facts" aria-selected="false"><span class="jr-memory-layer-index">02</span><span><strong>Requested facts</strong><small>Only explicit remember requests</small></span><span class="jr-status live">LOCAL</span></button>
+                <button class="jr-memory-layer" type="button" data-memory-layer="recent" aria-selected="false"><span class="jr-memory-layer-index">03</span><span><strong>Recent context</strong><small>12 exchanges · 12 hours</small></span><span class="jr-status live">LOCAL</span></button>
+              </div>
+
+              <div class="jr-surface jr-memory-detail" aria-live="polite">
+                <div class="jr-row" style="justify-content:space-between;gap:10px"><h3 data-memory-detail-title>Profile memory</h3><span class="jr-status live" data-memory-detail-status>AVAILABLE</span></div>
+                <p data-memory-detail-copy>Stores the user name and stable preferences used to personalise later conversations.</p>
+                <div class="jr-memory-detail-grid">
+                  <div class="jr-memory-detail-cell"><span>Written by</span><strong data-memory-detail-source>User request</strong></div>
+                  <div class="jr-memory-detail-cell"><span>Retention</span><strong data-memory-detail-retention>Until forgotten</strong></div>
+                  <div class="jr-memory-detail-cell"><span>Cloud use</span><strong data-memory-detail-cloud>Disclose first</strong></div>
+                </div>
+                <div class="jr-context-note" style="margin-top:11px">Stored locally in state/memory.json. Local storage does not mean local inference: a hosted model receives the selected name, facts, and recent context. Ollama keeps inference local.</div>
+              </div>
+            </div>
+
+            <div class="jr-grid-2" style="margin-bottom:10px">
+              <div class="jr-surface">
+                <div class="jr-memory-form"><label><span>Your name</span><input class="jr-field" type="text" placeholder="Name Jarvis should use"></label><button class="jr-button" type="button" data-memory-preview-action="name">Save name</button></div>
+              </div>
+              <div class="jr-surface">
+                <div class="jr-memory-form"><label><span>Remembered fact</span><input class="jr-field" type="text" placeholder="Something Jarvis should remember…"></label><button class="jr-button" type="button" data-memory-preview-action="fact">Remember</button></div>
+              </div>
+            </div>
+
+            <div class="jr-row" style="justify-content:space-between;gap:10px;margin:0 0 8px"><span class="jr-kicker" style="margin:0">Sample memory summary</span><span class="jr-chip">No semantic graph claimed</span></div>
+            <div class="jr-memory-list" data-memory-list>
+              <div class="jr-memory-row"><div><strong>Your name</strong><span>No sample value shown</span></div><span class="jr-status live">PROFILE</span></div>
+              <div class="jr-memory-row"><div><strong>Remembered facts</strong><span>Explicit “remember…” requests · sample count: 2</span></div><span class="jr-status live">LOCAL</span></div>
+              <div class="jr-memory-row"><div><strong>Recent conversation</strong><span>Available for continuation · up to 12 exchanges</span></div><span class="jr-status live">12 HOURS</span></div>
+            </div>
+            <div class="jr-row" style="justify-content:space-between;gap:10px;margin-top:10px"><span class="jr-form-note" data-memory-action-note>Individual fact editing or deletion is not implemented yet.</span><button class="jr-button danger" type="button" data-open-memory-clear>Forget everything</button></div>
+          </section>
+
+          <section class="jr-panel" data-panel="system" aria-labelledby="jr-system-title" hidden>
+            <div class="jr-panel-heading">
+              <div><h2 id="jr-system-title">System pipeline</h2><p>The operational voice path, request routing, provider fallback, and output stages.</p></div>
+              <span class="jr-status live">CORE PIPELINE LIVE</span>
+            </div>
+
+            <div class="jr-assistant-stage jr-spatial-stage" data-spatial-host="system">
+              <div class="jr-stage-top">
+                <div class="jr-stage-copy"><strong>Request pipeline</strong><span>Six visual clusters · the exact ten operational stages remain below</span></div>
+                <span class="jr-chip"><span class="jr-dot"></span><span data-spatial-render-label>WebGL active</span></span>
+              </div>
+              <div class="jr-stage-bottom">
+                <span class="jr-chip jr-spatial-note">Conceptual grouping · no live timing is implied</span>
+              </div>
+            </div>
+
+            <div class="jr-system-pipeline" aria-label="Jarvis processing pipeline">
+              <button class="jr-system-stage" type="button" data-system-stage="capture" aria-selected="true"><span>01 · CAPTURE</span><strong>Push-to-talk / text</strong><small>Typed input skips 1–3</small></button>
+              <button class="jr-system-stage" type="button" data-system-stage="transcribe" aria-selected="false"><span>02 · TRANSCRIBE</span><strong>Local Whisper</strong><small>16 kHz voice input</small></button>
+              <button class="jr-system-stage" type="button" data-system-stage="validate" aria-selected="false"><span>03 · VALIDATE</span><strong>Transcript clarity</strong><small>Stops unclear input</small></button>
+              <button class="jr-system-stage" type="button" data-system-stage="language" aria-selected="false"><span>04 · LANGUAGE</span><strong>Identity & style</strong><small>Jarvis or Friday</small></button>
+              <button class="jr-system-stage" type="button" data-system-stage="context" aria-selected="false"><span>05 · CONTEXT</span><strong>Persona + memory</strong><small>Up to 12 exchanges</small></button>
+              <button class="jr-system-stage" type="button" data-system-stage="router" aria-selected="false"><span>06 · ROUTE</span><strong>Request kind</strong><small>Quick, teach, code…</small></button>
+              <button class="jr-system-stage" type="button" data-system-stage="provider" aria-selected="false"><span>07 · MODEL</span><strong>Provider chain</strong><small>Configured order</small></button>
+              <button class="jr-system-stage" type="button" data-system-stage="stream" aria-selected="false"><span>08 · STREAM</span><strong>Response text</strong><small>First word onward</small></button>
+              <button class="jr-system-stage" type="button" data-system-stage="render" aria-selected="false"><span>09 · RENDER</span><strong>Text + local TTS</strong><small>Sentence chunks</small></button>
+              <button class="jr-system-stage" type="button" data-system-stage="save" aria-selected="false"><span>10 · SAVE</span><strong>Memory + telemetry</strong><small>Return to idle</small></button>
+            </div>
+
+            <div class="jr-grid-2 jr-system-detail">
+              <div class="jr-surface" aria-live="polite">
+                <div class="jr-row" style="justify-content:space-between;gap:10px"><h3 data-system-detail-title>Input capture</h3><span class="jr-status live" data-system-detail-status>LIVE</span></div>
+                <p data-system-detail-copy>Accepts hold-to-talk audio or typed text. Stop, mute, and cancellation remain available throughout the turn.</p>
+                <div style="margin-top:10px">
+                  <div class="jr-system-detail-row"><span>Input</span><span data-system-detail-input>Microphone frames or typed text</span></div>
+                  <div class="jr-system-detail-row"><span>Output</span><span data-system-detail-output>Turn request</span></div>
+                  <div class="jr-system-detail-row"><span>Privacy</span><span data-system-detail-privacy>Audio stays local</span></div>
+                </div>
+              </div>
+
+              <div class="jr-surface">
+                <div class="jr-row" style="justify-content:space-between;gap:10px"><h3>Route & fallback</h3><span class="jr-chip">Architecture view · sample state</span></div>
+                <div class="jr-context-list" style="margin-top:10px">
+                  <div class="jr-context-row"><span>Example intent</span><span>TEACH</span></div>
+                  <div class="jr-context-row"><span>Audio boundary</span><span>LOCAL</span></div>
+                  <div class="jr-context-row"><span>Text route</span><span>LOCAL OR CLOUD</span></div>
+                  <div class="jr-context-row"><span>Provider chain</span><span>CONFIGURED ONLY</span></div>
+                  <div class="jr-context-row"><span>Fallback boundary</span><span>BEFORE FIRST WORD</span></div>
+                  <div class="jr-context-row"><span>Credentials</span><span>HIDDEN</span></div>
+                  <div class="jr-context-row"><span>Tool safety gate</span><span>PLANNED M3</span></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="jr-panel" data-panel="tools" aria-labelledby="jr-tools-title" hidden>
+            <div class="jr-panel-heading">
+              <div><h2 id="jr-tools-title">Tools & safety</h2><p>The first M3 workflow: open a browser, wait for the search phrase, then verify.</p></div>
+              <span class="jr-status foundation">FOUNDATION · M3</span>
+            </div>
+            <div class="jr-flow" aria-label="Planned Bing search tool flow">
+              <div class="jr-flow-step"><span>01 · INTENT</span><strong>“Open Bing”</strong></div>
+              <div class="jr-flow-step"><span>02 · GATE</span><strong>Registered read-only action</strong></div>
+              <div class="jr-flow-step"><span>03 · VERIFY</span><strong>Confirm Edge opened</strong></div>
+              <div class="jr-flow-step"><span>04 · FOLLOW-UP</span><strong>Ask what to search</strong></div>
+            </div>
+            <div class="jr-grid-2" style="margin-top:10px">
+              <div class="jr-surface jr-tier safe"><h3>Tier 1 · Just do it</h3><p>Open a site, set volume, show information. Verify the result.</p></div>
+              <div class="jr-surface jr-tier log"><h3>Tier 2 · Do and log</h3><p>Reversible actions with an audit entry and Undo.</p></div>
+              <div class="jr-surface jr-tier ask"><h3>Tier 3 · Ask first</h3><p>Show exact target, data leaving the device, and effect.</p></div>
+              <div class="jr-surface jr-tier never"><h3>Tier 4 · Never</h3><p>Actions outside the allow-list or safety policy do not run.</p></div>
+            </div>
+            <div class="jr-row" style="justify-content:flex-end;gap:8px;margin-top:12px">
+              <span class="jr-chip">Preview only · no computer action runs</span>
+              <button class="jr-button" type="button" data-open-confirm>Preview confirmation</button>
+            </div>
+          </section>
+
+          <section class="jr-panel" data-panel="study" aria-labelledby="jr-study-title" hidden>
+            <div class="jr-panel-heading">
+              <div><h2 id="jr-study-title">Study tutor</h2><p>The intent and maths/teach routes exist; the guided tutor skill is still M4.</p></div>
+              <span class="jr-status foundation">FOUNDATION · M4</span>
+            </div>
+            <div class="jr-study-layout">
+              <div class="jr-surface">
+                <span class="jr-kicker">Topics</span>
+                <div class="jr-topic-list">
+                  <button type="button" aria-selected="true">Fourier series</button>
+                  <button type="button" aria-selected="false">Mechanics</button>
+                  <button type="button" aria-selected="false">Thermodynamics</button>
+                  <button type="button" aria-selected="false">Algorithms</button>
+                </div>
+              </div>
+              <div class="jr-surface">
+                <div class="jr-row" style="justify-content:space-between;gap:10px"><h3>Guided solution preview</h3><span class="jr-status planned">NOT CONNECTED</span></div>
+                <p>Jarvis will give one idea at a time, check your work, then reveal the next step.</p>
+                <div class="jr-equation">f(x) = a₀/2 + Σ [aₙ cos(nx) + bₙ sin(nx)]</div>
+                <div class="jr-message"><div class="jr-message-meta"><span>Step 1</span><span>Concept</span></div>First identify the period. That tells us the fundamental frequency used by every term.</div>
+                <div class="jr-state-actions">
+                  <button class="jr-button" type="button" disabled>Give a hint</button>
+                  <button class="jr-button" type="button" disabled>Check my work</button>
+                  <button class="jr-button" type="button" disabled>Show solution</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="jr-panel" data-panel="news" aria-labelledby="jr-news-title" hidden>
+            <div class="jr-panel-heading">
+              <div><h2 id="jr-news-title">World news map</h2><p>Select a country to preview the M7 interaction. No live news is fetched here.</p></div>
+              <span class="jr-status planned">PLANNED · M7</span>
+            </div>
+            <div class="jr-map-shell">
+              <div class="jr-map-main">
+                <svg class="jr-world-map" data-world-map viewBox="0 0 960 500" role="img" aria-label="Interactive world country map preview">
+                  <text x="480" y="250" text-anchor="middle" fill="currentColor" font-size="18">Open News Map to load country geometry</text>
+                </svg>
+                <div class="jr-map-status" data-map-status>Published country geometry loads only when this screen opens.</div>
+              </div>
+              <aside class="jr-map-side" aria-live="polite">
+                <span class="jr-status planned">NO LIVE STORIES</span>
+                <h3 data-country-name>Sri Lanka</h3>
+                <p data-country-detail>M7 will request GDELT and selected RSS feeds only when you ask, then show sourced summaries here.</p>
+                <div class="jr-map-actions" aria-label="Country shortcuts">
+                  <button class="jr-country-button" type="button" data-country="LKA" data-country-label="Sri Lanka" aria-pressed="true">Sri Lanka</button>
+                  <button class="jr-country-button" type="button" data-country="JPN" data-country-label="Japan" aria-pressed="false">Japan</button>
+                  <button class="jr-country-button" type="button" data-country="IND" data-country-label="India" aria-pressed="false">India</button>
+                  <button class="jr-country-button" type="button" data-country="GBR" data-country-label="United Kingdom" aria-pressed="false">UK</button>
+                  <button class="jr-country-button" type="button" data-country="USA" data-country-label="United States" aria-pressed="false">USA</button>
+                  <button class="jr-country-button" type="button" data-country="RUS" data-country-label="Russia" aria-pressed="false">Russia</button>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <section class="jr-panel" data-panel="research" aria-labelledby="jr-research-title" hidden>
+            <div class="jr-panel-heading">
+              <div><h2 id="jr-research-title">Research workspace</h2><p>A source-first view for web reading, synthesis, and page references.</p></div>
+              <span class="jr-status planned">PLANNED · M7</span>
+            </div>
+            <div class="jr-grid-2">
+              <div class="jr-surface">
+                <span class="jr-kicker">Research outline</span>
+                <div class="jr-flow" style="grid-template-columns:1fr">
+                  <div class="jr-flow-step"><span>QUESTION</span><strong>Define scope and freshness</strong></div>
+                  <div class="jr-flow-step"><span>SOURCES</span><strong>Fetch allowed pages as untrusted content</strong></div>
+                  <div class="jr-flow-step"><span>SYNTHESIS</span><strong>Summarise with page references</strong></div>
+                </div>
+              </div>
+              <div class="jr-surface">
+                <span class="jr-kicker">Source inspector</span>
+                <div class="jr-source-list">
+                  <div class="jr-source-plan"><strong>Sources will appear here</strong><span>Title, site, publication time, and the exact page used.</span></div>
+                  <div class="jr-source-plan"><strong>Untrusted by default</strong><span>Article text can inform an answer but can never instruct Jarvis to act.</span></div>
+                  <div class="jr-source-plan"><strong>Grounded output</strong><span>Jarvis names sources aloud and keeps links in the window.</span></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="jr-panel" data-panel="diagnostics" aria-labelledby="jr-diagnostics-title" hidden>
+            <div class="jr-panel-heading">
+              <div><h2 id="jr-diagnostics-title">Diagnostics & evaluation</h2><p>Telemetry exists now; this view shows a clearly labelled project snapshot.</p></div>
+              <span class="jr-status live">TELEMETRY LIVE</span>
+            </div>
+            <div class="jr-stats">
+              <div class="jr-stat"><span>Recorded first voice</span><strong>1.35 s</strong></div>
+              <div class="jr-stat"><span>Intent sentences prepared</span><strong>15,432</strong></div>
+              <div class="jr-stat"><span>Overall roadmap estimate</span><strong>25–30%</strong></div>
+            </div>
+            <div class="jr-grid-2" style="margin-top:10px">
+              <div class="jr-surface"><h3>Current evidence</h3><p>Voice loop, provider fallback, memory, greeting, routing foundation, and telemetry are present. Formal M0 speed logging is still pending.</p></div>
+              <div class="jr-surface"><h3>Voice development</h3><p>Jarvis uses the primary English voice direction. Friday’s custom Emma/Sinhala blend is ongoing voice R&amp;D and still needs tone improvement.</p></div>
+            </div>
+          </section>
+        </div>
+
+        <form class="jr-composer" data-composer>
+          <label class="jr-sr-only" for="jr-message-input">Message Jarvis</label>
+          <input id="jr-message-input" type="text" placeholder="Ask Jarvis…" autocomplete="off">
+          <div class="jr-composer-actions">
+            <button class="jr-icon-button" type="button" data-cycle-state aria-label="Preview push-to-talk"><i data-lucide="mic" aria-hidden="true"></i></button>
+            <button class="jr-button danger" type="button" data-stop>STOP</button>
+            <button class="jr-button primary" type="submit">Send</button>
+          </div>
+          <div class="jr-form-note" data-composer-note>Prototype controls change the preview only; nothing is sent or executed.</div>
+        </form>
+      </main>
+
+      <aside class="jr-context" aria-label="Current capability details">
+        <div class="jr-context-heading"><h2 data-context-title>Assistant</h2><span class="jr-status live" data-context-status>LIVE</span></div>
+        <p class="jr-context-summary" data-context-summary>Voice and text conversation are operational today; this desktop shell itself belongs to M6.</p>
+        <div class="jr-context-section">
+          <h3>Capability truth</h3>
+          <div class="jr-context-list" data-context-list>
+            <div class="jr-context-row"><span>Voice loop</span><span>LIVE</span></div>
+            <div class="jr-context-row"><span>Window</span><span>PLANNED M6</span></div>
+            <div class="jr-context-row"><span>Privacy</span><span>Audio local</span></div>
+          </div>
+        </div>
+        <div class="jr-context-section">
+          <h3>Meaning</h3>
+          <div class="jr-context-list">
+            <div class="jr-context-row"><span>LIVE</span><span>Works now</span></div>
+            <div class="jr-context-row"><span>FOUNDATION</span><span>Prerequisites exist</span></div>
+            <div class="jr-context-row"><span>PLANNED</span><span>No usable feature yet</span></div>
+          </div>
+        </div>
+        <div class="jr-context-note" data-context-note>This concept never presents future controls as if they already operate.</div>
+      </aside>
+    </div>
+
+    <section class="jr-tray-preview" data-tray-preview hidden aria-label="Mini orb and tray concept">
+      <div class="jr-row" style="justify-content:space-between;gap:10px"><h2>Mini orb · M6 preview</h2><span class="jr-status planned">PLANNED</span></div>
+      <p>Only mic state, assistant state, push-to-talk, mute, stop, last response, and expand belong here.</p>
+      <div class="jr-state-actions">
+        <button class="jr-button" type="button" data-cycle-state>Push to talk</button>
+        <button class="jr-button danger" type="button" data-stop>Stop</button>
+        <button class="jr-button" type="button" data-tray-toggle>Close preview</button>
+      </div>
+    </section>
+
+    <dialog data-memory-clear-dialog aria-labelledby="jr-memory-clear-title">
+      <div class="jr-dialog-body">
+        <span class="jr-status live">MEMORY CONTROL</span>
+        <h2 id="jr-memory-clear-title" style="margin-top:10px">Forget everything?</h2>
+        <p>This clears the saved name, every remembered fact, recent saved conversation, current in-memory history, and the persona’s stored name. The prototype changes sample rows only.</p>
+      </div>
+      <form method="dialog" class="jr-dialog-actions">
+        <button class="jr-button" value="cancel">Cancel</button>
+        <button class="jr-button danger" value="clear">Forget everything</button>
+      </form>
+    </dialog>
+
+    <dialog data-confirm-dialog aria-labelledby="jr-confirm-title">
+      <div class="jr-dialog-body">
+        <span class="jr-status foundation">M3 SAFETY PREVIEW</span>
+        <h2 id="jr-confirm-title" style="margin-top:10px">Jarvis wants to delete 3 files</h2>
+        <p><strong style="color:var(--jr-text);font-weight:500">Target:</strong> Three selected files in Downloads<br><strong style="color:var(--jr-text);font-weight:500">Effect:</strong> Move to the recycle folder; reversible<br><strong style="color:var(--jr-text);font-weight:500">Data leaving device:</strong> None</p>
+      </div>
+      <form method="dialog" class="jr-dialog-actions">
+        <button class="jr-button" value="deny">Deny</button>
+        <button class="jr-button" value="edit">Edit details</button>
+        <button class="jr-button primary" value="allow">Allow once</button>
+      </form>
+    </dialog>
+
+    <dialog data-settings-dialog aria-labelledby="jr-settings-title">
+      <div class="jr-dialog-body">
+        <div class="jr-row" style="justify-content:space-between;gap:10px"><h2 id="jr-settings-title">Settings & privacy</h2><span class="jr-status planned">M3–M6</span></div>
+        <p>The final screen should expose status without ever displaying API-key values.</p>
+        <div class="jr-settings-list" style="margin-top:13px">
+          <label class="jr-setting-row"><span>Language and identity</span><select data-language-select><option value="en">English · Jarvis</option><option value="si">Sinhala · Friday · voice R&amp;D</option><option value="ta">Tamil · Jarvis · BETA</option></select></label>
+          <label class="jr-setting-row"><span>Empathy mode</span><select><option>Balanced</option><option>Logical</option><option>Supportive</option></select></label>
+          <label class="jr-setting-row"><span>Reduce motion</span><input type="checkbox"></label>
+          <label class="jr-setting-row"><span>Include memory with cloud requests</span><input type="checkbox" checked></label>
+          <label class="jr-setting-row"><span>Close window sends Jarvis to sleep</span><input type="checkbox" checked></label>
+        </div>
+      </div>
+      <form method="dialog" class="jr-dialog-actions"><button class="jr-button primary" value="done">Done</button></form>
+    </dialog>
+  </div>
+
+  <script type="module">
+    (async () => {
+      const root = document.getElementById('jarvis-roadmap-ui');
+      if (!root) return;
+      root.querySelectorAll('button, [role="button"]').forEach(control => control.classList.add('cursor-interaction'));
+      const shell = root.querySelector('.jr-shell');
+      const saved = window.openai?.widgetState?.privateContent || {};
+      const validModes = ['assistant', 'memory', 'system', 'tools', 'study', 'news', 'research', 'diagnostics'];
+      const validCountries = ['LKA', 'JPN', 'IND', 'GBR', 'USA', 'RUS'];
+      const validLanguages = ['en', 'si', 'ta'];
+      const validMemoryLayers = ['profile', 'facts', 'recent'];
+      const validSystemStages = ['capture', 'transcribe', 'validate', 'language', 'context', 'router', 'provider', 'stream', 'render', 'save'];
+      const systemClusterMap = {
+        capture: ['capture'],
+        understand: ['transcribe', 'validate', 'language'],
+        context: ['context'],
+        route: ['router'],
+        model: ['provider', 'stream'],
+        output: ['render', 'save']
+      };
+      const ui = {
+        mode: validModes.includes(saved.mode) ? saved.mode : 'assistant',
+        voiceIndex: Number.isInteger(saved.voiceIndex) ? Math.abs(saved.voiceIndex) % 4 : 0,
+        muted: Boolean(saved.muted),
+        language: validLanguages.includes(saved.language) ? saved.language : 'en',
+        memoryLayer: validMemoryLayers.includes(saved.memoryLayer) ? saved.memoryLayer : 'profile',
+        systemStage: validSystemStages.includes(saved.systemStage) ? saved.systemStage : 'capture',
+        country: validCountries.includes(saved.country) ? saved.country : 'LKA',
+        countryName: typeof saved.countryName === 'string' ? saved.countryName : 'Sri Lanka',
+        focus: typeof saved.focus === 'boolean' ? saved.focus : true
+      };
+
+      const design = { accent: '#ff8a1f', orbScale: 100, motion: 48, showFuture: true };
+      const spatialModes = ['assistant', 'memory', 'system'];
+      let scheduleCore = () => {};
+      let resizeCore = () => {};
+      let applySceneDesign = () => {};
+      let syncSpatialScene = () => {};
+      let updateMemoryScene = () => {};
+      let updateSystemScene = () => {};
+      let mapStarted = false;
+
+      const voiceStates = [
+        { key: 'ready', label: 'Ready', title: 'Ready when you are', detail: 'Hold push-to-talk or type below', action: 'Preview listening', color: 0xff8a1f, speed: .18 },
+        { key: 'listening', label: 'Listening', title: 'Listening', detail: 'Speak naturally · Stop is always available', action: 'Preview thinking', color: 0x55d7f3, speed: .58 },
+        { key: 'thinking', label: 'Thinking', title: 'Thinking', detail: 'Selecting a route and provider', action: 'Preview speaking', color: 0x9a7cff, speed: .86 },
+        { key: 'speaking', label: 'Speaking', title: 'Speaking', detail: 'Streaming sentences through the voice engine', action: 'Return to ready', color: 0xffc45f, speed: .44 }
+      ];
+
+      const voiceProfiles = {
+        en: {
+          name: 'Jarvis', chip: 'English · Jarvis', build: 'MAIN CHARACTER · ENGLISH',
+          profile: 'English · calm, formal British-inspired original voice',
+          summary: 'Jarvis is the primary character and English-speaking assistant.',
+          note: 'The voice direction can evoke a polished cinematic assistant while remaining an original performance—not a clone of a specific actor.',
+          rows: [['Character', 'JARVIS'], ['Language', 'ENGLISH'], ['Voice direction', 'ORIGINAL · BRITISH-INSPIRED']]
+        },
+        si: {
+          name: 'Friday', chip: 'Sinhala · Friday', build: 'VOICE R&D · TONE IMPROVING',
+          profile: 'Sinhala · custom Emma/Sinhala voice blend in development',
+          summary: 'Friday is used only when the assistant speaks Sinhala.',
+          note: 'The Emma/Sinhala blend is an ongoing custom voice build. Tone, naturalness, and consistency still need improvement before it should be labelled ready.',
+          rows: [['Character', 'FRIDAY'], ['Language', 'SINHALA'], ['Voice build', 'ONGOING R&D']]
+        },
+        ta: {
+          name: 'Jarvis', chip: 'Tamil · Jarvis', build: 'TAMIL VOICE · BETA',
+          profile: 'Tamil · Jarvis identity with a beta voice path',
+          summary: 'Jarvis remains the character for Tamil; only Sinhala switches the identity to Friday.',
+          note: 'Tamil speech remains BETA until stronger native-speaker validation is complete.',
+          rows: [['Character', 'JARVIS'], ['Language', 'TAMIL'], ['Voice quality', 'BETA']]
+        }
+      };
+
+      const memoryDetails = {
+        profile: {
+          title: 'Your name', status: 'AVAILABLE',
+          copy: 'Stores the single name field Jarvis may use when addressing the user.',
+          source: 'User request', retention: 'Until forgotten', cloud: 'Disclose first'
+        },
+        facts: {
+          title: 'Requested facts', status: 'AVAILABLE',
+          copy: 'Stores only facts the user explicitly asks Jarvis to remember. The current backend forgets all memory together; individual deletion is not implemented yet.',
+          source: '“Remember…” command', retention: 'Until forgotten', cloud: 'Optional context'
+        },
+        recent: {
+          title: 'Recent context', status: 'AVAILABLE',
+          copy: 'Keeps up to 12 recent user/assistant exchanges so a follow-up can continue within the configured continuation window.',
+          source: 'Recent turns', retention: '12 hours', cloud: 'Route-dependent'
+        }
+      };
+
+      const systemDetails = {
+        capture: {
+          title: 'Capture', status: 'LIVE', statusClass: 'live',
+          copy: 'Hold-to-talk captures 16 kHz microphone audio. Typed requests enter later and skip capture, transcription, and transcript validation.',
+          input: 'Microphone or keyboard', output: 'Audio buffer or text', privacy: 'Audio held in memory only'
+        },
+        transcribe: {
+          title: 'Detect & transcribe', status: 'LIVE / BETA', statusClass: 'beta',
+          copy: 'Local Whisper converts voice to text, optionally detects language, and may retranscribe in a confident different language.',
+          input: 'Local audio buffer', output: 'Transcript + language clues', privacy: 'Audio stays local'
+        },
+        validate: {
+          title: 'Validate transcript', status: 'LIVE', statusClass: 'live',
+          copy: 'Classifies the transcript as clear, empty, or unclear. Empty or unclear input stops here and is never sent to a model.',
+          input: 'Transcript + clarity signals', output: 'Accepted text or retry prompt', privacy: 'Rejected text stays local'
+        },
+        language: {
+          title: 'Apply language & style', status: 'LIVE', statusClass: 'live',
+          copy: 'Applies explicit or script-based language switching, empathy mode, and the Jarvis/Friday identity rule before context is built.',
+          input: 'Accepted request', output: 'Language, empathy, identity', privacy: 'Processed locally'
+        },
+        context: {
+          title: 'Build context', status: 'LIVE', statusClass: 'live',
+          copy: 'Combines persona, language instruction, empathy style, name, remembered facts, and up to 12 recent exchanges.',
+          input: 'Request + local memory', output: 'Model prompt', privacy: 'May be sent to hosted model'
+        },
+        router: {
+          title: 'Route request', status: 'LIVE + FOUNDATION', statusClass: 'foundation',
+          copy: 'Keyword and formula rules choose Command, Quick, Maths, Teach, Code, Long, Talk, or General. The trained intent classifier is not active yet.',
+          input: 'Normalised request', output: 'Route + provider order', privacy: 'Local classification'
+        },
+        provider: {
+          title: 'Choose model', status: 'LIVE', statusClass: 'live',
+          copy: 'Removes unconfigured providers, applies route and language order, skips resting providers, and falls back only before the first response word.',
+          input: 'Prompt + selected context', output: 'Streamed answer text', privacy: 'May leave device'
+        },
+        stream: {
+          title: 'Stream response', status: 'LIVE', statusClass: 'live',
+          copy: 'Shows connecting, first-word wait, and streaming states. An error after output begins is reported as interrupted rather than switching models silently.',
+          input: 'Provider stream', output: 'Filtered answer chunks', privacy: 'Text returns from selected model'
+        },
+        render: {
+          title: 'Render output', status: 'LIVE / R&D', statusClass: 'beta',
+          copy: 'Text streams immediately while reply sentences become local speech. English uses Jarvis; Sinhala uses the developing Friday voice.',
+          input: 'Answer sentence chunks', output: 'Terminal/window + speaker', privacy: 'Voice synthesis is local'
+        },
+        save: {
+          title: 'Save & measure', status: 'LIVE', statusClass: 'live',
+          copy: 'Saves the latest 12 exchanges, records route/provider/language and stage timings locally, then returns Jarvis to Idle.',
+          input: 'Completed turn metadata', output: 'Local memory + telemetry', privacy: 'Local files and logs'
+        }
+      };
+
+      const capability = {
+        assistant: {
+          title: 'Assistant', status: 'LIVE', statusClass: 'live',
+          summary: 'Voice and text conversation are operational today; this desktop shell itself belongs to M6.',
+          rows: [['Voice loop', 'LIVE'], ['Window', 'PLANNED M6'], ['Privacy', 'Audio local']],
+          note: 'Jarvis is the main character. Friday is the Sinhala-only identity whose custom voice is still being improved.'
+        },
+        memory: {
+          title: 'Memory & privacy', status: 'LIVE', statusClass: 'live',
+          summary: 'Light memory stores one name, explicitly requested facts, and up to 12 recent exchanges for a 12-hour continuation window.',
+          rows: [['Name + facts', 'LIVE'], ['Recent continuation', 'LIVE'], ['Forget everything', 'LIVE']],
+          note: 'Individual edit/delete and semantic relationships are not implemented, so this screen does not claim those controls exist.'
+        },
+        system: {
+          title: 'System pipeline', status: 'LIVE', statusClass: 'live',
+          summary: 'The core voice, language, routing, provider-fallback, and speech pipeline is operational; this screen is an architecture view rather than live telemetry.',
+          rows: [['Voice pipeline', 'LIVE'], ['Intent classifier', 'FOUNDATION'], ['Tool safety gate', 'PLANNED M3']],
+          note: 'Audio stays local through speech recognition. Prompt text and selected memory may leave the device when a cloud provider is used.'
+        },
+        tools: {
+          title: 'Tools & safety', status: 'FOUNDATION', statusClass: 'foundation',
+          summary: 'Routing and training data exist, but the tool registry, safety gate, verification, history, and undo are not implemented.',
+          rows: [['Intent corpus', 'READY'], ['Tool registry', 'PLANNED M3'], ['Safety gate', 'PLANNED M3']],
+          note: 'Preview controls explain the intended behavior; they never execute a computer action.'
+        },
+        study: {
+          title: 'Study tutor', status: 'FOUNDATION', statusClass: 'foundation',
+          summary: 'Maths and teaching routes exist. The guided Study skill, checker, hints, and course model are still M4.',
+          rows: [['Teach routing', 'FOUNDATION'], ['Tutor skill', 'PLANNED M4'], ['SymPy checks', 'PLANNED M4']],
+          note: 'Future controls stay disabled until a real skill and verification path exist.'
+        },
+        news: {
+          title: 'World news map', status: 'PLANNED', statusClass: 'planned',
+          summary: 'The map is the visual surface for M7. Live stories, summaries, and source links are not implemented yet.',
+          rows: [['Country map', 'UI PREVIEW'], ['GDELT query', 'PLANNED M7'], ['Spoken summary', 'PLANNED M7']],
+          note: 'Country selection works locally here; no live headlines are fetched or invented.'
+        },
+        research: {
+          title: 'Research workspace', status: 'PLANNED', statusClass: 'planned',
+          summary: 'M7 will add allowed page reading, synthesis, and page references with outside text treated as untrusted.',
+          rows: [['Web search', 'PLANNED M7'], ['Page reader', 'PLANNED M7'], ['References', 'PLANNED M7']],
+          note: 'A page may inform the answer but can never instruct Jarvis to perform an action.'
+        },
+        diagnostics: {
+          title: 'Diagnostics', status: 'LIVE', statusClass: 'live',
+          summary: 'Telemetry logging and evaluation helpers exist. The values shown are a labelled project snapshot, not live device monitoring.',
+          rows: [['Telemetry', 'LIVE'], ['Formal M0 log', 'PENDING'], ['Final report', 'LATER M8']],
+          note: 'Keep engineering detail here, away from the everyday conversation screen.'
+        }
+      };
+
+      function persist() {
+        if (!window.openai?.setWidgetState) return;
+        window.openai.setWidgetState({
+          modelContent: {
+            selectedJarvisView: ui.mode,
+            voiceState: voiceStates[ui.voiceIndex].key,
+            selectedCountry: ui.country,
+            assistantLanguage: ui.language,
+            activeCharacter: voiceProfiles[ui.language].name,
+            selectedMemoryLayer: ui.memoryLayer,
+            selectedSystemStage: ui.systemStage
+          },
+          privateContent: ui
+        }).catch(() => {});
+      }
+
+      function renderWorkspace() {
+        shell.dataset.focus = ui.focus ? 'true' : 'false';
+        const toggle = root.querySelector('[data-focus-toggle]');
+        toggle.setAttribute('aria-pressed', ui.focus ? 'true' : 'false');
+        toggle.setAttribute('aria-label', ui.focus ? 'Show the standard layout with context panel' : 'Use the wide visualization workspace');
+        toggle.dataset.tooltip = ui.focus ? 'Return to the standard layout' : 'Expand the visualization workspace';
+        requestAnimationFrame(() => { resizeCore(); scheduleCore(); });
+      }
+
+      function renderContext() {
+        const item = capability[ui.mode];
+        const profile = voiceProfiles[ui.language];
+        const summary = ui.mode === 'assistant' ? `${profile.summary} Voice and text conversation work today; this desktop shell itself belongs to M6.` : item.summary;
+        const rows = ui.mode === 'assistant' ? profile.rows : item.rows;
+        const note = ui.mode === 'assistant' ? profile.note : item.note;
+        root.querySelector('[data-context-title]').textContent = item.title;
+        const status = root.querySelector('[data-context-status]');
+        status.textContent = item.status;
+        status.className = `jr-status ${item.statusClass}`;
+        root.querySelector('[data-context-summary]').textContent = summary;
+        root.querySelector('[data-context-list]').innerHTML = rows.map(row => `<div class="jr-context-row"><span>${row[0]}</span><span>${row[1]}</span></div>`).join('');
+        root.querySelector('[data-context-note]').textContent = note;
+      }
+
+      function renderIdentity() {
+        const profile = voiceProfiles[ui.language];
+        shell.dataset.language = ui.language;
+        root.querySelectorAll('[data-assistant-name]').forEach(el => { el.textContent = profile.name; });
+        root.querySelectorAll('[data-identity-chip]').forEach(el => { el.textContent = profile.chip; });
+        root.querySelectorAll('[data-voice-profile]').forEach(el => { el.textContent = profile.profile; });
+        root.querySelectorAll('[data-voice-build-status]').forEach(el => { el.textContent = profile.build; });
+        const languageSelect = root.querySelector('[data-language-select]');
+        if (languageSelect) languageSelect.value = ui.language;
+        root.querySelectorAll('[data-global-mute]').forEach(button => {
+          button.setAttribute('aria-label', ui.muted ? `Unmute ${profile.name}` : `Mute ${profile.name}`);
+        });
+        renderContext();
+      }
+
+      function renderVoice() {
+        const voice = voiceStates[ui.voiceIndex];
+        const profile = voiceProfiles[ui.language];
+        shell.dataset.voiceState = voice.key;
+        root.querySelectorAll('[data-top-state]').forEach(el => { el.textContent = ui.muted ? 'Muted' : voice.label; });
+        root.querySelectorAll('[data-voice-title]').forEach(el => { el.textContent = ui.muted ? 'Muted' : voice.title; });
+        root.querySelectorAll('[data-voice-detail]').forEach(el => { el.textContent = ui.muted ? 'Microphone and speech output are paused' : voice.detail; });
+        root.querySelectorAll('[data-cycle-state]').forEach(button => {
+          if (button.closest('[data-tray-preview]')) button.textContent = ui.voiceIndex === 0 ? 'Push to talk' : voice.label;
+          else if (button.classList.contains('jr-button')) button.textContent = voice.action;
+        });
+        root.querySelectorAll('[data-global-mute]').forEach(button => {
+          button.setAttribute('aria-pressed', ui.muted ? 'true' : 'false');
+          if (button.textContent.trim()) button.textContent = ui.muted ? 'Unmute' : 'Mute';
+          button.setAttribute('aria-label', ui.muted ? `Unmute ${profile.name}` : `Mute ${profile.name}`);
+        });
+        scheduleCore();
+      }
+
+      function renderMemory() {
+        const detail = memoryDetails[ui.memoryLayer];
+        root.querySelectorAll('[data-memory-layer]').forEach(button => {
+          button.setAttribute('aria-selected', button.dataset.memoryLayer === ui.memoryLayer ? 'true' : 'false');
+        });
+        root.querySelector('[data-memory-detail-title]').textContent = detail.title;
+        root.querySelector('[data-memory-detail-status]').textContent = detail.status;
+        root.querySelector('[data-memory-detail-copy]').textContent = detail.copy;
+        root.querySelector('[data-memory-detail-source]').textContent = detail.source;
+        root.querySelector('[data-memory-detail-retention]').textContent = detail.retention;
+        root.querySelector('[data-memory-detail-cloud]').textContent = detail.cloud;
+        updateMemoryScene();
+      }
+
+      function renderSystem() {
+        const detail = systemDetails[ui.systemStage];
+        root.querySelectorAll('[data-system-stage]').forEach(button => {
+          button.setAttribute('aria-selected', button.dataset.systemStage === ui.systemStage ? 'true' : 'false');
+        });
+        root.querySelector('[data-system-detail-title]').textContent = detail.title;
+        const status = root.querySelector('[data-system-detail-status]');
+        status.textContent = detail.status;
+        status.className = `jr-status ${detail.statusClass}`;
+        root.querySelector('[data-system-detail-copy]').textContent = detail.copy;
+        root.querySelector('[data-system-detail-input]').textContent = detail.input;
+        root.querySelector('[data-system-detail-output]').textContent = detail.output;
+        root.querySelector('[data-system-detail-privacy]').textContent = detail.privacy;
+        updateSystemScene();
+      }
+
+      function renderCountry() {
+        root.querySelectorAll('[data-country]').forEach(button => {
+          button.setAttribute('aria-pressed', button.dataset.country === ui.country ? 'true' : 'false');
+        });
+        root.querySelector('[data-country-name]').textContent = ui.countryName;
+        root.querySelectorAll('.jr-country').forEach(path => {
+          path.classList.toggle('is-selected', path.dataset.iso === ui.country);
+          path.setAttribute('aria-pressed', path.dataset.iso === ui.country ? 'true' : 'false');
+        });
+      }
+
+      function setMode(mode, save = true) {
+        if (!validModes.includes(mode)) return;
+        ui.mode = mode;
+        shell.dataset.mode = mode;
+        root.querySelectorAll('[data-view]').forEach(button => {
+          button.setAttribute('aria-selected', button.dataset.view === mode ? 'true' : 'false');
+        });
+        root.querySelectorAll('[data-panel]').forEach(panel => { panel.hidden = panel.dataset.panel !== mode; });
+        const panelScroller = root.querySelector('.jr-main > div:first-child');
+        if (panelScroller) panelScroller.scrollTop = 0;
+        renderContext();
+        syncSpatialScene();
+        if (spatialModes.includes(mode)) {
+          requestAnimationFrame(() => { resizeCore(); scheduleCore(); });
+        }
+        if (mode === 'news') initMap();
+        if (save) persist();
+      }
+
+      async function initMap() {
+        if (mapStarted) return;
+        mapStarted = true;
+        const svg = root.querySelector('[data-world-map]');
+        const status = root.querySelector('[data-map-status]');
+        status.textContent = 'Loading published country geometry…';
+        try {
+          const [atlasModule, topoModule, geoModule] = await Promise.all([
+            import('https://esm.sh/@d3-maps/atlas@1.0.0/world/countries/countries-110m'),
+            import('https://esm.sh/topojson-client@3.1.0'),
+            import('https://esm.sh/d3-geo@3.1.1')
+          ]);
+          const world = atlasModule.default || atlasModule;
+          const collection = topoModule.feature(world, world.objects.features);
+          const features = collection.features;
+          const projection = geoModule.geoNaturalEarth1().fitExtent([[14, 14], [946, 472]], { type: 'FeatureCollection', features });
+          const pathMaker = geoModule.geoPath(projection);
+          const ns = 'http://www.w3.org/2000/svg';
+          svg.replaceChildren();
+          const sphere = document.createElementNS(ns, 'path');
+          sphere.setAttribute('class', 'jr-sphere');
+          sphere.setAttribute('d', pathMaker({ type: 'Sphere' }));
+          svg.appendChild(sphere);
+          features.forEach(feature => {
+            const path = document.createElementNS(ns, 'path');
+            const iso = String(feature.properties?.id || feature.id || '');
+            const name = String(feature.properties?.name || iso || 'Country');
+            path.setAttribute('d', pathMaker(feature));
+            path.setAttribute('class', 'jr-country cursor-interaction');
+            path.setAttribute('role', 'button');
+            path.setAttribute('aria-label', `Select ${name}`);
+            path.setAttribute('aria-pressed', 'false');
+            path.setAttribute('tabindex', '0');
+            path.dataset.iso = iso;
+            path.dataset.name = name;
+            const choose = () => {
+              ui.country = iso;
+              ui.countryName = name;
+              renderCountry();
+              persist();
+            };
+            path.addEventListener('click', choose);
+            path.addEventListener('keydown', event => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                choose();
+              }
+            });
+            svg.appendChild(path);
+          });
+          status.textContent = 'Select a country · live news remains disabled until M7.';
+          renderCountry();
+        } catch (error) {
+          status.textContent = 'Country geometry could not load. Use the country shortcuts.';
+          svg.innerHTML = '<text x="480" y="250" text-anchor="middle" fill="currentColor" font-size="18">Map unavailable · country shortcuts still work</text>';
+        }
+      }
+
+      root.querySelectorAll('[data-view]').forEach(button => {
+        button.addEventListener('click', () => setMode(button.dataset.view));
+      });
+
+      root.querySelectorAll('[data-memory-layer]').forEach(button => {
+        button.addEventListener('click', () => {
+          ui.memoryLayer = button.dataset.memoryLayer;
+          renderMemory();
+          persist();
+        });
+      });
+
+      root.querySelectorAll('[data-system-stage]').forEach(button => {
+        button.addEventListener('click', () => {
+          ui.systemStage = button.dataset.systemStage;
+          renderSystem();
+          persist();
+        });
+      });
+
+      root.querySelectorAll('[data-cycle-state]').forEach(button => {
+        button.addEventListener('click', () => {
+          ui.voiceIndex = (ui.voiceIndex + 1) % voiceStates.length;
+          renderVoice();
+          persist();
+        });
+      });
+
+      root.querySelectorAll('[data-stop]').forEach(button => {
+        button.addEventListener('click', () => {
+          ui.voiceIndex = 0;
+          renderVoice();
+          persist();
+        });
+      });
+
+      root.querySelectorAll('[data-global-mute]').forEach(button => {
+        button.addEventListener('click', () => {
+          ui.muted = !ui.muted;
+          renderVoice();
+          persist();
+        });
+      });
+
+      root.querySelector('[data-language-switch]').addEventListener('click', () => {
+        const current = validLanguages.indexOf(ui.language);
+        ui.language = validLanguages[(current + 1) % validLanguages.length];
+        renderIdentity();
+        renderVoice();
+        persist();
+      });
+
+      root.querySelector('[data-language-select]').addEventListener('change', event => {
+        if (!validLanguages.includes(event.target.value)) return;
+        ui.language = event.target.value;
+        renderIdentity();
+        renderVoice();
+        persist();
+      });
+
+      root.querySelector('[data-focus-toggle]').addEventListener('click', () => {
+        ui.focus = !ui.focus;
+        renderWorkspace();
+        persist();
+      });
+
+      root.querySelectorAll('[data-country]').forEach(button => {
+        button.addEventListener('click', () => {
+          ui.country = button.dataset.country;
+          ui.countryName = button.dataset.countryLabel;
+          renderCountry();
+          persist();
+        });
+      });
+
+      root.querySelectorAll('[data-memory-preview-action]').forEach(button => {
+        button.addEventListener('click', () => {
+          const input = button.closest('.jr-surface')?.querySelector('input');
+          const hasValue = Boolean(input?.value.trim());
+          root.querySelector('[data-memory-action-note]').textContent = hasValue
+            ? 'Preview only: this would be saved by the current memory backend.'
+            : 'Enter a sample value first.';
+          if (input) input.value = '';
+        });
+      });
+
+      const tray = root.querySelector('[data-tray-preview]');
+      root.querySelectorAll('[data-tray-toggle]').forEach(button => {
+        button.addEventListener('click', () => {
+          tray.hidden = !tray.hidden;
+          root.querySelectorAll('[data-tray-toggle]').forEach(toggle => toggle.setAttribute('aria-expanded', tray.hidden ? 'false' : 'true'));
+        });
+      });
+
+      const settingsDialog = root.querySelector('[data-settings-dialog]');
+      root.querySelector('[data-open-settings]').addEventListener('click', () => settingsDialog.showModal());
+      const confirmDialog = root.querySelector('[data-confirm-dialog]');
+      root.querySelector('[data-open-confirm]').addEventListener('click', () => confirmDialog.showModal());
+      const memoryClearDialog = root.querySelector('[data-memory-clear-dialog]');
+      root.querySelector('[data-open-memory-clear]').addEventListener('click', () => {
+        memoryClearDialog.returnValue = '';
+        memoryClearDialog.showModal();
+      });
+      memoryClearDialog.addEventListener('close', () => {
+        if (memoryClearDialog.returnValue !== 'clear') return;
+        root.querySelector('[data-memory-list]').innerHTML = '<div class="jr-memory-row"><div><strong>No saved sample memory</strong><span>Name, facts, and recent context cleared in this preview</span></div><span class="jr-status planned">EMPTY</span></div>';
+        root.querySelector('[data-memory-action-note]').textContent = 'Preview cleared. No project data was changed.';
+      });
+
+      root.querySelector('[data-composer]').addEventListener('submit', event => {
+        event.preventDefault();
+        const input = root.querySelector('#jr-message-input');
+        root.querySelector('[data-composer-note]').textContent = input.value.trim() ? 'Preview only: the message was not sent.' : 'Type a sample request first.';
+        input.value = '';
+      });
+
+      renderIdentity();
+      renderVoice();
+      renderMemory();
+      renderSystem();
+      renderCountry();
+      renderWorkspace();
+      setMode(ui.mode, false);
+
+      const canvas = root.querySelector('.jr-core-canvas');
+      const rendererStage = root.querySelector('[data-spatial-renderer]');
+      const fallback = root.querySelector('[data-core-fallback]');
+      const spatialHosts = new Map([...root.querySelectorAll('[data-spatial-host]')].map(host => [host.dataset.spatialHost, host]));
+      let activeStage = spatialHosts.get('assistant');
+      let pointerActive = false;
+      let activePointerId = null;
+      let dragDistance = 0;
+
+      function setSpatialRenderStatus(label) {
+        root.querySelectorAll('[data-render-label], [data-spatial-render-label]').forEach(element => { element.textContent = label; });
+      }
+
+      function moveSpatialRenderer() {
+        if (!spatialModes.includes(ui.mode)) return;
+        const nextStage = spatialHosts.get(ui.mode);
+        if (!nextStage) return;
+        if (pointerActive && activePointerId !== null && canvas.hasPointerCapture?.(activePointerId)) {
+          canvas.releasePointerCapture(activePointerId);
+        }
+        pointerActive = false;
+        activePointerId = null;
+        dragDistance = 0;
+        activeStage = nextStage;
+        nextStage.prepend(rendererStage);
+      }
+
+      syncSpatialScene = moveSpatialRenderer;
+      syncSpatialScene();
+      let THREE;
+      try {
+        THREE = await import('https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js');
+      } catch (error) {
+        fallback.hidden = false;
+        canvas.hidden = true;
+        setSpatialRenderStatus('Static concept view');
+        return;
+      }
+
+      let renderer;
+      try {
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'low-power' });
+      } catch (error) {
+        fallback.hidden = false;
+        canvas.hidden = true;
+        setSpatialRenderStatus('Static concept view');
+        return;
+      }
+
+      const constrained = window.matchMedia('(pointer: coarse)').matches || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
+      renderer.setClearColor(0x000000, 0);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.25;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, constrained ? 1 : 1.35));
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(42, 1, .1, 30);
+      camera.position.set(0, 0, 5.4);
+      const world = new THREE.Group();
+      world.name = 'assistant';
+      scene.add(world);
+      const memoryGroup = new THREE.Group();
+      memoryGroup.name = 'memory';
+      scene.add(memoryGroup);
+      const systemGroup = new THREE.Group();
+      systemGroup.name = 'system';
+      scene.add(systemGroup);
+      scene.add(new THREE.AmbientLight(0x677789, .42));
+      const light = new THREE.PointLight(0xff8a1f, 7.2, 15, 1.8);
+      light.position.set(0, 0, 1.2);
+      scene.add(light);
+
+      const accentColor = new THREE.Color(design.accent);
+      const currentColor = accentColor.clone();
+      const targetColor = accentColor.clone();
+      const coreMaterial = new THREE.MeshStandardMaterial({ color: accentColor, emissive: accentColor, emissiveIntensity: 3.1, roughness: .2, metalness: .06 });
+      const core = new THREE.Mesh(new THREE.IcosahedronGeometry(.48, 4), coreMaterial);
+      world.add(core);
+      const wireMaterial = new THREE.MeshBasicMaterial({ color: accentColor, wireframe: true, transparent: true, opacity: .24, blending: THREE.AdditiveBlending });
+      const wire = new THREE.Mesh(new THREE.IcosahedronGeometry(.69, 3), wireMaterial);
+      world.add(wire);
+
+      const rings = [
+        [1.02, .013, .15, .42, 0],
+        [1.2, .016, 1.05, .22, .58],
+        [1.47, .01, .62, 1.0, .24]
+      ].map((spec, index) => {
+        const material = new THREE.MeshBasicMaterial({ color: accentColor, transparent: true, opacity: .62, blending: THREE.AdditiveBlending, depthWrite: false });
+        const mesh = new THREE.Mesh(new THREE.TorusGeometry(spec[0], spec[1], 8, 120), material);
+        mesh.rotation.set(spec[2], spec[3], spec[4]);
+        mesh.userData.spin = index % 2 ? -1 : 1;
+        world.add(mesh);
+        return mesh;
+      });
+
+      const glowCanvas = document.createElement('canvas');
+      glowCanvas.width = 192;
+      glowCanvas.height = 192;
+      const glowContext = glowCanvas.getContext('2d');
+      const glowGradient = glowContext.createRadialGradient(96, 96, 0, 96, 96, 96);
+      glowGradient.addColorStop(0, 'rgba(255,255,235,1)');
+      glowGradient.addColorStop(.16, 'rgba(255,191,72,.75)');
+      glowGradient.addColorStop(.52, 'rgba(255,126,25,.2)');
+      glowGradient.addColorStop(1, 'rgba(255,126,25,0)');
+      glowContext.fillStyle = glowGradient;
+      glowContext.fillRect(0, 0, 192, 192);
+      const glowTexture = new THREE.CanvasTexture(glowCanvas);
+      const glowMaterial = new THREE.SpriteMaterial({ map: glowTexture, transparent: true, opacity: .48, blending: THREE.AdditiveBlending, depthWrite: false });
+      const glow = new THREE.Sprite(glowMaterial);
+      glow.scale.setScalar(2.4);
+      world.add(glow);
+
+      const particleCount = constrained ? 280 : 560;
+      const particlePositions = new Float32Array(particleCount * 3);
+      for (let index = 0; index < particleCount; index++) {
+        const radius = 1.05 + Math.pow(Math.random(), .62) * 1.15;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        particlePositions[index * 3] = radius * Math.sin(phi) * Math.cos(theta);
+        particlePositions[index * 3 + 1] = radius * Math.cos(phi);
+        particlePositions[index * 3 + 2] = radius * Math.sin(phi) * Math.sin(theta);
+      }
+      const particleGeometry = new THREE.BufferGeometry();
+      particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+      const particleMaterial = new THREE.PointsMaterial({ color: accentColor, size: .025, transparent: true, opacity: .7, blending: THREE.AdditiveBlending, depthWrite: false });
+      const particles = new THREE.Points(particleGeometry, particleMaterial);
+      world.add(particles);
+
+      const spatialHubMaterials = [];
+      const sharedNodeGeometry = new THREE.IcosahedronGeometry(.24, 2);
+
+      function roundedRect(context, x, y, width, height, radius) {
+        const r = Math.min(radius, width / 2, height / 2);
+        context.beginPath();
+        context.moveTo(x + r, y);
+        context.lineTo(x + width - r, y);
+        context.quadraticCurveTo(x + width, y, x + width, y + r);
+        context.lineTo(x + width, y + height - r);
+        context.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+        context.lineTo(x + r, y + height);
+        context.quadraticCurveTo(x, y + height, x, y + height - r);
+        context.lineTo(x, y + r);
+        context.quadraticCurveTo(x, y, x + r, y);
+        context.closePath();
+      }
+
+      function makeSpatialLabel(text, tint = '#f2f5f8') {
+        const labelCanvas = document.createElement('canvas');
+        labelCanvas.width = 480;
+        labelCanvas.height = 112;
+        const context = labelCanvas.getContext('2d');
+        roundedRect(context, 5, 7, 470, 98, 22);
+        context.fillStyle = 'rgba(3, 7, 11, .86)';
+        context.fill();
+        context.strokeStyle = 'rgba(107, 184, 214, .55)';
+        context.lineWidth = 3;
+        context.stroke();
+        context.fillStyle = tint;
+        context.font = '600 27px Inter, Segoe UI, sans-serif';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(text, 240, 57, 430);
+        const texture = new THREE.CanvasTexture(labelCanvas);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        const material = new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: .9, depthTest: false, depthWrite: false });
+        const sprite = new THREE.Sprite(material);
+        sprite.scale.set(1.55, .36, 1);
+        sprite.renderOrder = 8;
+        return sprite;
+      }
+
+      function addSpatialHub(group, color = 0xffa62b) {
+        const hubColor = new THREE.Color(color);
+        const material = new THREE.MeshStandardMaterial({ color: 0xf5fbff, emissive: hubColor, emissiveIntensity: 2.5, roughness: .18, metalness: .08 });
+        spatialHubMaterials.push(material);
+        const hub = new THREE.Mesh(new THREE.IcosahedronGeometry(.38, 3), material);
+        group.add(hub);
+        const shellMaterial = new THREE.MeshBasicMaterial({ color: hubColor, wireframe: true, transparent: true, opacity: .72, blending: THREE.AdditiveBlending });
+        spatialHubMaterials.push(shellMaterial);
+        const shellMesh = new THREE.Mesh(new THREE.IcosahedronGeometry(.58, 2), shellMaterial);
+        group.add(shellMesh);
+        const hubRings = [.78, 1.0].map((radius, index) => {
+          const ringMaterial = new THREE.MeshBasicMaterial({ color: hubColor, transparent: true, opacity: index ? .28 : .52, blending: THREE.AdditiveBlending, depthWrite: false });
+          spatialHubMaterials.push(ringMaterial);
+          const ring = new THREE.Mesh(new THREE.TorusGeometry(radius, .009, 6, 96), ringMaterial);
+          ring.rotation.set(index ? 1.05 : .45, index ? .22 : .9, index ? .4 : 0);
+          ring.userData.spin = index ? -1 : 1;
+          group.add(ring);
+          return ring;
+        });
+        group.userData.hubRings = hubRings;
+      }
+
+      function addSpatialDust(group, color, count = 100) {
+        const positions = new Float32Array(count * 3);
+        for (let index = 0; index < count; index++) {
+          const radius = .85 + Math.random() * 2.25;
+          const theta = Math.random() * Math.PI * 2;
+          positions[index * 3] = Math.cos(theta) * radius;
+          positions[index * 3 + 1] = Math.sin(theta) * radius * .68;
+          positions[index * 3 + 2] = (Math.random() - .5) * .85;
+        }
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const material = new THREE.PointsMaterial({ color, size: .022, transparent: true, opacity: .48, blending: THREE.AdditiveBlending, depthWrite: false });
+        const dust = new THREE.Points(geometry, material);
+        group.add(dust);
+        group.userData.dust = dust;
+      }
+
+      function addConnections(group, nodes, pairs, color = 0x4a8291) {
+        const positions = [];
+        pairs.forEach(([from, to]) => {
+          const a = from === -1 ? [0, 0, 0] : nodes[from].position;
+          const b = to === -1 ? [0, 0, 0] : nodes[to].position;
+          positions.push(...a, ...b);
+        });
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity: .42, blending: THREE.AdditiveBlending });
+        group.add(new THREE.LineSegments(geometry, material));
+      }
+
+      function buildNodes(group, nodes, kind) {
+        return nodes.map(node => {
+          const color = new THREE.Color(node.color);
+          const material = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 1.35, roughness: .24, metalness: .08, transparent: true, opacity: .94 });
+          const mesh = new THREE.Mesh(sharedNodeGeometry, material);
+          const baseScale = node.size / .24;
+          mesh.position.set(...node.position);
+          mesh.scale.setScalar(baseScale);
+          mesh.userData = { kind, choice: node.choice, baseScale };
+          group.add(mesh);
+          const label = makeSpatialLabel(node.label);
+          label.position.set(node.position[0], node.position[1] + node.labelOffset, node.position[2] + .04);
+          group.add(label);
+          mesh.userData.label = label;
+          return mesh;
+        });
+      }
+
+      const memoryNodes = [
+        { label: 'Your name', choice: 'profile', position: [0, 1.58, .08], color: 0xffbd4a, size: .34, labelOffset: .5 },
+        { label: 'Requested facts', choice: 'facts', position: [-1.62, .55, .02], color: 0x64dbb5, size: .31, labelOffset: .48 },
+        { label: 'Recent context', choice: 'recent', position: [1.62, .55, -.02], color: 0x62d5ef, size: .31, labelOffset: .48 },
+        { label: 'Single field', choice: 'profile', position: [-1.5, -1.02, .1], color: 0xffd477, size: .19, labelOffset: .38 },
+        { label: 'Explicit only', choice: 'facts', position: [0, -1.5, -.08], color: 0x8de4c8, size: .2, labelOffset: .38 },
+        { label: '12 exchanges · 12 h', choice: 'recent', position: [1.52, -1.02, .08], color: 0x8de7f7, size: .2, labelOffset: .38 }
+      ];
+      addSpatialHub(memoryGroup);
+      addSpatialDust(memoryGroup, 0x6fc4d8, constrained ? 60 : 110);
+      addConnections(memoryGroup, memoryNodes, [[-1, 0], [-1, 1], [-1, 2], [0, 3], [1, 4], [2, 5], [0, 1], [1, 2]], 0x4d91a2);
+      const memoryPickables = buildNodes(memoryGroup, memoryNodes, 'memory');
+
+      const systemNodes = [
+        { label: 'Capture', choice: 'capture', position: [-2.0, -.92, .04], color: 0x63ddba, size: .25, labelOffset: .43 },
+        { label: 'Understand', choice: 'understand', position: [-1.35, .76, -.05], color: 0x72d7ea, size: .29, labelOffset: .46 },
+        { label: 'Context', choice: 'context', position: [-.38, -1.32, .08], color: 0xffcf64, size: .24, labelOffset: .42 },
+        { label: 'Route', choice: 'route', position: [.48, 1.3, .04], color: 0xffa52f, size: .28, labelOffset: .45 },
+        { label: 'Model + stream', choice: 'model', position: [1.55, .42, -.08], color: 0x72d7ea, size: .31, labelOffset: .48 },
+        { label: 'Render + save', choice: 'output', position: [2.02, -1.05, .08], color: 0x8de4c8, size: .34, labelOffset: .5 }
+      ];
+      addSpatialHub(systemGroup);
+      addSpatialDust(systemGroup, 0x70bfd2, constrained ? 60 : 100);
+      addConnections(systemGroup, systemNodes, [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [-1, 1], [-1, 3], [-1, 4]], 0x477f91);
+      const systemPickables = buildNodes(systemGroup, systemNodes, 'system');
+
+      updateMemoryScene = () => {
+        memoryPickables.forEach(mesh => {
+          const selected = mesh.userData.choice === ui.memoryLayer;
+          mesh.scale.setScalar(mesh.userData.baseScale * (selected ? 1.24 : 1));
+          mesh.material.emissiveIntensity = selected ? 2.8 : 1.25;
+          mesh.userData.label.material.opacity = selected ? 1 : .66;
+        });
+        scheduleCore();
+      };
+
+      updateSystemScene = () => {
+        const activeCluster = Object.entries(systemClusterMap).find(([, stages]) => stages.includes(ui.systemStage))?.[0];
+        systemPickables.forEach(mesh => {
+          const selected = mesh.userData.choice === activeCluster;
+          mesh.scale.setScalar(mesh.userData.baseScale * (selected ? 1.24 : 1));
+          mesh.material.emissiveIntensity = selected ? 2.8 : 1.25;
+          mesh.userData.label.material.opacity = selected ? 1 : .66;
+        });
+        root.querySelectorAll('[data-system-stage]').forEach(button => {
+          const inCluster = systemClusterMap[activeCluster]?.includes(button.dataset.systemStage);
+          button.classList.toggle('is-cluster-related', Boolean(inCluster));
+        });
+        scheduleCore();
+      };
+      updateMemoryScene();
+      updateSystemScene();
+
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const spatialGroups = { assistant: world, memory: memoryGroup, system: systemGroup };
+      const orbitState = {
+        assistant: { desiredYaw: 0, desiredPitch: 0, currentYaw: 0, currentPitch: 0 },
+        memory: { desiredYaw: -.08, desiredPitch: -.04, currentYaw: -.08, currentPitch: -.04 },
+        system: { desiredYaw: .08, desiredPitch: -.03, currentYaw: .08, currentPitch: -.03 }
+      };
+      let previousX = 0;
+      let previousY = 0;
+      let raf = 0;
+      let visible = true;
+      let hasSize = false;
+      let webglLost = false;
+      let lastTime = performance.now();
+      let lastDraw = 0;
+      const raycaster = new THREE.Raycaster();
+      const pointerNdc = new THREE.Vector2();
+
+      function cameraDistance() {
+        const base = ui.mode === 'assistant' ? 5.4 : ui.mode === 'memory' ? 6.8 : 6.9;
+        return base + (camera.aspect < .82 ? 1.15 : 0);
+      }
+
+      function resize() {
+        if (!spatialModes.includes(ui.mode) || !activeStage) return;
+        const rect = activeStage.getBoundingClientRect();
+        const width = Math.floor(rect.width);
+        const height = Math.floor(rect.height);
+        if (width <= 4 || height <= 4) {
+          hasSize = false;
+          return;
+        }
+        hasSize = true;
+        renderer.setSize(width, height, false);
+        camera.aspect = width / height;
+        camera.position.z = cameraDistance();
+        camera.updateProjectionMatrix();
+        schedule();
+      }
+
+      function stateTargetColor() {
+        if (ui.muted) return targetColor.setHex(0x758293);
+        if (ui.voiceIndex === 0) return targetColor.copy(accentColor);
+        return targetColor.setHex(voiceStates[ui.voiceIndex].color);
+      }
+
+      function schedule() {
+        if (!raf && !webglLost && visible && hasSize && !document.hidden && spatialModes.includes(ui.mode)) raf = requestAnimationFrame(frame);
+      }
+
+      function frame(now) {
+        raf = 0;
+        if (!visible || !hasSize || document.hidden || !spatialModes.includes(ui.mode)) return;
+        const continuous = !reducedMotion.matches && design.motion > 0;
+        const interval = pointerActive ? 16 : ui.voiceIndex === 0 ? 42 : 30;
+        if (continuous && now - lastDraw < interval) {
+          schedule();
+          return;
+        }
+        const delta = Math.min(.05, Math.max(.001, (now - lastTime) / 1000));
+        lastTime = now;
+        lastDraw = now;
+        const voice = voiceStates[ui.voiceIndex];
+        const blend = continuous ? .1 : 1;
+        currentColor.lerp(stateTargetColor(), blend);
+        coreMaterial.color.copy(currentColor);
+        coreMaterial.emissive.copy(currentColor);
+        wireMaterial.color.copy(currentColor);
+        particleMaterial.color.copy(currentColor);
+        light.color.copy(currentColor);
+        const motion = continuous ? design.motion / 100 : 0;
+        const pulseSpeed = ui.mode === 'assistant' ? 1 + voice.speed : .76;
+        const pulse = continuous ? 1 + Math.sin(now * .0025 * pulseSpeed) * (ui.mode === 'assistant' ? .04 : .018) : 1;
+        const activeRoot = spatialGroups[ui.mode];
+        const baseScale = ui.mode === 'assistant' ? 1 : .92;
+        activeRoot.scale.setScalar(baseScale * design.orbScale / 100 * pulse);
+        if (ui.mode === 'assistant') {
+          rings.forEach((ring, index) => {
+            ring.material.color.copy(currentColor);
+            ring.rotation.z += delta * motion * voice.speed * ring.userData.spin * (.28 + index * .08);
+            ring.rotation.x += delta * motion * voice.speed * .04;
+          });
+          particles.rotation.y += delta * motion * voice.speed * .15;
+          wire.rotation.y += delta * motion * voice.speed * .17;
+        } else {
+          activeRoot.userData.hubRings?.forEach((ring, index) => {
+            ring.rotation.z += delta * motion * ring.userData.spin * (.18 + index * .06);
+          });
+          if (activeRoot.userData.dust) activeRoot.userData.dust.rotation.z += delta * motion * .025;
+        }
+        const orbit = orbitState[ui.mode];
+        orbit.currentYaw += (orbit.desiredYaw - orbit.currentYaw) * (continuous ? .13 : 1);
+        orbit.currentPitch += (orbit.desiredPitch - orbit.currentPitch) * (continuous ? .13 : 1);
+        activeRoot.rotation.y = orbit.currentYaw;
+        activeRoot.rotation.x = orbit.currentPitch;
+        renderer.render(scene, camera);
+        if (continuous || pointerActive) schedule();
+      }
+
+      function chooseSpatialNode(event) {
+        if (!['memory', 'system'].includes(ui.mode)) return;
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width <= 4 || rect.height <= 4) return;
+        pointerNdc.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        pointerNdc.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(pointerNdc, camera);
+        const pickables = ui.mode === 'memory' ? memoryPickables : systemPickables;
+        const hit = raycaster.intersectObjects(pickables, false)[0]?.object;
+        if (!hit) return;
+        if (ui.mode === 'memory') {
+          ui.memoryLayer = hit.userData.choice;
+          renderMemory();
+        } else {
+          ui.systemStage = systemClusterMap[hit.userData.choice]?.[0] || ui.systemStage;
+          renderSystem();
+        }
+        persist();
+      }
+
+      canvas.addEventListener('pointerdown', event => {
+        pointerActive = true;
+        activePointerId = event.pointerId;
+        dragDistance = 0;
+        previousX = event.clientX;
+        previousY = event.clientY;
+        canvas.style.cursor = 'grabbing';
+        canvas.setPointerCapture(event.pointerId);
+        schedule();
+      });
+      canvas.addEventListener('pointermove', event => {
+        if (!pointerActive) return;
+        const dx = event.clientX - previousX;
+        const dy = event.clientY - previousY;
+        dragDistance += Math.abs(dx) + Math.abs(dy);
+        const orbit = orbitState[ui.mode];
+        orbit.desiredYaw += dx * .006;
+        orbit.desiredPitch = Math.max(-.62, Math.min(.62, orbit.desiredPitch + dy * .004));
+        previousX = event.clientX;
+        previousY = event.clientY;
+        schedule();
+      });
+      const releasePointer = event => {
+        const wasClick = dragDistance < 7;
+        pointerActive = false;
+        if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+        activePointerId = null;
+        canvas.style.cursor = 'grab';
+        if (event.type === 'pointerup' && wasClick) chooseSpatialNode(event);
+      };
+      canvas.addEventListener('pointerup', releasePointer);
+      canvas.addEventListener('pointercancel', releasePointer);
+      canvas.style.cursor = 'grab';
+
+      syncSpatialScene = () => {
+        moveSpatialRenderer();
+        Object.entries(spatialGroups).forEach(([mode, group]) => { group.visible = mode === ui.mode; });
+        if (!spatialModes.includes(ui.mode) || webglLost) {
+          hasSize = false;
+          if (raf) cancelAnimationFrame(raf);
+          raf = 0;
+          return;
+        }
+        visible = true;
+        lastTime = performance.now();
+        requestAnimationFrame(() => {
+          resize();
+          if (hasSize) {
+            renderer.render(scene, camera);
+            schedule();
+          }
+        });
+      };
+
+      const resizeObserver = new ResizeObserver(resize);
+      resizeObserver.observe(rendererStage);
+      const intersectionObserver = new IntersectionObserver(entries => {
+        visible = Boolean(entries[0]?.isIntersecting);
+        if (visible) {
+          lastTime = performance.now();
+          schedule();
+        } else if (raf) {
+          cancelAnimationFrame(raf);
+          raf = 0;
+        }
+      }, { threshold: .01 });
+      intersectionObserver.observe(rendererStage);
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          lastTime = performance.now();
+          schedule();
+        }
+      });
+      reducedMotion.addEventListener?.('change', schedule);
+
+      canvas.addEventListener('webglcontextlost', event => {
+        event.preventDefault();
+        webglLost = true;
+        visible = false;
+        if (raf) cancelAnimationFrame(raf);
+        fallback.hidden = false;
+        canvas.hidden = true;
+        setSpatialRenderStatus('Static concept view');
+      }, { once: true });
+
+      resizeCore = resize;
+      scheduleCore = schedule;
+      applySceneDesign = () => {
+        accentColor.set(design.accent);
+        if (ui.voiceIndex === 0 && !ui.muted) currentColor.copy(accentColor);
+        spatialHubMaterials.forEach(material => {
+          if (material.emissive) material.emissive.copy(accentColor);
+          else if (material.color) material.color.copy(accentColor);
+        });
+        schedule();
+      };
+      syncSpatialScene();
+
+      function cleanup() {
+        if (raf) cancelAnimationFrame(raf);
+        resizeObserver.disconnect();
+        intersectionObserver.disconnect();
+        const geometries = new Set();
+        const materials = new Set();
+        const textures = new Set();
+        scene.traverse(object => {
+          if (object.geometry) geometries.add(object.geometry);
+          const list = Array.isArray(object.material) ? object.material : [object.material];
+          list.filter(Boolean).forEach(material => materials.add(material));
+        });
+        geometries.forEach(geometry => geometry.dispose?.());
+        materials.forEach(material => {
+          Object.values(material).forEach(value => { if (value?.isTexture) textures.add(value); });
+          material.dispose?.();
+        });
+        textures.forEach(texture => texture.dispose());
+        renderer.dispose();
+      }
+      window.addEventListener('pagehide', cleanup, { once: true });
+
+      function applyDesign() {
+        shell.style.setProperty('--jr-accent', design.accent);
+        shell.style.setProperty('--jr-accent-soft', `${design.accent}21`);
+        root.querySelectorAll('[data-future-nav]').forEach(group => { group.hidden = !design.showFuture; });
+        if (!design.showFuture && ['tools', 'study', 'news', 'research'].includes(ui.mode)) setMode('assistant');
+        applySceneDesign();
+      }
+
+      applyDesign();
+      if (globalThis.Tweak) {
+        const tweak = new Tweak({ container: shell, onChange: applyDesign });
+        tweak.addColorPicker(design, 'accent', { label: 'Core color', reference: '--jr-accent' });
+        tweak.addSlider(design, 'orbScale', { label: 'Core scale', min: 78, max: 122, unit: '%', reference: 'core.scale' });
+        tweak.addSlider(design, 'motion', { label: 'Core motion', min: 0, max: 100, unit: '%', reference: 'core.motion' });
+        tweak.addToggle(design, 'showFuture', { label: 'Show roadmap features', reference: 'nav.future' });
+      }
+
+      window.addEventListener('openai:set_globals', event => {
+        const next = event.detail?.globals?.widgetState?.privateContent;
+        if (!next) return;
+        if (validModes.includes(next.mode)) ui.mode = next.mode;
+        if (Number.isInteger(next.voiceIndex)) ui.voiceIndex = Math.abs(next.voiceIndex) % voiceStates.length;
+        ui.muted = Boolean(next.muted);
+        if (validLanguages.includes(next.language)) ui.language = next.language;
+        if (validMemoryLayers.includes(next.memoryLayer)) ui.memoryLayer = next.memoryLayer;
+        if (validSystemStages.includes(next.systemStage)) ui.systemStage = next.systemStage;
+        if (validCountries.includes(next.country)) ui.country = next.country;
+        if (typeof next.countryName === 'string') ui.countryName = next.countryName;
+        if (typeof next.focus === 'boolean') ui.focus = next.focus;
+        renderIdentity();
+        renderVoice();
+        renderMemory();
+        renderSystem();
+        renderCountry();
+        renderWorkspace();
+        setMode(ui.mode, false);
+      });
+    })();
+  </script>
+</div>

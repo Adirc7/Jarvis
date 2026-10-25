@@ -1,0 +1,1273 @@
+<div id="jarvis-real-3d">
+  <style>
+    #jarvis-real-3d {
+      width: 100%;
+    }
+
+    #jarvis-real-3d .j3-shell {
+      --j3-accent: #ff8a1f;
+      --j3-bg: #050608;
+      --j3-panel: #0c1118;
+      --j3-panel-2: #121a25;
+      --j3-panel-3: #182434;
+      --j3-text: #f5f8fb;
+      --j3-muted: #8c9aab;
+      --j3-line: #233246;
+      --j3-cyan: #55d7f3;
+      --j3-green: #5ce0a3;
+      --j3-red: #ff6d68;
+      color-scheme: dark;
+      position: relative;
+      overflow: hidden;
+      min-height: 720px;
+      border: 1px solid var(--j3-line);
+      border-radius: 18px;
+      background: var(--j3-bg);
+      color: var(--j3-text);
+      box-shadow: 0 30px 78px rgba(0, 0, 0, .44);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    #jarvis-real-3d .j3-shell * {
+      box-sizing: border-box;
+    }
+
+    #jarvis-real-3d .j3-shell button,
+    #jarvis-real-3d .j3-shell input {
+      font: inherit;
+    }
+
+    #jarvis-real-3d .j3-topbar {
+      position: relative;
+      z-index: 5;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      min-height: 64px;
+      align-items: center;
+      gap: 16px;
+      padding: 0 18px;
+      border-bottom: 1px solid rgba(140, 154, 171, .15);
+      background: rgba(5, 6, 8, .78);
+      backdrop-filter: blur(18px);
+    }
+
+    #jarvis-real-3d .j3-brand,
+    #jarvis-real-3d .j3-mode-nav,
+    #jarvis-real-3d .j3-top-actions,
+    #jarvis-real-3d .j3-inline,
+    #jarvis-real-3d .j3-state-controls,
+    #jarvis-real-3d .j3-privacy-row,
+    #jarvis-real-3d .j3-chat-meta {
+      display: flex;
+      align-items: center;
+    }
+
+    #jarvis-real-3d .j3-brand {
+      gap: 10px;
+      font-weight: 500;
+      letter-spacing: .02em;
+    }
+
+    #jarvis-real-3d .j3-brand-core {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fff8d6 0 9%, #ffd75f 10% 25%, var(--j3-accent) 26% 58%, transparent 60%);
+      box-shadow: 0 0 20px color-mix(in srgb, var(--j3-accent) 72%, transparent);
+    }
+
+    #jarvis-real-3d .j3-mode-nav {
+      gap: 5px;
+      padding: 4px;
+      border-radius: 12px;
+      background: rgba(18, 26, 37, .78);
+    }
+
+    #jarvis-real-3d .j3-mode-button,
+    #jarvis-real-3d .j3-icon-button,
+    #jarvis-real-3d .j3-primary-button,
+    #jarvis-real-3d .j3-secondary-button,
+    #jarvis-real-3d .j3-memory-button {
+      border: 0;
+      color: inherit;
+    }
+
+    #jarvis-real-3d .j3-mode-button {
+      min-height: 36px;
+      padding: 0 14px;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--j3-muted);
+      font-size: 13px;
+    }
+
+    #jarvis-real-3d .j3-mode-button[aria-selected="true"] {
+      background: var(--j3-panel-3);
+      color: var(--j3-text);
+    }
+
+    #jarvis-real-3d .j3-top-actions {
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    #jarvis-real-3d .j3-icon-button {
+      display: inline-grid;
+      width: 40px;
+      height: 40px;
+      place-items: center;
+      border-radius: 11px;
+      background: var(--j3-panel-2);
+    }
+
+    #jarvis-real-3d .j3-icon-button[aria-pressed="true"] {
+      background: color-mix(in srgb, var(--j3-accent) 18%, var(--j3-panel-2));
+      color: var(--j3-accent);
+    }
+
+    #jarvis-real-3d .j3-layout {
+      display: grid;
+      grid-template-columns: 210px minmax(0, 1fr) 255px;
+      min-height: 655px;
+    }
+
+    #jarvis-real-3d .j3-rail {
+      position: relative;
+      z-index: 3;
+      padding: 16px 13px;
+      background: rgba(12, 17, 24, .88);
+      backdrop-filter: blur(14px);
+    }
+
+    #jarvis-real-3d .j3-rail.left {
+      border-right: 1px solid var(--j3-line);
+    }
+
+    #jarvis-real-3d .j3-rail.right {
+      border-left: 1px solid var(--j3-line);
+    }
+
+    #jarvis-real-3d .j3-rail h2,
+    #jarvis-real-3d .j3-rail h3 {
+      margin: 0;
+      font-weight: 500;
+    }
+
+    #jarvis-real-3d .j3-rail h2 {
+      font-size: 14px;
+    }
+
+    #jarvis-real-3d .j3-rail h3 {
+      color: var(--j3-cyan);
+      font-size: 11px;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    #jarvis-real-3d .j3-rail-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    #jarvis-real-3d .j3-pill {
+      display: inline-flex;
+      min-height: 26px;
+      align-items: center;
+      gap: 6px;
+      padding: 0 8px;
+      border: 1px solid rgba(140, 154, 171, .16);
+      border-radius: 999px;
+      background: rgba(18, 26, 37, .72);
+      color: var(--j3-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-real-3d .j3-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--j3-green);
+      box-shadow: 0 0 8px color-mix(in srgb, var(--j3-green) 58%, transparent);
+    }
+
+    #jarvis-real-3d .j3-section + .j3-section {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(140, 154, 171, .12);
+    }
+
+    #jarvis-real-3d .j3-service-list,
+    #jarvis-real-3d .j3-event-list,
+    #jarvis-real-3d .j3-route-list,
+    #jarvis-real-3d .j3-metric-list,
+    #jarvis-real-3d .j3-memory-list {
+      display: grid;
+      gap: 7px;
+      margin-top: 10px;
+    }
+
+    #jarvis-real-3d .j3-service,
+    #jarvis-real-3d .j3-route,
+    #jarvis-real-3d .j3-metric {
+      display: flex;
+      min-height: 38px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 0 9px;
+      border-radius: 9px;
+      background: var(--j3-panel-2);
+      font-size: 11px;
+    }
+
+    #jarvis-real-3d .j3-service span:last-child,
+    #jarvis-real-3d .j3-route span:last-child,
+    #jarvis-real-3d .j3-metric span:last-child {
+      color: var(--j3-cyan);
+    }
+
+    #jarvis-real-3d .j3-event {
+      display: grid;
+      grid-template-columns: 44px 1fr;
+      gap: 7px;
+      color: var(--j3-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-real-3d .j3-event time {
+      color: var(--j3-cyan);
+      font-variant-numeric: tabular-nums;
+    }
+
+    #jarvis-real-3d .j3-scene-wrap {
+      position: relative;
+      min-width: 0;
+      min-height: 655px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 48%, color-mix(in srgb, var(--j3-accent) 7%, transparent), transparent 34%),
+        linear-gradient(rgba(85, 215, 243, .018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(85, 215, 243, .018) 1px, transparent 1px);
+      background-size: auto, 32px 32px, 32px 32px;
+    }
+
+    #jarvis-real-3d .j3-scene-wrap::before {
+      content: "";
+      position: absolute;
+      top: 48%;
+      left: 50%;
+      width: 235px;
+      aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+      border: 1px solid color-mix(in srgb, var(--j3-accent) 36%, transparent);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 245, 214, .48) 0 3%, color-mix(in srgb, var(--j3-accent) 38%, transparent) 10%, transparent 58%);
+      box-shadow: 0 0 80px color-mix(in srgb, var(--j3-accent) 13%, transparent), inset 0 0 45px color-mix(in srgb, var(--j3-accent) 10%, transparent);
+      opacity: .48;
+      pointer-events: none;
+    }
+
+    #jarvis-real-3d .j3-canvas {
+      position: absolute;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: pan-y;
+    }
+
+    #jarvis-real-3d .j3-scene-header {
+      position: absolute;
+      z-index: 2;
+      top: 18px;
+      left: 18px;
+      right: 18px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      pointer-events: none;
+    }
+
+    #jarvis-real-3d .j3-scene-title h1,
+    #jarvis-real-3d .j3-scene-title p {
+      margin: 0;
+    }
+
+    #jarvis-real-3d .j3-scene-title h1 {
+      font-size: 17px;
+      font-weight: 500;
+    }
+
+    #jarvis-real-3d .j3-scene-title p {
+      margin-top: 4px;
+      color: var(--j3-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-real-3d .j3-scene-badge {
+      display: inline-flex;
+      min-height: 28px;
+      align-items: center;
+      gap: 6px;
+      padding: 0 9px;
+      border: 1px solid rgba(140, 154, 171, .16);
+      border-radius: 999px;
+      background: rgba(12, 17, 24, .72);
+      color: var(--j3-muted);
+      font-size: 11px;
+      backdrop-filter: blur(10px);
+    }
+
+    #jarvis-real-3d .j3-fallback {
+      position: absolute;
+      z-index: 4;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 30px;
+      background:
+        radial-gradient(circle at 50% 43%, rgba(255, 247, 221, .96) 0 8px, rgba(255, 146, 34, .64) 9px 28px, rgba(255, 126, 25, .16) 29px 95px, transparent 96px),
+        var(--j3-bg);
+      text-align: center;
+    }
+
+    #jarvis-real-3d .j3-fallback[hidden] {
+      display: none;
+    }
+
+    #jarvis-real-3d .j3-fallback strong,
+    #jarvis-real-3d .j3-fallback span {
+      display: block;
+    }
+
+    #jarvis-real-3d .j3-fallback span {
+      margin-top: 7px;
+      color: var(--j3-muted);
+      font-size: 12px;
+    }
+
+    #jarvis-real-3d .j3-hud {
+      position: absolute;
+      z-index: 3;
+      left: 50%;
+      bottom: 20px;
+      width: min(calc(100% - 34px), 560px);
+      transform: translateX(-50%);
+      padding: 12px;
+      border: 1px solid rgba(140, 154, 171, .18);
+      border-radius: 15px;
+      background: rgba(12, 17, 24, .82);
+      box-shadow: 0 18px 42px rgba(0, 0, 0, .32);
+      backdrop-filter: blur(16px);
+    }
+
+    #jarvis-real-3d .j3-hud-copy {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    #jarvis-real-3d .j3-hud-copy strong,
+    #jarvis-real-3d .j3-hud-copy span {
+      display: block;
+    }
+
+    #jarvis-real-3d .j3-hud-copy strong {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    #jarvis-real-3d .j3-hud-copy span {
+      margin-top: 3px;
+      color: var(--j3-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-real-3d .j3-drag-hint {
+      color: var(--j3-muted);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    #jarvis-real-3d .j3-state-controls {
+      gap: 8px;
+    }
+
+    #jarvis-real-3d .j3-primary-button,
+    #jarvis-real-3d .j3-secondary-button {
+      min-height: 42px;
+      padding: 0 14px;
+      border-radius: 11px;
+    }
+
+    #jarvis-real-3d .j3-primary-button {
+      flex: 1;
+      background: var(--j3-accent);
+      color: #161009;
+      font-weight: 500;
+    }
+
+    #jarvis-real-3d .j3-secondary-button {
+      background: var(--j3-panel-3);
+      color: var(--j3-text);
+    }
+
+    #jarvis-real-3d .j3-secondary-button[aria-pressed="true"] {
+      color: var(--j3-accent);
+    }
+
+    #jarvis-real-3d .j3-panel-mode[hidden] {
+      display: none;
+    }
+
+    #jarvis-real-3d .j3-chat-card {
+      margin-top: 10px;
+      padding: 11px;
+      border-radius: 10px;
+      background: var(--j3-panel-2);
+      font-size: 12px;
+    }
+
+    #jarvis-real-3d .j3-chat-card.user {
+      margin-left: 18px;
+      background: color-mix(in srgb, var(--j3-accent) 15%, var(--j3-panel-2));
+    }
+
+    #jarvis-real-3d .j3-chat-meta {
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 5px;
+      color: var(--j3-muted);
+      font-size: 11px;
+    }
+
+    #jarvis-real-3d .j3-privacy-row {
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    #jarvis-real-3d .j3-memory-button {
+      display: flex;
+      min-height: 40px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 0 9px;
+      border-radius: 9px;
+      background: var(--j3-panel-2);
+      color: var(--j3-muted);
+      text-align: left;
+      font-size: 11px;
+    }
+
+    #jarvis-real-3d .j3-memory-button[aria-pressed="true"] {
+      background: var(--j3-panel-3);
+      color: var(--j3-text);
+    }
+
+    #jarvis-real-3d .j3-memory-button span:last-child {
+      color: var(--j3-cyan);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #jarvis-real-3d .j3-canvas {
+        scroll-behavior: auto;
+      }
+    }
+
+    @media (max-width: 840px) {
+      #jarvis-real-3d .j3-shell {
+        min-height: 1180px;
+      }
+
+      #jarvis-real-3d .j3-topbar {
+        grid-template-columns: 1fr auto;
+        padding-top: 8px;
+      }
+
+      #jarvis-real-3d .j3-mode-nav {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        justify-self: stretch;
+        justify-content: center;
+        margin-bottom: 8px;
+      }
+
+      #jarvis-real-3d .j3-layout {
+        grid-template-columns: 1fr;
+      }
+
+      #jarvis-real-3d .j3-scene-wrap {
+        order: 1;
+        min-height: 620px;
+      }
+
+      #jarvis-real-3d .j3-rail.left {
+        order: 2;
+        border-top: 1px solid var(--j3-line);
+        border-right: 0;
+      }
+
+      #jarvis-real-3d .j3-rail.right {
+        order: 3;
+        border-top: 1px solid var(--j3-line);
+        border-left: 0;
+      }
+
+      #jarvis-real-3d .j3-service-list,
+      #jarvis-real-3d .j3-route-list,
+      #jarvis-real-3d .j3-metric-list,
+      #jarvis-real-3d .j3-memory-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 480px) {
+      #jarvis-real-3d .j3-shell {
+        min-height: 1320px;
+        border-radius: 13px;
+      }
+
+      #jarvis-real-3d .j3-topbar {
+        padding-left: 11px;
+        padding-right: 11px;
+      }
+
+      #jarvis-real-3d .j3-mode-button {
+        flex: 1;
+        padding: 0 8px;
+      }
+
+      #jarvis-real-3d .j3-top-actions .j3-icon-button:first-child {
+        display: none;
+      }
+
+      #jarvis-real-3d .j3-scene-wrap {
+        min-height: 570px;
+      }
+
+      #jarvis-real-3d .j3-hud-copy {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      #jarvis-real-3d .j3-drag-hint {
+        white-space: normal;
+      }
+
+      #jarvis-real-3d .j3-service-list,
+      #jarvis-real-3d .j3-route-list,
+      #jarvis-real-3d .j3-metric-list,
+      #jarvis-real-3d .j3-memory-list {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+
+  <div class="j3-shell" data-mode="core" data-voice-state="ready" aria-label="Friday real-time 3D interface">
+    <header class="j3-topbar">
+      <div class="j3-brand"><span class="j3-brand-core" aria-hidden="true"></span><span>Friday</span></div>
+      <nav class="j3-mode-nav" aria-label="3D scene mode">
+        <button class="j3-mode-button" type="button" data-mode-target="core" aria-selected="true">Core</button>
+        <button class="j3-mode-button" type="button" data-mode-target="memory" aria-selected="false">Memory</button>
+        <button class="j3-mode-button" type="button" data-mode-target="system" aria-selected="false">System</button>
+      </nav>
+      <div class="j3-top-actions">
+        <button class="j3-icon-button" type="button" data-mute aria-pressed="false" aria-label="Mute Friday"><i data-lucide="volume-2" aria-hidden="true"></i></button>
+        <button class="j3-icon-button" type="button" aria-label="Open settings"><i data-lucide="settings" aria-hidden="true"></i></button>
+      </div>
+    </header>
+
+    <div class="j3-layout">
+      <aside class="j3-rail left" aria-label="Core services and events">
+        <div class="j3-rail-heading"><h2>Core status</h2><span class="j3-pill"><span class="j3-dot"></span>Online</span></div>
+        <section class="j3-section">
+          <h3>Services</h3>
+          <div class="j3-service-list">
+            <div class="j3-service"><span>Microphone</span><span>Ready</span></div>
+            <div class="j3-service"><span>Whisper</span><span>Local</span></div>
+            <div class="j3-service"><span>Memory</span><span>Local</span></div>
+            <div class="j3-service"><span>Voice</span><span>Emma</span></div>
+          </div>
+        </section>
+        <section class="j3-section">
+          <h3>Recent events</h3>
+          <div class="j3-event-list">
+            <div class="j3-event"><time>22:41</time><span>Voice engine warmed</span></div>
+            <div class="j3-event"><time>22:40</time><span>Provider route ready</span></div>
+            <div class="j3-event"><time>22:40</time><span>Memory loaded</span></div>
+            <div class="j3-event"><time>22:39</time><span>Audio devices checked</span></div>
+          </div>
+        </section>
+      </aside>
+
+      <section class="j3-scene-wrap" aria-label="Interactive 3D assistant scene">
+        <canvas class="j3-canvas" aria-label="Interactive three-dimensional Friday energy core. Drag to orbit and use Control plus wheel to zoom."></canvas>
+        <div class="j3-fallback" data-fallback hidden role="alert">
+          <div><strong>3D rendering is unavailable</strong><span>The interface can fall back to the lightweight static core.</span></div>
+        </div>
+
+        <div class="j3-scene-header">
+          <div class="j3-scene-title">
+            <h1 data-scene-title>Voice core</h1>
+            <p data-scene-detail>Real-time energy field · drag to orbit</p>
+          </div>
+          <span class="j3-scene-badge"><span class="j3-dot"></span><span data-render-status>WebGL active</span></span>
+        </div>
+
+        <div class="j3-hud" aria-live="polite">
+          <div class="j3-hud-copy">
+            <div><strong data-state-title>Ready when you are</strong><span data-state-detail>Press Talk or use your push-to-talk key</span></div>
+            <span class="j3-drag-hint">Drag: orbit · Ctrl + wheel: zoom</span>
+          </div>
+          <div class="j3-state-controls">
+            <button class="j3-primary-button" type="button" data-voice-cycle>Talk to Friday</button>
+            <button class="j3-secondary-button" type="button" data-stop>Stop</button>
+            <button class="j3-secondary-button" type="button" data-mute aria-pressed="false">Mute</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="j3-rail right" aria-label="Mode details and conversation">
+        <div class="j3-panel-mode" data-panel-mode="core">
+          <div class="j3-rail-heading"><h2>Conversation</h2><span class="j3-pill">Sinhala</span></div>
+          <div class="j3-chat-card user"><div class="j3-chat-meta"><span>You</span><span>Voice</span></div>Explain Fourier series simply.</div>
+          <div class="j3-chat-card"><div class="j3-chat-meta"><span>Friday</span><span>Speaking locally</span></div>A Fourier series represents a repeating signal as a combination of simple sine and cosine waves.</div>
+          <section class="j3-section">
+            <h3>Active route</h3>
+            <div class="j3-route-list">
+              <div class="j3-route"><span>Intent</span><span>Study</span></div>
+              <div class="j3-route"><span>Provider</span><span>OpenRouter</span></div>
+              <div class="j3-route"><span>Voice</span><span>Kokoro local</span></div>
+            </div>
+            <div class="j3-privacy-row"><span class="j3-pill">Audio local</span><span class="j3-pill">Cloud text</span></div>
+          </section>
+        </div>
+
+        <div class="j3-panel-mode" data-panel-mode="memory" hidden>
+          <div class="j3-rail-heading"><h2>Memory graph</h2><span class="j3-pill">Local</span></div>
+          <p style="margin:0;color:var(--j3-muted);font-size:11px">Rotate the graph to inspect connected topics. Labels remain readable as the scene moves.</p>
+          <div class="j3-memory-list">
+            <button class="j3-memory-button" type="button" data-memory-focus="profile" aria-pressed="true"><span>Profile</span><span>3</span></button>
+            <button class="j3-memory-button" type="button" data-memory-focus="study" aria-pressed="false"><span>Study</span><span>4</span></button>
+            <button class="j3-memory-button" type="button" data-memory-focus="jarvis" aria-pressed="false"><span>Jarvis project</span><span>5</span></button>
+            <button class="j3-memory-button" type="button" data-memory-focus="language" aria-pressed="false"><span>Languages</span><span>3</span></button>
+          </div>
+          <section class="j3-section">
+            <h3>Selected memory</h3>
+            <div class="j3-chat-card"><strong data-memory-title>Profile</strong><div style="margin-top:5px;color:var(--j3-muted)" data-memory-detail>Preferences and identity facts explicitly remembered by the user.</div></div>
+          </section>
+        </div>
+
+        <div class="j3-panel-mode" data-panel-mode="system" hidden>
+          <div class="j3-rail-heading"><h2>Pipeline</h2><span class="j3-pill">Live</span></div>
+          <div class="j3-route-list">
+            <div class="j3-route"><span>Microphone</span><span>Capturing</span></div>
+            <div class="j3-route"><span>STT</span><span>Whisper local</span></div>
+            <div class="j3-route"><span>Intent</span><span>Study</span></div>
+            <div class="j3-route"><span>LLM</span><span>OpenRouter</span></div>
+            <div class="j3-route"><span>TTS</span><span>Kokoro local</span></div>
+            <div class="j3-route"><span>Speaker</span><span>Streaming</span></div>
+          </div>
+          <section class="j3-section">
+            <h3>Example timing</h3>
+            <div class="j3-metric-list">
+              <div class="j3-metric"><span>Speech recognition</span><span>0.8 s</span></div>
+              <div class="j3-metric"><span>First token</span><span>1.4 s</span></div>
+              <div class="j3-metric"><span>First audio</span><span>2.4 s</span></div>
+              <div class="j3-metric"><span>Total reply</span><span>5.8 s</span></div>
+            </div>
+          </section>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script type="module">
+    (async () => {
+      const root = document.getElementById('jarvis-real-3d');
+      if (!root) return;
+      const shell = root.querySelector('.j3-shell');
+      const canvas = root.querySelector('.j3-canvas');
+      const sceneWrap = root.querySelector('.j3-scene-wrap');
+      const fallback = root.querySelector('[data-fallback]');
+      const saved = window.openai?.widgetState?.privateContent;
+      const allowedModes = ['core', 'memory', 'system'];
+      const memoryKeys = ['profile', 'study', 'jarvis', 'language'];
+
+      const ui = {
+        mode: allowedModes.includes(saved?.mode) ? saved.mode : 'core',
+        voiceIndex: Number.isInteger(saved?.voiceIndex) ? saved.voiceIndex % 4 : 0,
+        muted: Boolean(saved?.muted),
+        memoryFocus: memoryKeys.includes(saved?.memoryFocus) ? saved.memoryFocus : 'profile',
+        yaw: Number.isFinite(saved?.yaw) ? saved.yaw : 0,
+        pitch: Number.isFinite(saved?.pitch) ? saved.pitch : 0
+      };
+
+      const voiceStates = [
+        { key: 'ready', title: 'Ready when you are', detail: 'Press Talk or use your push-to-talk key', action: 'Talk to Friday', speed: .22 },
+        { key: 'listening', title: 'Listening', detail: 'Speak naturally · press Stop to cancel', action: 'Finish listening', speed: .72 },
+        { key: 'thinking', title: 'Thinking', detail: 'Understanding the request and selecting a route', action: 'Working…', speed: 1.05 },
+        { key: 'speaking', title: 'Speaking', detail: 'Streaming sentences through the local voice engine', action: 'Interrupt', speed: .58 }
+      ];
+
+      const modeCopy = {
+        core: ['Voice core', 'Real-time energy field · drag to orbit'],
+        memory: ['Memory constellation', 'Connected local context · select a group'],
+        system: ['Request pipeline', 'Live processing stages · drag to inspect']
+      };
+
+      const memoryCopy = {
+        profile: ['Profile', 'Preferences and identity facts explicitly remembered by the user.'],
+        study: ['Study', 'University subjects, revision topics, and the current study plan.'],
+        jarvis: ['Jarvis project', 'Voice, routing, models, and interface decisions for this assistant.'],
+        language: ['Languages', 'English, Sinhala, and Tamil recognition and speech preferences.']
+      };
+
+      function persist() {
+        if (!window.openai?.setWidgetState) return;
+        window.openai.setWidgetState({
+          modelContent: { scene: ui.mode, voiceState: voiceStates[ui.voiceIndex].key, memoryFocus: ui.memoryFocus },
+          privateContent: ui
+        }).catch(() => {});
+      }
+
+      function renderUi() {
+        const voice = voiceStates[ui.voiceIndex];
+        const copy = modeCopy[ui.mode];
+        shell.dataset.mode = ui.mode;
+        shell.dataset.voiceState = voice.key;
+        root.querySelectorAll('[data-mode-target]').forEach(button => {
+          button.setAttribute('aria-selected', button.dataset.modeTarget === ui.mode ? 'true' : 'false');
+        });
+        root.querySelectorAll('[data-panel-mode]').forEach(panel => { panel.hidden = panel.dataset.panelMode !== ui.mode; });
+        root.querySelectorAll('[data-scene-title]').forEach(el => { el.textContent = copy[0]; });
+        root.querySelectorAll('[data-scene-detail]').forEach(el => { el.textContent = copy[1]; });
+        root.querySelectorAll('[data-state-title]').forEach(el => { el.textContent = voice.title; });
+        root.querySelectorAll('[data-state-detail]').forEach(el => { el.textContent = voice.detail; });
+        root.querySelectorAll('[data-voice-cycle]').forEach(el => { el.textContent = voice.action; });
+        root.querySelectorAll('[data-mute]').forEach(button => {
+          button.setAttribute('aria-pressed', ui.muted ? 'true' : 'false');
+          if (button.textContent.trim()) button.textContent = ui.muted ? 'Unmute' : 'Mute';
+          button.setAttribute('aria-label', ui.muted ? 'Unmute Friday' : 'Mute Friday');
+        });
+        root.querySelectorAll('[data-memory-focus]').forEach(button => {
+          button.setAttribute('aria-pressed', button.dataset.memoryFocus === ui.memoryFocus ? 'true' : 'false');
+        });
+        const memory = memoryCopy[ui.memoryFocus];
+        root.querySelectorAll('[data-memory-title]').forEach(el => { el.textContent = memory[0]; });
+        root.querySelectorAll('[data-memory-detail]').forEach(el => { el.textContent = memory[1]; });
+      }
+
+      renderUi();
+
+      let THREE;
+      try {
+        THREE = await import('https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js');
+      } catch (error) {
+        fallback.hidden = false;
+        canvas.hidden = true;
+        root.querySelectorAll('[data-render-status]').forEach(el => { el.textContent = 'Static fallback'; });
+        return;
+      }
+
+      let renderer;
+      try {
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+      } catch (error) {
+        fallback.hidden = false;
+        canvas.hidden = true;
+        root.querySelectorAll('[data-render-status]').forEach(el => { el.textContent = 'Static fallback'; });
+        return;
+      }
+
+      renderer.setClearColor(0x000000, 0);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.35;
+      const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
+      const constrainedDevice = coarsePointer || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, constrainedDevice ? 1 : 1.5));
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(42, 1, .1, 40);
+      camera.position.set(0, .05, 6.2);
+
+      const world = new THREE.Group();
+      scene.add(world);
+      const coreGroup = new THREE.Group();
+      const memoryGroup = new THREE.Group();
+      const systemGroup = new THREE.Group();
+      world.add(coreGroup, memoryGroup, systemGroup);
+      memoryGroup.visible = false;
+      systemGroup.visible = false;
+
+      scene.add(new THREE.AmbientLight(0x6a7890, .42));
+      const keyLight = new THREE.PointLight(0xffa53d, 8, 18, 1.5);
+      keyLight.position.set(0, 0, 1.2);
+      scene.add(keyLight);
+      const rimLight = new THREE.PointLight(0x55d7f3, 3.5, 20, 2);
+      rimLight.position.set(-3, 2, 4);
+      scene.add(rimLight);
+
+      const design = { accent: '#ff8a1f', coreScale: 100, energy: 68, motion: 55, showLabels: true };
+      const accentColor = new THREE.Color(design.accent);
+      const currentEnergyColor = accentColor.clone();
+      const targetEnergyColor = accentColor.clone();
+      const glowMaterials = [];
+      const accentMaterials = [];
+      const labelSprites = [];
+
+      const coreMaterial = new THREE.MeshStandardMaterial({
+        color: 0xffbd4a,
+        emissive: 0xff7a0f,
+        emissiveIntensity: 3.4,
+        roughness: .2,
+        metalness: .08
+      });
+      const core = new THREE.Mesh(new THREE.IcosahedronGeometry(.48, 5), coreMaterial);
+      coreGroup.add(core);
+      accentMaterials.push(coreMaterial);
+
+      const wireMaterial = new THREE.MeshBasicMaterial({ color: 0xffad3d, wireframe: true, transparent: true, opacity: .28, blending: THREE.AdditiveBlending });
+      const wireShell = new THREE.Mesh(new THREE.IcosahedronGeometry(.7, 3), wireMaterial);
+      coreGroup.add(wireShell);
+      accentMaterials.push(wireMaterial);
+
+      const ringSpecs = [
+        [1.02, .013, .05, .2, 0],
+        [1.18, .018, 1.08, .15, .42],
+        [1.42, .011, .58, 1.02, .18],
+        [1.67, .008, 1.25, .72, .8]
+      ];
+      const rings = ringSpecs.map((spec, index) => {
+        const material = new THREE.MeshBasicMaterial({ color: index % 2 ? 0xffb23f : 0xff7f18, transparent: true, opacity: .66, blending: THREE.AdditiveBlending, depthWrite: false });
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(spec[0], spec[1], 10, 160), material);
+        ring.rotation.set(spec[2], spec[3], spec[4]);
+        ring.userData.spin = index % 2 ? -1 : 1;
+        coreGroup.add(ring);
+        accentMaterials.push(material);
+        return ring;
+      });
+
+      function makeGlowTexture() {
+        const c = document.createElement('canvas');
+        c.width = 256;
+        c.height = 256;
+        const ctx = c.getContext('2d');
+        const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+        gradient.addColorStop(0, 'rgba(255,255,235,1)');
+        gradient.addColorStop(.12, 'rgba(255,205,85,.92)');
+        gradient.addColorStop(.42, 'rgba(255,126,25,.36)');
+        gradient.addColorStop(1, 'rgba(255,126,25,0)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 256, 256);
+        return new THREE.CanvasTexture(c);
+      }
+
+      const glowTexture = makeGlowTexture();
+      [2.5, 1.55].forEach((size, index) => {
+        const material = new THREE.SpriteMaterial({ map: glowTexture, color: 0xffffff, transparent: true, opacity: index ? .6 : .38, blending: THREE.AdditiveBlending, depthWrite: false });
+        const sprite = new THREE.Sprite(material);
+        sprite.scale.setScalar(size);
+        coreGroup.add(sprite);
+        glowMaterials.push(material);
+      });
+
+      const particleCount = constrainedDevice ? 320 : 680;
+      const particlePositions = new Float32Array(particleCount * 3);
+      const particleSeeds = new Float32Array(particleCount);
+      for (let i = 0; i < particleCount; i++) {
+        const radius = 1.05 + Math.pow(Math.random(), .62) * 1.25;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        particlePositions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+        particlePositions[i * 3 + 1] = radius * Math.cos(phi);
+        particlePositions[i * 3 + 2] = radius * Math.sin(phi) * Math.sin(theta);
+        particleSeeds[i] = Math.random();
+      }
+      const particleGeometry = new THREE.BufferGeometry();
+      particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+      const particleMaterial = new THREE.PointsMaterial({ color: 0xff9c2f, size: .024, transparent: true, opacity: .72, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true });
+      const particles = new THREE.Points(particleGeometry, particleMaterial);
+      coreGroup.add(particles);
+      accentMaterials.push(particleMaterial);
+
+      const rayPositions = [];
+      for (let i = 0; i < 90; i++) {
+        const direction = new THREE.Vector3().randomDirection();
+        const start = 1.35 + Math.random() * .62;
+        const length = .12 + Math.pow(Math.random(), 2) * .7;
+        rayPositions.push(direction.x * start, direction.y * start, direction.z * start);
+        rayPositions.push(direction.x * (start + length), direction.y * (start + length), direction.z * (start + length));
+      }
+      const rayGeometry = new THREE.BufferGeometry();
+      rayGeometry.setAttribute('position', new THREE.Float32BufferAttribute(rayPositions, 3));
+      const rayMaterial = new THREE.LineBasicMaterial({ color: 0xff8a1f, transparent: true, opacity: .42, blending: THREE.AdditiveBlending });
+      const rays = new THREE.LineSegments(rayGeometry, rayMaterial);
+      coreGroup.add(rays);
+      accentMaterials.push(rayMaterial);
+
+      const backgroundPositions = [];
+      for (let i = 0; i < 420; i++) {
+        const direction = new THREE.Vector3().randomDirection();
+        const radius = 5 + Math.random() * 5;
+        backgroundPositions.push(direction.x * radius, direction.y * radius, direction.z * radius);
+      }
+      const backgroundGeometry = new THREE.BufferGeometry();
+      backgroundGeometry.setAttribute('position', new THREE.Float32BufferAttribute(backgroundPositions, 3));
+      const backgroundMaterial = new THREE.PointsMaterial({ color: 0x4f657d, size: .018, transparent: true, opacity: .38, depthWrite: false });
+      const backgroundStars = new THREE.Points(backgroundGeometry, backgroundMaterial);
+      scene.add(backgroundStars);
+
+      function makeLabelSprite(text, color = '#f5f8fb') {
+        const c = document.createElement('canvas');
+        c.width = 384;
+        c.height = 96;
+        const ctx = c.getContext('2d');
+        ctx.clearRect(0, 0, c.width, c.height);
+        ctx.fillStyle = 'rgba(5,8,12,.78)';
+        ctx.beginPath();
+        ctx.roundRect(8, 13, 368, 70, 18);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(120,155,184,.35)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = color;
+        ctx.font = '500 28px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, 192, 49);
+        const texture = new THREE.CanvasTexture(c);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
+        const sprite = new THREE.Sprite(material);
+        sprite.scale.set(1.36, .34, 1);
+        sprite.userData.texture = texture;
+        labelSprites.push(sprite);
+        return sprite;
+      }
+
+      const memoryNodes = [
+        { key: 'profile', label: 'Profile', position: [0, 1.75, .25], color: 0xff9b32 },
+        { key: 'study', label: 'Study', position: [-1.85, .55, .6], color: 0x5ce0a3 },
+        { key: 'jarvis', label: 'Jarvis', position: [1.9, .6, .15], color: 0xff9b32 },
+        { key: 'language', label: 'Languages', position: [1.55, -1.4, .7], color: 0x55d7f3 },
+        { key: 'revision', label: 'Revision', position: [-1.45, -1.5, -.25], color: 0x5ce0a3 },
+        { key: 'maths', label: 'Maths', position: [-2.35, 1.45, -.6], color: 0x5ce0a3 },
+        { key: 'voice', label: 'Voice', position: [2.4, 1.55, -.7], color: 0x55d7f3 },
+        { key: 'sinhala', label: 'Sinhala', position: [2.45, -.75, -.7], color: 0x55d7f3 },
+        { key: 'algorithms', label: 'Algorithms', position: [-2.55, -.65, .2], color: 0x5ce0a3 }
+      ];
+      const memoryMeshes = new Map();
+      const memoryLinePositions = [];
+      memoryNodes.forEach((node, index) => {
+        const material = new THREE.MeshStandardMaterial({ color: node.color, emissive: node.color, emissiveIntensity: .85, roughness: .34 });
+        const mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(index < 4 ? .18 : .12, 2), material);
+        mesh.position.set(...node.position);
+        mesh.userData.key = node.key;
+        const label = makeLabelSprite(node.label);
+        label.position.set(node.position[0], node.position[1] + (index < 4 ? .36 : .28), node.position[2]);
+        memoryGroup.add(mesh, label);
+        memoryMeshes.set(node.key, mesh);
+        memoryLinePositions.push(0, 0, 0, ...node.position);
+      });
+      const extraConnections = [[1,5],[1,8],[2,6],[3,7],[1,4],[2,3]];
+      extraConnections.forEach(([a,b]) => memoryLinePositions.push(...memoryNodes[a].position, ...memoryNodes[b].position));
+      const memoryLineGeometry = new THREE.BufferGeometry();
+      memoryLineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(memoryLinePositions, 3));
+      const memoryLineMaterial = new THREE.LineBasicMaterial({ color: 0x55d7f3, transparent: true, opacity: .25, blending: THREE.AdditiveBlending });
+      memoryGroup.add(new THREE.LineSegments(memoryLineGeometry, memoryLineMaterial));
+
+      const pipelineLabels = ['Mic', 'STT', 'Intent', 'LLM', 'TTS', 'Speaker'];
+      const pipelineColors = [0x5ce0a3, 0x5ce0a3, 0x55d7f3, 0xff9b32, 0x5ce0a3, 0x5ce0a3];
+      const systemLinePositions = [];
+      pipelineLabels.forEach((label, index) => {
+        const x = -2.5 + index;
+        const y = index % 2 ? -.55 : -.15;
+        const z = index % 2 ? .25 : -.25;
+        const material = new THREE.MeshStandardMaterial({ color: pipelineColors[index], emissive: pipelineColors[index], emissiveIntensity: .9, roughness: .3 });
+        const node = new THREE.Mesh(new THREE.OctahedronGeometry(.19, 2), material);
+        node.position.set(x, y, z);
+        const labelSprite = makeLabelSprite(label);
+        labelSprite.position.set(x, y + .42, z);
+        systemGroup.add(node, labelSprite);
+        if (index < pipelineLabels.length - 1) {
+          const nextX = -2.5 + index + 1;
+          const nextY = (index + 1) % 2 ? -.55 : -.15;
+          const nextZ = (index + 1) % 2 ? .25 : -.25;
+          systemLinePositions.push(x, y, z, nextX, nextY, nextZ);
+        }
+      });
+      const systemLineGeometry = new THREE.BufferGeometry();
+      systemLineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(systemLinePositions, 3));
+      const systemLineMaterial = new THREE.LineBasicMaterial({ color: 0x55d7f3, transparent: true, opacity: .55, blending: THREE.AdditiveBlending });
+      systemGroup.add(new THREE.LineSegments(systemLineGeometry, systemLineMaterial));
+
+      let desiredYaw = ui.yaw;
+      let desiredPitch = ui.pitch;
+      let currentYaw = desiredYaw;
+      let currentPitch = desiredPitch;
+      let desiredZoom = ui.mode === 'core' ? 6.2 : 7.1;
+      let currentZoom = desiredZoom;
+      let pointerDown = false;
+      let previousX = 0;
+      let previousY = 0;
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+      let inView = true;
+      let raf = 0;
+      let lastTime = performance.now();
+      let autoPhase = 0;
+      const targetScale = new THREE.Vector3(1, 1, 1);
+
+      function stateColor() {
+        if (ui.muted) return targetEnergyColor.setHex(0x7b8795);
+        if (ui.voiceIndex === 0) return targetEnergyColor.copy(accentColor);
+        return targetEnergyColor.setHex([0, 0x55d7f3, 0xa678ff, 0xffc14f][ui.voiceIndex]);
+      }
+
+      function applyMode() {
+        memoryGroup.visible = ui.mode === 'memory';
+        systemGroup.visible = ui.mode === 'system';
+        desiredZoom = ui.mode === 'core' ? 6.2 : ui.mode === 'memory' ? 7.25 : 7.5;
+        memoryMeshes.forEach((mesh, key) => {
+          const groupKey = key === 'revision' || key === 'maths' || key === 'algorithms' ? 'study' : key === 'voice' ? 'jarvis' : key === 'sinhala' ? 'language' : key;
+          mesh.scale.setScalar(groupKey === ui.memoryFocus ? 1.35 : .82);
+          mesh.material.emissiveIntensity = groupKey === ui.memoryFocus ? 1.8 : .5;
+        });
+      }
+
+      function applyDesign() {
+        shell.style.setProperty('--j3-accent', design.accent);
+        accentColor.set(design.accent);
+        accentMaterials.forEach(material => {
+          if (material.color) material.color.copy(accentColor);
+          if (material.emissive) material.emissive.copy(accentColor);
+        });
+        glowMaterials.forEach(material => { material.opacity = .18 + design.energy / 145; });
+        coreGroup.userData.designScale = design.coreScale / 100;
+        labelSprites.forEach(sprite => { sprite.visible = design.showLabels; });
+      }
+
+      function resize() {
+        const rect = sceneWrap.getBoundingClientRect();
+        const width = Math.max(1, Math.floor(rect.width));
+        const height = Math.max(1, Math.floor(rect.height));
+        renderer.setSize(width, height, false);
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+        scheduleFrame();
+      }
+
+      function scheduleFrame() {
+        if (!raf && inView && !document.hidden) raf = requestAnimationFrame(frame);
+      }
+
+      function frame(now) {
+        raf = 0;
+        if (!inView || document.hidden) return;
+        const delta = Math.min(.05, Math.max(.001, (now - lastTime) / 1000));
+        lastTime = now;
+        const voice = voiceStates[ui.voiceIndex];
+        const animateContinuously = !reducedMotion.matches && design.motion > 0;
+        const motion = animateContinuously ? design.motion / 100 : 0;
+        const blend = animateContinuously ? .08 : 1;
+        const targetColor = stateColor();
+        currentEnergyColor.lerp(targetColor, blend);
+        coreMaterial.color.copy(currentEnergyColor);
+        coreMaterial.emissive.copy(currentEnergyColor);
+        keyLight.color.copy(currentEnergyColor);
+        particleMaterial.color.copy(currentEnergyColor);
+        rayMaterial.color.copy(currentEnergyColor);
+        rings.forEach((ring, index) => {
+          ring.material.color.copy(currentEnergyColor);
+          ring.rotation.z += delta * voice.speed * motion * ring.userData.spin * (.28 + index * .07);
+          ring.rotation.x += delta * voice.speed * motion * ring.userData.spin * .045;
+        });
+        const pulse = reducedMotion.matches ? 1 : 1 + Math.sin(now * .0027 * (1 + voice.speed)) * (.025 + design.energy / 3600);
+        const modeScale = ui.mode === 'core' ? 1 : ui.mode === 'memory' ? .68 : .52;
+        const scale = (coreGroup.userData.designScale || 1) * modeScale * pulse;
+        coreGroup.scale.lerp(targetScale.setScalar(scale), blend);
+        coreGroup.position.y += ((ui.mode === 'system' ? .95 : 0) - coreGroup.position.y) * blend;
+        particles.rotation.y += delta * voice.speed * motion * .16;
+        particles.rotation.x -= delta * voice.speed * motion * .035;
+        rays.rotation.y -= delta * voice.speed * motion * .11;
+        wireShell.rotation.y += delta * voice.speed * motion * .18;
+        memoryGroup.rotation.y += delta * motion * .035;
+        systemGroup.rotation.y += delta * motion * .018;
+        autoPhase += delta * motion * .035;
+        currentYaw += (desiredYaw - currentYaw) * (animateContinuously ? .1 : 1);
+        currentPitch += (desiredPitch - currentPitch) * (animateContinuously ? .1 : 1);
+        world.rotation.y = currentYaw + autoPhase;
+        world.rotation.x = currentPitch;
+        currentZoom += (desiredZoom - currentZoom) * (animateContinuously ? .09 : 1);
+        camera.position.z = currentZoom;
+        camera.lookAt(0, 0, 0);
+        backgroundStars.rotation.y += delta * motion * .006;
+        renderer.render(scene, camera);
+        if (animateContinuously || pointerDown) scheduleFrame();
+      }
+
+      canvas.addEventListener('pointerdown', event => {
+        pointerDown = true;
+        previousX = event.clientX;
+        previousY = event.clientY;
+        canvas.setPointerCapture(event.pointerId);
+        scheduleFrame();
+      });
+      canvas.addEventListener('pointermove', event => {
+        if (!pointerDown) return;
+        desiredYaw += (event.clientX - previousX) * .006;
+        desiredPitch = Math.max(-.65, Math.min(.65, desiredPitch + (event.clientY - previousY) * .004));
+        previousX = event.clientX;
+        previousY = event.clientY;
+        scheduleFrame();
+      });
+      const releasePointer = event => {
+        if (!pointerDown) return;
+        pointerDown = false;
+        ui.yaw = desiredYaw;
+        ui.pitch = desiredPitch;
+        if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+        persist();
+      };
+      canvas.addEventListener('pointerup', releasePointer);
+      canvas.addEventListener('pointercancel', releasePointer);
+      canvas.addEventListener('wheel', event => {
+        if (!event.ctrlKey && !event.metaKey) return;
+        event.preventDefault();
+        desiredZoom = Math.max(4.6, Math.min(9.2, desiredZoom + event.deltaY * .003));
+        scheduleFrame();
+      }, { passive: false });
+
+      root.querySelectorAll('[data-mode-target]').forEach(button => {
+        button.addEventListener('click', () => {
+          ui.mode = button.dataset.modeTarget;
+          renderUi();
+          applyMode();
+          persist();
+          scheduleFrame();
+        });
+      });
+      root.querySelectorAll('[data-voice-cycle]').forEach(button => {
+        button.addEventListener('click', () => {
+          ui.voiceIndex = (ui.voiceIndex + 1) % voiceStates.length;
+          renderUi();
+          persist();
+          scheduleFrame();
+        });
+      });
+      root.querySelectorAll('[data-stop]').forEach(button => {
+        button.addEventListener('click', () => {
+          ui.voiceIndex = 0;
+          renderUi();
+          persist();
+          scheduleFrame();
+        });
+      });
+      root.querySelectorAll('[data-mute]').forEach(button => {
+        button.addEventListener('click', () => {
+          ui.muted = !ui.muted;
+          renderUi();
+          persist();
+          scheduleFrame();
+        });
+      });
+      root.querySelectorAll('[data-memory-focus]').forEach(button => {
+        button.addEventListener('click', () => {
+          ui.memoryFocus = button.dataset.memoryFocus;
+          renderUi();
+          applyMode();
+          persist();
+          scheduleFrame();
+        });
+      });
+
+      const resizeObserver = new ResizeObserver(resize);
+      resizeObserver.observe(sceneWrap);
+      const intersectionObserver = new IntersectionObserver(entries => {
+        inView = Boolean(entries[0]?.isIntersecting);
+        if (inView) {
+          lastTime = performance.now();
+          scheduleFrame();
+        } else if (raf) {
+          cancelAnimationFrame(raf);
+          raf = 0;
+        }
+      }, { threshold: .01 });
+      intersectionObserver.observe(sceneWrap);
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          lastTime = performance.now();
+          scheduleFrame();
+        }
+      });
+      reducedMotion.addEventListener?.('change', scheduleFrame);
+
+      canvas.addEventListener('webglcontextlost', event => {
+        event.preventDefault();
+        inView = false;
+        if (raf) cancelAnimationFrame(raf);
+        raf = 0;
+        fallback.hidden = false;
+        canvas.hidden = true;
+        root.querySelectorAll('[data-render-status]').forEach(el => { el.textContent = 'Static fallback'; });
+      }, { once: true });
+
+      function cleanup() {
+        if (raf) cancelAnimationFrame(raf);
+        resizeObserver.disconnect();
+        intersectionObserver.disconnect();
+        const materials = new Set();
+        const textures = new Set();
+        scene.traverse(object => {
+          object.geometry?.dispose?.();
+          const objectMaterials = Array.isArray(object.material) ? object.material : [object.material];
+          objectMaterials.filter(Boolean).forEach(material => materials.add(material));
+        });
+        materials.forEach(material => {
+          Object.values(material).forEach(value => { if (value?.isTexture) textures.add(value); });
+          material.dispose?.();
+        });
+        textures.forEach(texture => texture.dispose());
+        renderer.dispose();
+      }
+      window.addEventListener('pagehide', cleanup, { once: true });
+
+      applyDesign();
+      applyMode();
+      resize();
+      scheduleFrame();
+
+      if (globalThis.Tweak) {
+        const tweak = new Tweak({ container: shell, onChange: () => { applyDesign(); scheduleFrame(); } });
+        tweak.addColorPicker(design, 'accent', { label: 'Energy color', reference: '--j3-accent' });
+        tweak.addSlider(design, 'coreScale', { label: 'Core scale', min: 70, max: 125, unit: '%', reference: 'core.scale' });
+        tweak.addSlider(design, 'energy', { label: 'Glow energy', min: 20, max: 90, unit: '%', reference: 'core.energy' });
+        tweak.addSlider(design, 'motion', { label: 'Motion', min: 0, max: 100, unit: '%', reference: 'scene.motion' });
+        tweak.addToggle(design, 'showLabels', { label: 'Show 3D labels', reference: 'labels.visible' });
+      }
+
+      window.addEventListener('openai:set_globals', event => {
+        const next = event.detail?.globals?.widgetState?.privateContent;
+        if (!next) return;
+        if (allowedModes.includes(next.mode)) ui.mode = next.mode;
+        if (Number.isInteger(next.voiceIndex)) ui.voiceIndex = next.voiceIndex % voiceStates.length;
+        ui.muted = Boolean(next.muted);
+        if (memoryKeys.includes(next.memoryFocus)) ui.memoryFocus = next.memoryFocus;
+        if (Number.isFinite(next.yaw)) desiredYaw = ui.yaw = next.yaw;
+        if (Number.isFinite(next.pitch)) desiredPitch = ui.pitch = next.pitch;
+        renderUi();
+        applyMode();
+        scheduleFrame();
+      });
+    })();
+  </script>
+</div>
