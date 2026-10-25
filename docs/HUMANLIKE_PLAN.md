@@ -121,7 +121,7 @@ next starts.
 
 ### H1, now (1-2 weeks, no training): "never says it can't"
 
-1. **The model gets the web tools** (layer 3 above). The fixed rules stay
+1. **The model gets the web tools** (layer 3 above). **Built 25 Oct** (see DEVLOG). The fixed rules stay
    first. Test: the "Can you open YouTube?" transcript from 24 Oct, with the
    rules switched off, opens YouTube through a tool call.
 2. **Friday speaks spoken Sinhala, not written.** A per-language rule in

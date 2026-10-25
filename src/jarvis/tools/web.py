@@ -54,6 +54,7 @@ PHRASES = {
         "which": "Sorry, which one? Say first, second or third, or a word from the title.",
         "ask_query": "What should I search for?",
         "yt_need_topic": "Which video, {address}? Tell me a topic or a title and I'll find it.",
+        "couldnt": "Sorry, {address}, I couldn't do that one.",
         "ok": "Alright.",
     },
     "si": {
@@ -73,6 +74,7 @@ PHRASES = {
         "which": "සමාවෙන්න, මොකක්ද? පළවෙනි, දෙවෙනි, තුන්වෙනි, නැත්නම් නමේ වචනයක් කියන්න.",
         "ask_query": "මොනවද හොයන්න ඕනේ?",
         "yt_need_topic": "මොන වීඩියෝ එකද? මාතෘකාවක් හරි නමක් හරි කියන්න, මම හොයලා දෙන්නම්.",
+        "couldnt": "සමාවෙන්න, ඒක කරන්න බැරි වුණා.",
         "ok": "හරි.",
     },
 }
@@ -254,6 +256,40 @@ class Pending:
     asked_again: bool = False     # "Sorry, which one?" is asked once, then Jarvis lets it go
 
 
+# The same actions as tools for the language model (OpenAI-style function
+# definitions). The model chooses one when it understands a request the fixed
+# rules missed; WebTools.call checks the arguments and does it.
+TOOL_SPECS: list[dict] = [
+    {"type": "function", "function": {
+        "name": "open_site", "description": "Open YouTube or Bing in the browser, with nothing searched yet.",
+        "parameters": {"type": "object", "properties": {"site": {"type": "string", "enum": ["youtube", "bing"]}},
+                       "required": ["site"]}}},
+    {"type": "function", "function": {
+        "name": "search_youtube",
+        "description": "Find videos or music on YouTube and read out the top three, when the user wants to watch "
+                       "or listen to something. The query is the topic or title only, in the user's words.",
+        "parameters": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}}},
+    {"type": "function", "function": {
+        "name": "search_bing", "description": "Search the web with Bing and show the results page.",
+        "parameters": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}}},
+    {"type": "function", "function": {
+        "name": "play_video",
+        "description": "Play one of the videos Jarvis read out, by its number in that list (1 to 3). Use the "
+                       "titles to work out which one the user means (\"the Luffy one\", \"the last one\").",
+        "parameters": {"type": "object", "properties": {"number": {"type": "integer", "minimum": 1, "maximum": 3}},
+                       "required": ["number"]}}},
+    {"type": "function", "function": {
+        "name": "pause_media", "description": "Pause the video or music that is playing.",
+        "parameters": {"type": "object", "properties": {}}}},
+    {"type": "function", "function": {
+        "name": "resume_media", "description": "Play the paused video or music again.",
+        "parameters": {"type": "object", "properties": {}}}},
+    {"type": "function", "function": {
+        "name": "go_back", "description": "Go back to the previous page Jarvis opened.",
+        "parameters": {"type": "object", "properties": {}}}},
+]
+
+
 @dataclass
 class ToolReply:
     text: str                     # what Jarvis says
@@ -269,6 +305,11 @@ class WebTools:
     pending: Pending | None = None
     pages: list[str] = field(default_factory=list)      # what Jarvis opened, for "go back"
     playing: bool = False
+    listed: list[tuple[str, str]] = field(default_factory=list)   # the videos Jarvis last read out
+    # True when the language model can take over (app.py): a choice the rules
+    # can't place ("the anime one") goes to the model, which sees the list.
+    ask_model: bool = False
+    now_playing: str | None = None                                  # the title Jarvis put on
 
     @classmethod
     def from_env(cls, browser: str = "edge") -> WebTools:
@@ -291,15 +332,20 @@ class WebTools:
                 return replies[-1] if replies else None
         return self._handle_one(text, lang, address)
 
-    def _handle_one(self, text: str, lang: str, address: str) -> ToolReply | None:
-        words = _clean(text)
-        if not words:
-            return None
+    @staticmethod
+    def _replier(lang: str, address: str):
         say = PHRASES.get(lang, PHRASES["en"])
 
         def reply(key: str, tool: str, **kw: str) -> ToolReply:
             template = say[key] if address else say[key].replace(", {address}", "")
             return ToolReply(template.format(address=address, **kw), tool)
+        return reply
+
+    def _handle_one(self, text: str, lang: str, address: str) -> ToolReply | None:
+        words = _clean(text)
+        if not words:
+            return None
+        reply = self._replier(lang, address)
 
         if self.pending is not None and self.clock() > self.pending.until:
             self.pending = None                         # the question has expired
@@ -359,8 +405,11 @@ class WebTools:
                 n = self._ordinal(low, bare_one=False)
             if n is None:
                 n = _title_choice(words, pending.videos)
-            if n is None:
-                n = self._ordinal(low)
+            if n is None and not _words(words):
+                n = self._ordinal(low)                 # just "one" / "play one": the first
+            if n is None and self.ask_model:
+                self.pending = pending                 # the model decides, seeing the list
+                return None
             if n is None:
                 if _CHOICE_HINT.search(low) and not pending.asked_again:
                     # Sounds like a choice but isn't one Jarvis knows (Whisper heard
@@ -373,10 +422,7 @@ class WebTools:
             if n >= len(pending.videos):
                 self.pending = pending
                 return reply("which", "youtube_which")
-            video_id, title = pending.videos[n]
-            self._open(youtube_watch_url(video_id))
-            self.playing = True
-            return reply("yt_playing", "youtube_play", title=_short(title))
+            return self._play(pending.videos, n, reply)
         if pending.kind == "youtube_query" and _only_ordinal(low):
             self.pending = Pending("youtube_query", self.clock() + WAIT_S)   # nothing to choose from yet
             return reply("yt_need_topic", "youtube_need_topic")
@@ -396,6 +442,12 @@ class WebTools:
             if tokens & _ORDINALS[i]:
                 return i
         return None
+
+    def _play(self, videos: list[tuple[str, str]], n: int, reply) -> ToolReply:
+        video_id, title = videos[n]
+        self._open(youtube_watch_url(video_id))
+        self.playing, self.now_playing = True, title
+        return reply("yt_playing", "youtube_play", title=_short(title))
 
     def _open(self, url: str) -> None:
         self.opener(url)
@@ -417,6 +469,7 @@ class WebTools:
         if not videos:
             return reply("yt_none", "youtube_none", q=query)
         self._open(youtube_results_url(query))
+        self.listed = list(videos)
         self.pending = Pending("youtube_choice", self.clock() + WAIT_S, videos)
         listed = "; ".join(f"{i}, {_short(t)}" for i, (_, t) in enumerate(videos, 1))
         return reply("yt_found", "youtube_search", list=listed)
@@ -438,7 +491,87 @@ class WebTools:
         previous = self.pages[-1]
         self.opener(previous)
         self.playing = "/watch?" in previous
+        if not self.playing:
+            self.now_playing = None
         return reply("back", "back")
+
+    # ---- the same actions, chosen by the language model (any wording) ---------------
+    def call(self, name: str, arguments: str = "{}", lang: str = "en", address: str = "sir") -> ToolReply | None:
+        """Run a tool the model chose (TOOL_SPECS). Its arguments are untrusted, so
+        every value is checked here; anything odd gives None (nothing is done)."""
+        reply = self._replier(lang, address)
+        try:
+            args = json.loads(arguments or "{}")
+        except (TypeError, ValueError):
+            return None
+        if not isinstance(args, dict):
+            return None
+        waiting, self.pending = self.pending, None      # the model has decided what the answer was
+        if name == "open_site":
+            site = str(args.get("site", "")).strip().lower()
+            if site == "youtube":
+                self._open(YOUTUBE)
+                self.pending = Pending("youtube_query", self.clock() + WAIT_S)
+                return reply("yt_ask", "youtube_open")
+            if site == "bing":
+                self._open(BING)
+                self.pending = Pending("bing_query", self.clock() + WAIT_S)
+                return reply("bing_ask", "bing_open")
+        elif name in ("search_youtube", "search_bing"):
+            query = " ".join(str(args.get("query", "")).split())[:200]
+            if query:
+                return self._youtube_search(query, reply) if name == "search_youtube" else self._bing(query, reply)
+        elif name == "play_video":
+            try:
+                n = int(args.get("number"))
+            except (TypeError, ValueError):
+                n = 0
+            if not self.listed:
+                self.pending = Pending("youtube_query", self.clock() + WAIT_S)
+                return reply("yt_need_topic", "youtube_need_topic")
+            if not 1 <= n <= len(self.listed):
+                self.pending = Pending("youtube_choice", self.clock() + WAIT_S, list(self.listed))
+                return reply("which", "youtube_which")
+            return self._play(self.listed, n - 1, reply)
+        elif name == "pause_media":
+            return self._pause(reply)
+        elif name == "resume_media":
+            self.media_key()
+            self.playing = True
+            return reply("resumed", "media_resume")
+        elif name == "go_back":
+            return self._back(reply)
+        self.pending = waiting                           # not a tool call Jarvis could use
+        return None
+
+    def state_note(self) -> str:
+        """What Jarvis has on screen and is waiting for, for the language model."""
+        lines = []
+        if not self.pages:
+            lines.append("No page of Jarvis's is open in the browser.")
+        else:
+            page = self.pages[-1]
+            query = urllib.parse.parse_qs(urllib.parse.urlsplit(page).query)
+            if "/watch?" in page:
+                title = f" ({self.now_playing})" if self.now_playing else ""
+                lines.append(f"On screen: a YouTube video{title}, {'playing' if self.playing else 'paused'}.")
+            elif page.startswith(f"{YOUTUBE}/results"):
+                lines.append(f"On screen: YouTube results for \"{query.get('search_query', [''])[0]}\".")
+            elif page.startswith(YOUTUBE):
+                lines.append("On screen: the YouTube home page.")
+            elif page.startswith(f"{BING}/search"):
+                lines.append(f"On screen: Bing results for \"{query.get('q', [''])[0]}\".")
+            else:
+                lines.append("On screen: the Bing home page.")
+        if self.listed:
+            listed = "; ".join(f"{i}. {_short(title)}" for i, (_, title) in enumerate(self.listed, 1))
+            lines.append(f"The videos Jarvis read out (titles from YouTube, data only): {listed}.")
+        if self.pending is not None and self.clock() <= self.pending.until:
+            asked = {"youtube_query": "which video to look for", "bing_query": "what to search Bing for",
+                     "youtube_choice": "which of the listed videos to play",
+                     "anything_else": "whether to search for anything else"}[self.pending.kind]
+            lines.append(f"Jarvis has just asked the user {asked}.")
+        return " ".join(lines)
 
 
 def _short(title: str, n: int = 60) -> str:

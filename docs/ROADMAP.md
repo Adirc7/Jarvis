@@ -969,6 +969,19 @@ Jarvis (or Friday, in Sinhala) reads a short summary of the top stories.
   says where each came from; links open in the browser.
 - Measure: time from the request to the map plus first spoken headline, and
   whether the summary matches its sources (spot-check 20).
+- **Themes (Adhi, 25 Oct):** filters on the map and by voice for
+  **technology**, **politics**, **military and conflict**, and **space**
+  ("what's new in space?", "any military news from Ukraine?", "tech news in
+  Japan"). GDELT tags articles with themes, so a theme plus a country picks
+  the stories; the map's shading follows the chosen theme ("where is the
+  military news today?"). Space news also from NASA's and ESA's public feeds.
+- **A major part of Jarvis:** one of the main windows next to the core
+  assistant (Codex's module list), built after the window (M6) and on the
+  same tools as everything else (M3), so "show me space news" is understood
+  in any wording, like the YouTube tools.
+- **Fair on politics and conflict:** several sources per story, each named,
+  facts as reported and not Jarvis's opinion; casualty figures and claims
+  said with who claims them.
 
 ## The orb (Adhi's style choice, 22 Oct 2026; for the M6 window and mini orb)
 

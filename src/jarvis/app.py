@@ -22,11 +22,12 @@ reaches the model and a cancelled reply is never saved.
 from __future__ import annotations
 
 import asyncio
+import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Any, Callable
 
-from .agent.llm import FallbackLLM, LLMUnavailable, configured_providers
+from .agent.llm import FallbackLLM, LLMUnavailable, ToolCall, configured_providers
 from .agent.router import KeywordRouter, Router
 from .bus import EventBus
 from .config import Settings
@@ -45,10 +46,21 @@ from .memory import Memory, detect_fact, detect_name
 from .persona import Persona
 from .state import CancelToken, Mode, SharedState
 from .telemetry import Telemetry, Turn
-from .tools.web import WebTools
+from .tools.web import TOOL_SPECS, WebTools
 from .voice.sink import TextSink
 
 HISTORY_TURNS = 12
+# Words that suggest a request about the browser, YouTube or media, in English,
+# Singlish and Sinhala. Only then does the model get the tools (they cost
+# about 600 tokens a request); any wording around them is the model's job.
+TOOL_WORDS = re.compile(
+    r"you\s*tube|\bbing\b|video|song|music|\bplay|pause|resume|search|look\s+up|\bfind\b|browser|website|"
+    r"go\s+back|\bopen|watch|listen|lofi|danna|hoyanna|arinna|nawaththanna|"
+    r"යූටියුබ්|බිං|වීඩියෝ|සින්දු|ගීත|දාන්න|හොයන්න|අරින්න|නවත්තන්න", re.IGNORECASE)
+TOOLS_NOTE = ("Tools this turn: you can open YouTube or Bing, search them, play one of the videos Jarvis read out, "
+              "pause, play again and go back. When the user wants one of these, in any words or language, call the "
+              "tool instead of answering (Jarvis then says what it did); if they don't, answer normally and don't "
+              "mention tools. Now: {state}")
 LLM_UNAVAILABLE = "I can't reach any language model right now. Check the internet connection or start Ollama."
 REPLY_BROKE_OFF = "Sorry, the connection dropped in the middle of my answer. Please ask again."
 
@@ -100,6 +112,9 @@ class App:
             self.web = WebTools.from_env(str(settings.get("tools.browser", "edge")))
         else:
             self.web = None
+        if self.web is not None:
+            # Requests the rules miss go to the model with the tools (TOOLS_NOTE).
+            self.web.ask_model = bool(settings.get("tools.model_tools", True))
         self.state.empathy = self.persona.default_mode
         self._apply_empathy_voice()
         self.transcriber = transcriber
@@ -253,18 +268,37 @@ class App:
 
         self._learn_from(text)
 
+        system = self.system_prompt()
+        extra: dict[str, Any] = {}
+        if self._offer_tools(text):
+            # The fixed rules missed it, but it may still be a YouTube/Bing request
+            # in other words ("the Luffy one you mentioned"): the model can act,
+            # seeing what is on screen and what Jarvis asked (tools/web.py).
+            system += "\n\n" + TOOLS_NOTE.format(state=self.web.state_note())
+            extra["tools"] = TOOL_SPECS
         messages = (
-            [{"role": "system", "content": self.system_prompt()}]
+            [{"role": "system", "content": system}]
             + self.history[-HISTORY_TURNS * 2:]
             + [{"role": "user", "content": text}]
         )
         lang = self.lang.current
         decision = self.router.route(text, lang.code, sum(len(m["content"]) for m in messages))
-        self.telemetry.log("route", route=decision.route, reason=decision.reason, intent=decision.intent)
+        self.telemetry.log("route", route=decision.route, reason=decision.reason, intent=decision.intent,
+                           tools=bool(extra))
         self.state.mode = Mode.THINKING
+        calls: list[ToolCall] = []
+
+        async def words_only(pieces):
+            async for piece in pieces:
+                if isinstance(piece, ToolCall):
+                    calls.append(piece)          # done after the words, if any
+                else:
+                    yield piece
+
         try:
             reply = await self.sink.stream(
-                self.llm.stream_text(messages, token=token, route=decision.route, lang=lang.code), lang, token, turn)
+                words_only(self.llm.stream_text(messages, token=token, route=decision.route, lang=lang.code,
+                                                **extra)), lang, token, turn)
         except LLMUnavailable as exc:
             await self.sink.say(LLM_UNAVAILABLE, self.lang.languages.get("en", lang), token)
             turn.finish(kind="llm_unavailable", failures=exc.failures, route=decision.route)
@@ -283,6 +317,8 @@ class App:
         if token.cancelled:                  # stopped mid-reply: don't keep half an answer
             self._cancelled(turn, "during_reply")
             return reply
+        if calls:
+            return await self._model_tools(text, calls, turn, token)
         self.history += [{"role": "user", "content": text}, {"role": "assistant", "content": reply}]
         if self.memory.enabled and self.settings.get("memory.keep_conversation", True):
             self.memory.set_recent(self.history[-HISTORY_TURNS * 2:])
@@ -290,6 +326,28 @@ class App:
         turn.finish(kind="chat", provider=self.llm.last_provider, route=decision.route, language=lang.code,
                     chars=len(reply), cancelled=token.cancelled)
         return reply
+
+    def _offer_tools(self, text: str) -> bool:
+        """Give the model the web tools this turn? Only when it may be about them."""
+        if self.web is None or not self.settings.get("tools.model_tools", True):
+            return False
+        on_results = bool(self.web.listed and self.web.pages and "/results?" in self.web.pages[-1])
+        return self.web.pending is not None or on_results or bool(TOOL_WORDS.search(text))
+
+    async def _model_tools(self, text: str, calls: list[ToolCall], turn: Turn, token: CancelToken) -> str:
+        """Do what the model chose (WebTools checks every argument), then say it."""
+        loop = asyncio.get_running_loop()
+        lang = self.lang.current
+        done = None
+        for call in calls:
+            result = await loop.run_in_executor(None, self.web.call, call.name, call.arguments, lang.code,
+                                                self.persona.address)
+            self.telemetry.log("model_tool", name=call.name, ok=result is not None,
+                               arguments=call.arguments[:200])
+            done = result or done
+        if done is None:                     # arguments that didn't check out: nothing was done
+            done = WebTools._replier(lang.code, self.persona.address)("couldnt", "model_tool_failed")
+        return await self._tool_reply(text, done, turn, token)
 
     async def _tool_reply(self, text: str, tool, turn: Turn, token: CancelToken) -> str:
         """Say what a tool did, and keep it in the conversation so the model knows."""

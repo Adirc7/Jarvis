@@ -31,6 +31,18 @@ from ..state import CancelToken
 from ..telemetry import Telemetry
 
 
+@dataclass(frozen=True)
+class ToolCall:
+    """The model asked for an action instead of (or after) answering in words.
+
+    stream_text yields these, as well as text, when it was given `tools`.
+    `arguments` is the JSON text the model wrote: untrusted, so the tool
+    checks every value before acting.
+    """
+    name: str
+    arguments: str = "{}"
+
+
 class LLMUnavailable(RuntimeError):
     def __init__(self, failures: list[tuple[str, str]]):
         self.failures = failures
@@ -326,8 +338,12 @@ class FallbackLLM:
         route: str | None = None,
         lang: str | None = None,
         **kwargs: Any,
-    ) -> AsyncIterator[str]:
-        """Yield reply text as it arrives, from the first provider on the route that answers."""
+    ) -> AsyncIterator[str | ToolCall]:
+        """Yield reply text as it arrives, from the first provider on the route that answers.
+
+        With `tools=[...]` in kwargs the model may act instead: then ToolCall
+        items come (at the end of the stream) instead of, or after, text.
+        """
         failures: list[tuple[str, str]] = []
         prompt_chars = sum(len(str(m.get("content") or "")) for m in messages)
         self.last_route = route or "general"
@@ -343,6 +359,7 @@ class FallbackLLM:
             thinking_chars = 0                    # reasoning text before the first word
             think = ThinkFilter()
             leak = LeakFilter()
+            calls: dict[int, list[str]] = {}     # tool calls arrive in pieces: index -> [name, arguments]
             try:
                 stream = await p.client.chat.completions.create(
                     model=p.model, messages=messages, stream=True, **p.request_kwargs(kwargs)
@@ -357,6 +374,12 @@ class FallbackLLM:
                     if first_chunk_ms is None:
                         first_chunk_ms = round((time.perf_counter() - start) * 1000, 1)
                     d = chunk.choices[0].delta if chunk.choices else None
+                    for tc in (getattr(d, "tool_calls", None) or []) if d is not None else []:
+                        entry = calls.setdefault(getattr(tc, "index", 0) or 0, ["", ""])
+                        fn = getattr(tc, "function", None)
+                        if fn is not None:
+                            entry[0] = getattr(fn, "name", None) or entry[0]
+                            entry[1] += getattr(fn, "arguments", None) or ""
                     delta = getattr(d, "content", None) if d is not None else None
                     if delta:
                         delta, thought = think.feed(delta)
@@ -385,6 +408,17 @@ class FallbackLLM:
                 if leak.dropped:
                     self.telemetry.log("llm_leak_dropped", provider=p.name, model=p.model,
                                        text=" | ".join(leak.dropped)[:300])
+                named = [(name, args or "{}") for name, args in (calls[i] for i in sorted(calls)) if name]
+                if named:
+                    if not started:
+                        started = True
+                        self.last_provider = p.name
+                    self.telemetry.log("llm_tool_call", provider=p.name, model=p.model,
+                                       ms=round((time.perf_counter() - start) * 1000, 1),
+                                       tools=[name for name, _ in named])
+                    for name, args in named:
+                        yield ToolCall(name, args)
+                    return
                 if not started:
                     raise RuntimeError("empty reply")
                 self.telemetry.log(

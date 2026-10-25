@@ -921,3 +921,23 @@ open or play anything and must never invent results, titles or links. These
 rules will keep missing some wordings: the lasting fix is giving the model
 the web tools to call (HUMANLIKE_PLAN.md, H1 step 1).
 
+## 2026-10-25: the model understands YouTube and Bing requests in any words
+
+Fixed rules only catch wordings someone thought of, and each laptop test
+found new ones. Now, when the rules miss a request that may be about the
+browser or media (or Jarvis is waiting for an answer, or a video list is on
+screen), the same streaming call to the model carries the actions as tools
+(open_site, search_youtube, search_bing, play_video, pause_media,
+resume_media, go_back) and a plain description of the screen: the page, the
+videos Jarvis read out (as data) and the question Jarvis asked. The model
+either answers in words, streamed as before (no added delay), or calls a
+tool; WebTools.call checks every argument (sites, numbers, query length) and
+does it, so the model can't do more than the voice commands can. An unknown
+tool or bad arguments do nothing ("Sorry, sir, I couldn't do that one").
+Ordinary chat gets no tools. While Jarvis waits for a choice, the rules still
+answer what they can (first/second/third, title words); anything else ("the
+anime one") goes to the model, which sees the list. A bare "one" means "the
+first" only when nothing else was said. `[tools] model_tools = true` in
+settings. 11 tests (406 in all). The News map plan gains Adhi's themes:
+technology, politics, military and conflict, space.
+
