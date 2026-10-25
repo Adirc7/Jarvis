@@ -1,5 +1,7 @@
 """Adhi's trained intent model: saved, loaded, and used by Jarvis (intents/classifier.py)."""
 
+import json
+
 import pytest
 
 pytest.importorskip("sklearn")
@@ -64,3 +66,22 @@ def test_a_broken_file_does_not_stop_jarvis(settings, tmp_path):
     out = []
     app = App(settings, Telemetry.disabled(), out=lambda *a, **k: out.append("".join(map(str, a))))
     assert isinstance(app.router, KeywordRouter) and any("couldn't load" in line for line in out)
+
+
+def test_your_sentences_are_checked(tmp_path):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+    from make_intent_sets import read_mine
+
+    mine = tmp_path / "mine.jsonl"
+    lines = [
+        {"text": "bring up the video site", "lang": "en", "intent": "open_app"},
+        {"text": "machan api podi kathawak damu", "lang": "si-Latn", "intent": "chat"},
+        {"text": "Pull up YouTube", "lang": "en", "intent": "open_app"},
+        {"text": "x", "intent": "Open App!"},
+    ]
+    mine.write_text("".join(json.dumps(x) + "\n" for x in lines) + "not json\n", encoding="utf-8")
+    rows, problems = read_mine(mine, {"open_app"}, {"pull up youtube"})
+    assert [r["intent"] for r in rows] == ["open_app", "chat"]        # chat: a new intent of yours
+    assert len(problems) == 3 and "real test" in problems[0]

@@ -42,6 +42,9 @@ INTENT_ROUTE: dict[str, str] = {
     "summarize_document": "long",
     "feeling_low": "talk",
     **dict.fromkeys(["news", "ask_weather", "search_research", "search_web"], "general"),
+    # Adhi's own intent (data/intent/mine.jsonl): talk, opinions, discussions,
+    # advice, anything that isn't one of the others
+    "chat": "general",
 }
 
 

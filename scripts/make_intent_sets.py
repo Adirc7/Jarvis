@@ -20,7 +20,9 @@ you (or reviewed by you from Jarvis's logs):
 
 They are added to train (each counted --mine-weight times, default 3, since
 they're real), never to dev or the real test; a line that is also in the
-real test is left out and named, so the test stays fair.
+real test is left out and named, so the test stays fair. An intent that
+isn't one of the 46 (such as "chat") becomes a new one, taught only by your
+sentences; the script lists those, so a typo ("open_ap") shows up.
 
 Why split dev by pattern and not at random: generated sentences come from
 templates ("{please} {open} {app}"). A random split would put sentences from
@@ -37,6 +39,7 @@ import argparse
 import collections
 import json
 import random
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -105,8 +108,11 @@ def real_tests() -> list[dict]:
     return rows
 
 
+NAME = re.compile(r"^[a-z][a-z_]*$")
+
+
 def read_mine(path: Path, labels: set[str], test_texts: set[str]) -> tuple[list[dict], list[str]]:
-    """Your sentences, checked: known intent, not a copy of a real test line."""
+    """Your sentences, checked: a sensible intent name, not a copy of a real test line."""
     rows, problems = [], []
     if not path.exists():
         return rows, problems
@@ -119,8 +125,8 @@ def read_mine(path: Path, labels: set[str], test_texts: set[str]) -> tuple[list[
         except (ValueError, KeyError, TypeError):
             problems.append(f"line {n}: not like {{\"text\": ..., \"lang\": ..., \"intent\": ...}}")
             continue
-        if intent not in labels:
-            problems.append(f"line {n}: unknown intent {intent!r} (see labels.txt)")
+        if intent not in labels and not NAME.match(intent):
+            problems.append(f"line {n}: {intent!r} isn't an intent name (small letters and _)")
         elif text.lower() in test_texts:
             problems.append(f"line {n}: \"{text}\" is in the real test; left out so the test stays fair")
         else:
@@ -148,9 +154,11 @@ def main() -> int:
     rows = [{k: r[k] for k in keep if k in r} for r in rows]
     train, dev = split_by_pattern(rows, args.dev_share, args.seed)
     test = real_tests()
-    labels = sorted({r["intent"] for r in rows})
-    mine, problems = read_mine(OUT / "mine.jsonl", set(labels), {r["text"].lower() for r in test})
+    known = {r["intent"] for r in rows}
+    mine, problems = read_mine(OUT / "mine.jsonl", known, {r["text"].lower() for r in test})
     train += mine * args.mine_weight
+    new = collections.Counter(r["intent"] for r in mine if r["intent"] not in known)
+    labels = sorted(known | set(new))
     OUT.mkdir(parents=True, exist_ok=True)
     write(OUT / "train.jsonl", train)
     write(OUT / "dev.jsonl", dev)
@@ -167,6 +175,8 @@ def main() -> int:
           f"{sum(r['context'] for r in test)} need the list on screen (left to the rules and the model)")
     print(f"labels    {len(labels):6} intents -> {OUT.relative_to(ROOT)}")
     print(f"mine      {len(mine):6} of your sentences (data/intent/mine.jsonl), each counted {args.mine_weight}x in train")
+    for intent, n in sorted(new.items()):
+        print(f"  new intent {intent!r}: only your {n} sentence(s) teach it")
     for problem in problems:
         print(f"  mine.jsonl {problem}")
     return 0

@@ -192,7 +192,19 @@ Make `data/intent/mine.jsonl`, one sentence per line:
 {"text": "මට අද හරිම මහන්සියි", "lang": "si", "intent": "feeling_low"}
 ```
 
-The intents are in `data/intent/labels.txt`. Then run
+The intents are in `data/intent/labels.txt`. One more is yours: **`chat`**,
+for talk, opinions, discussions and advice that aren't one of the 46 (the
+generated data has no such class, so without it every chat line is forced
+into some task). Any other new name works too, and the script lists new
+names with their counts, so a typo shows up.
+
+**Keep the labels fine, not coarse.** "device_control" would be one label
+for volume up, volume down, brightness, Wi-Fi and shutdown, but Jarvis has
+to do different things for each. Fine labels can always be merged later
+(volume_up + volume_down -> device_control is one line of code); a coarse
+label can never be split back without labelling everything again.
+
+Then run
 `scripts/make_intent_sets.py` again (it adds yours to train, each counted 3
 times since they're real; `--mine-weight` changes that), train, measure.
 

@@ -1023,3 +1023,19 @@ you. Ready around it:
   (your own sentences) is how it closes. Level 2 couldn't run here (the
   encoder can't be downloaded in the cloud workspace); its first run is on
   the laptop.
+
+Adhi's first own data (25 Oct): 192 sentences (64 per language) in 11 intents
+of his own, plus a generator for 10,500 more. Eight of his 11 names aren't
+among the 46 (device_control, research_query, science_explanation,
+psychology_discussion, news_update, ethics_philosophy, casual_chat,
+general_knowledge), so they were mapped onto the 46, line by line where one
+name covered several (device_control -> volume_up, brightness_down,
+toggle_setting, system_power, ...), plus a new intent of his, `chat` (talk,
+opinions, discussions; routed "general"), since the 46 have none. 188 kept
+for data/intent/mine.jsonl; 4 left out: a near-copy of the real test line
+"pull up YouTube", and battery, RAM and recycle-bin requests Jarvis has no
+intent for. One Gujarati word in a Singlish line fixed. make_intent_sets.py
+now accepts new intent names and lists them. The generator isn't used yet:
+its labels clash with the 46, its 10,500 lines come from about 300 phrases,
+and it has mixed-script slips (Devanagari, Gujarati).
+
