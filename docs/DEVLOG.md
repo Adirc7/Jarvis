@@ -860,3 +860,15 @@ middle was nearly still for over half a second, so these were a still
 "MediaPipe and the points check" (bending fingers break the points check)
 and says when, after pressing W, each wave was accepted.
 
+Palm rule chosen (25 Oct, one session, right hand, room light): MediaPipe
+Open_Palm >= 0.6, held 0.5 s, the palm's middle within 0.35 of its size.
+15 of 15 palms caught, none counted twice; 0 false palms in about 70 s with
+no open hand; 3 in about 70 s of waving, at 45, 57 and 67 s after W, with all
+five fingers out and the palm still for over 0.7 s (pauses with the hand up),
+so no shape or stillness rule can tell them from a "stop" palm. Adding the
+points check (AND) changed nothing, so the rule stays MediaPipe-only and the
+points check stays as a feature for the classifier. The remaining case is
+harmless under D29: the palm acts only while Jarvis speaks or a video it
+opened is playing, and then means "hold on". Still to measure: other light
+and distances, and false palms per hour of normal work (Codex "done when").
+
