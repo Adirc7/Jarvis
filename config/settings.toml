@@ -140,7 +140,10 @@ browser = "edge"            # "edge" (Microsoft Edge on Windows) or "default"
 # Requests the fixed rules miss ("I'd rather hear the anime one") go to the
 # model with the same actions as tools, and what's on screen (the videos
 # Jarvis read out). It understands any wording; Jarvis's code does the action.
-model_tools = true
+# "always": every request (about 430 tokens more each); "likely": only when
+# the request has a word like video/play/search (cheaper, but misses "I want
+# to see that Luffy clip"); "off".
+model_tools = "always"
 
 [memory]
 # What Jarvis remembers between sessions, in state/memory.json on this

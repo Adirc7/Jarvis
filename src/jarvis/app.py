@@ -51,8 +51,10 @@ from .voice.sink import TextSink
 
 HISTORY_TURNS = 12
 # Words that suggest a request about the browser, YouTube or media, in English,
-# Singlish and Sinhala. Only then does the model get the tools (they cost
-# about 600 tokens a request); any wording around them is the model's job.
+# Singlish and Sinhala. Used only with [tools] model_tools = "likely", which
+# offers the tools only on such turns; the default "always" offers them on
+# every turn (about 430 tokens more a request), because a list of words is
+# itself a rule: "I want to see that Luffy clip" has none of them.
 TOOL_WORDS = re.compile(
     r"you\s*tube|\bbing\b|video|song|music|\bplay|pause|resume|search|look\s+up|\bfind\b|browser|website|"
     r"go\s+back|\bopen|watch|listen|lofi|danna|hoyanna|arinna|nawaththanna|"
@@ -114,7 +116,7 @@ class App:
             self.web = None
         if self.web is not None:
             # Requests the rules miss go to the model with the tools (TOOLS_NOTE).
-            self.web.ask_model = bool(settings.get("tools.model_tools", True))
+            self.web.ask_model = self._tools_mode() != "off"
         self.state.empathy = self.persona.default_mode
         self._apply_empathy_voice()
         self.transcriber = transcriber
@@ -327,10 +329,22 @@ class App:
                     chars=len(reply), cancelled=token.cancelled)
         return reply
 
+    def _tools_mode(self) -> str:
+        """[tools] model_tools: "always" (default), "likely", or "off" (true/false also work)."""
+        value = self.settings.get("tools.model_tools", "always")
+        if value is True:
+            return "always"
+        if value is False:
+            return "off"
+        return str(value).lower()
+
     def _offer_tools(self, text: str) -> bool:
-        """Give the model the web tools this turn? Only when it may be about them."""
-        if self.web is None or not self.settings.get("tools.model_tools", True):
+        """Give the model the web tools this turn?"""
+        mode = self._tools_mode()
+        if self.web is None or mode == "off":
             return False
+        if mode == "always":
+            return True
         on_results = bool(self.web.listed and self.web.pages and "/results?" in self.web.pages[-1])
         return self.web.pending is not None or on_results or bool(TOOL_WORDS.search(text))
 

@@ -941,3 +941,18 @@ first" only when nothing else was said. `[tools] model_tools = true` in
 settings. 11 tests (406 in all). The News map plan gains Adhi's themes:
 technology, politics, military and conflict, space.
 
+Understanding, measured (25 Oct): `eval/commands.jsonl`, 60 natural ways to
+ask (33 English, 16 Singlish, 11 Sinhala): open a site, search YouTube or
+Bing, choose from a list ("the anime one", "anthima eka danna"), pause, play
+again, go back, and 10 that need no action. `scripts/command_check.py` runs
+each through the real pipeline (fixed rules, then the model with tools, with
+a pretend browser) and reports accuracy per language and per request.
+Fixed rules alone: 19/60 (32%) at first, 9 of the 50 commands, and three
+were wrong actions ("youtube ekata yanna" searched for "ekata yanna"), worse
+than none because the model never saw them; fixed (ekata/eken/එකට are not
+search words). The model now gets the tools on every request by default
+(`model_tools = "always"`): a list of trigger words was itself a rule ("I
+want to see that Luffy clip" has none). With the model, an answer to "Paused.
+Anything else?" ("okay, carry on") goes to the model too, instead of being
+searched. The full run needs the API keys, so it runs on the laptop.
+

@@ -100,7 +100,8 @@ _PLAY_SI = r"දාන්න|දාන්නකෝ|දාලා\s+දෙන්�
 
 
 # "bing eka ..." / "youtube එක ..." is Singlish/Sinhala for "the Bing", not a search for "eka".
-_NOT_QUERY = r"(?:eka|eke|එක|එකේ|is|was|open|opened)(?:\s|$)"
+_NOT_QUERY = (r"(?:eka|eke|ekata|eken|ekenma|ekath|එක|එකේ|එකට|එකෙන්|එකත්|is|was|open|opened|app|website)"
+              r"(?:\s|$)")
 
 
 def _rx(*patterns: str) -> list[re.Pattern[str]]:
@@ -396,6 +397,10 @@ class WebTools:
             if low in _YES:
                 self.pending = Pending("youtube_query", self.clock() + WAIT_S)
                 return reply("ask_query", "ask_query")
+            if self.ask_model:
+                # "okay, carry on" or a topic? The model decides, knowing what Jarvis asked.
+                self.pending = pending
+                return None
             return self._youtube_search(words, reply)
         if pending.kind == "youtube_choice":
             # Two or more title words first ("Luffy edit One Piece"), then

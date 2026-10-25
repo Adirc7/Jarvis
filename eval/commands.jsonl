@@ -1,0 +1,60 @@
+{"text": "pull up YouTube", "lang": "en", "setup": "none", "expect": "open_site", "check": {"site": "youtube"}}
+{"text": "take me to YouTube", "lang": "en", "setup": "none", "expect": "open_site", "check": {"site": "youtube"}}
+{"text": "could you get YouTube going for me", "lang": "en", "setup": "none", "expect": "open_site", "check": {"site": "youtube"}}
+{"text": "I wanna use Bing", "lang": "en", "setup": "none", "expect": "open_site", "check": {"site": "bing"}}
+{"text": "bring up Bing please", "lang": "en", "setup": "none", "expect": "open_site", "check": {"site": "bing"}}
+{"text": "youtube eka on karanna", "lang": "singlish", "setup": "none", "expect": "open_site", "check": {"site": "youtube"}}
+{"text": "youtube ekata yanna", "lang": "singlish", "setup": "none", "expect": "open_site", "check": {"site": "youtube"}}
+{"text": "bing eka denna", "lang": "singlish", "setup": "none", "expect": "open_site", "check": {"site": "bing"}}
+{"text": "යූටියුබ් එකට යන්න", "lang": "si", "setup": "none", "expect": "open_site", "check": {"site": "youtube"}}
+{"text": "බිං එක දාන්න", "lang": "si", "setup": "none", "expect": "open_site", "check": {"site": "bing"}}
+{"text": "I want to see that Luffy clip", "lang": "en", "setup": "none", "expect": "search_youtube", "check": {"query_any": ["luffy"]}}
+{"text": "put on some lofi beats", "lang": "en", "setup": "none", "expect": "search_youtube", "check": {"query_any": ["lofi"]}}
+{"text": "can you find a video explaining Fourier series", "lang": "en", "setup": "none", "expect": "search_youtube", "check": {"query_any": ["fourier"]}}
+{"text": "show me how to solve differential equations on YouTube", "lang": "en", "setup": "none", "expect": "search_youtube", "check": {"query_any": ["differential"]}}
+{"text": "I feel like listening to some Sinhala songs", "lang": "en", "setup": "none", "expect": "search_youtube", "check": {"query_any": ["sinhala"]}}
+{"text": "play the baka song with the Luffy edit", "lang": "en", "setup": "none", "expect": "search_youtube", "check": {"query_any": ["luffy", "baka"]}}
+{"text": "luffy edit eka youtube eken danna", "lang": "singlish", "setup": "none", "expect": "search_youtube", "check": {"query_any": ["luffy"]}}
+{"text": "fourier series gana video ekak hoyala denna", "lang": "singlish", "setup": "none", "expect": "search_youtube", "check": {"query_any": ["fourier"]}}
+{"text": "sinhala sindu tikak danna", "lang": "singlish", "setup": "none", "expect": "search_youtube", "check": {"query_any": ["sinhala", "sindu", "song"]}}
+{"text": "ලුෆී එඩිට් එක යූටියුබ් එකේ දාන්න", "lang": "si", "setup": "none", "expect": "search_youtube", "check": {"query_any": ["ලුෆී", "luffy"]}}
+{"text": "සින්දු ටිකක් දාන්න", "lang": "si", "setup": "none", "expect": "search_youtube", "check": {"query_any": ["සින්දු", "song", "sinhala", "music"]}}
+{"text": "google the RC time constant", "lang": "en", "setup": "none", "expect": "search_bing", "check": {"query_any": ["rc"]}}
+{"text": "look up the dollar to rupee exchange rate for me", "lang": "en", "setup": "none", "expect": "search_bing", "check": {"query_any": ["exchange", "rupee", "dollar"]}}
+{"text": "check online what people say about the new Pixel phone", "lang": "en", "setup": "none", "expect": "search_bing", "check": {"query_any": ["pixel"]}}
+{"text": "bing eken black holes gana hoyanna", "lang": "singlish", "setup": "none", "expect": "search_bing", "check": {"query_any": ["black hole"]}}
+{"text": "internet eke laptop prices balanna", "lang": "singlish", "setup": "none", "expect": "search_bing", "check": {"query_any": ["laptop"]}}
+{"text": "අන්තර්ජාලයේ කළු කුහර ගැන හොයන්න", "lang": "si", "setup": "none", "expect": "search_bing", "check": {"query_any": ["කළු කුහර", "black hole"]}}
+{"text": "the anime one", "lang": "en", "setup": "listed", "expect": "play_video", "check": {"number": 3}}
+{"text": "the last one you said", "lang": "en", "setup": "listed", "expect": "play_video", "check": {"number": 3}}
+{"text": "go with the middle one", "lang": "en", "setup": "listed", "expect": "play_video", "check": {"number": 2}}
+{"text": "the study session one", "lang": "en", "setup": "listed", "expect": "play_video", "check": {"number": 2}}
+{"text": "I'll take the One Piece video", "lang": "en", "setup": "listed", "expect": "play_video", "check": {"number": 3}}
+{"text": "the first", "lang": "en", "setup": "listed", "expect": "play_video", "check": {"number": 1}}
+{"text": "hmm, the second sounds good", "lang": "en", "setup": "listed", "expect": "play_video", "check": {"number": 2}}
+{"text": "anime eka danna", "lang": "singlish", "setup": "listed", "expect": "play_video", "check": {"number": 3}}
+{"text": "deweni eka", "lang": "singlish", "setup": "listed", "expect": "play_video", "check": {"number": 2}}
+{"text": "anthima eka danna", "lang": "singlish", "setup": "listed", "expect": "play_video", "check": {"number": 3}}
+{"text": "අන්තිම එක දාන්න", "lang": "si", "setup": "listed", "expect": "play_video", "check": {"number": 3}}
+{"text": "දෙවෙනි එක", "lang": "si", "setup": "listed", "expect": "play_video", "check": {"number": 2}}
+{"text": "hold on, stop that for a sec", "lang": "en", "setup": "playing", "expect": "pause_media"}
+{"text": "freeze the video", "lang": "en", "setup": "playing", "expect": "pause_media"}
+{"text": "shh, quiet for a moment", "lang": "en", "setup": "playing", "expect": "pause_media"}
+{"text": "okay, carry on", "lang": "en", "setup": "paused", "expect": "resume_media"}
+{"text": "keep playing", "lang": "en", "setup": "paused", "expect": "resume_media"}
+{"text": "take me back", "lang": "en", "setup": "playing", "expect": "go_back"}
+{"text": "video eka podi welawakata nawaththanna", "lang": "singlish", "setup": "playing", "expect": "pause_media"}
+{"text": "aye danna", "lang": "singlish", "setup": "paused", "expect": "resume_media"}
+{"text": "aapahu yamu", "lang": "singlish", "setup": "playing", "expect": "go_back"}
+{"text": "වීඩියෝ එක පොඩ්ඩක් නවත්තන්න", "lang": "si", "setup": "playing", "expect": "pause_media"}
+{"text": "ආයේ දාන්න", "lang": "si", "setup": "paused", "expect": "resume_media"}
+{"text": "what is entropy", "lang": "en", "setup": "none", "expect": "none"}
+{"text": "is YouTube better than Bing for lectures", "lang": "en", "setup": "none", "expect": "none"}
+{"text": "who made the One Piece anime", "lang": "en", "setup": "none", "expect": "none"}
+{"text": "explain how Bing ranks pages", "lang": "en", "setup": "none", "expect": "none"}
+{"text": "I watched a great lecture yesterday", "lang": "en", "setup": "none", "expect": "none"}
+{"text": "what is this song about", "lang": "en", "setup": "playing", "expect": "none"}
+{"text": "mata fourier series theruma ganna ona", "lang": "singlish", "setup": "none", "expect": "none"}
+{"text": "oyata kohomada", "lang": "singlish", "setup": "none", "expect": "none"}
+{"text": "එන්ට්‍රොපි කියන්නේ මොකක්ද?", "lang": "si", "setup": "none", "expect": "none"}
+{"text": "ඔයාට කොහොමද?", "lang": "si", "setup": "none", "expect": "none"}

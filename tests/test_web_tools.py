@@ -358,3 +358,11 @@ def test_the_model_never_invents_results():
     from jarvis.persona import Persona
     prompt = Persona.load().system_prompt(language_instruction="Reply in English.", spoken=True, mode="balanced")
     assert "never invent search results, video titles" in prompt
+
+
+@pytest.mark.parametrize("text", ["youtube ekata yanna", "යූටියුබ් එකට යන්න", "bing eken black holes gana hoyanna"])
+def test_singlish_case_words_are_not_searched_for(text):
+    # command_check, 25 Oct: these searched for "ekata yanna" and "eken black holes gana
+    # hoyanna". A wrong action is worse than none: none lets the model understand it.
+    tools, opened, _, _ = make()
+    assert tools.handle(text) is None and opened == []

@@ -112,12 +112,30 @@ async def test_a_question_about_youtube_gets_words_not_an_action():
     assert client.kwargs.get("tools") is TOOL_SPECS and opened == [] and keys == []
 
 
-async def test_ordinary_chat_gets_no_tools():
+async def test_every_request_gets_the_tools_by_default():
+    # "I want to see that Luffy clip" has no word like video/play/search: a
+    # list of trigger words would miss it, so the model always sees the tools.
+    client = ModelClient(tool="search_youtube", arguments='{"query": "Luffy clip"}')
+    app, _, opened, _ = make(client)
+    await app.handle_text("I want to see that Luffy clip")
+    assert client.kwargs["tools"] is TOOL_SPECS and opened[-1] == youtube_results_url("Luffy clip")
+
+
+async def test_likely_mode_keeps_ordinary_chat_without_tools(settings):
+    settings.raw["tools"]["model_tools"] = "likely"
     client = ModelClient(words=["Entropy measures disorder."])
     app, _, _, _ = make(client)
     await app.handle_text("what is entropy")
     assert "tools" not in client.kwargs
     assert "Tools this turn" not in client.messages[0]["content"]
+
+
+async def test_off_means_no_tools(settings):
+    settings.raw["tools"]["model_tools"] = "off"
+    client = ModelClient(words=["Sure."])
+    app, web, _, _ = make(client)
+    await app.handle_text("I want to see that Luffy clip")
+    assert "tools" not in client.kwargs and web.ask_model is False
 
 
 async def test_a_tool_jarvis_does_not_have_does_nothing():
@@ -173,3 +191,13 @@ def test_a_stray_one_is_not_the_first_when_other_words_say_more():
     web2 = WebTools(opener=lambda url: None, media_key=lambda: None, search_videos=lambda q: list(LUFFY))
     web2.handle("search YouTube for lofi")
     assert web2.handle("one").tool == "youtube_play" and web2.now_playing == LUFFY[0][1]
+
+
+async def test_after_paused_anything_else_carry_on_resumes():
+    client = ModelClient(tool="resume_media")
+    app, web, _, keys = make(client)
+    await app.handle_text("search YouTube for lofi")
+    await app.handle_text("the first one")
+    await app.handle_text("pause the video")                  # "Paused. Anything else, sir?"
+    assert await app.handle_text("okay, carry on") == "Playing again."
+    assert keys == ["play/pause", "play/pause"] and web.pages[-1].endswith("watch?v=v1")

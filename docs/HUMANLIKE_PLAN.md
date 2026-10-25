@@ -133,7 +133,8 @@ next starts.
    matches nothing (fuzzy match, e.g. rapidfuzz), or Whisper's confidence is
    low: "I heard 'open you two'. Did you mean YouTube?" Only "yes" or a
    repeat acts on it.
-4. **The messy-phrasing test set.** About 150 real ways Adhi says the
+4. **The messy-phrasing test set** (started 25 Oct: `eval/commands.jsonl`, 60 lines, run with
+   `scripts/command_check.py`). About 150 real ways Adhi says the
    current commands, in English, Sinhala and Singlish: polite forms,
    fillers, self-corrections ("open Bing, no, YouTube"), Whisper's typical
    errors. Typed first, then spoken. This becomes the classifier's test set
