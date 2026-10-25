@@ -1,7 +1,8 @@
 """Score a trained intent model the same way every time.
 
-    uv run python scripts/intent_eval.py models/intent/level1.joblib
-    uv run python scripts/intent_eval.py models/intent/level1.joblib models/intent/level2.joblib   # side by side
+    uv run python scripts/intent_eval.py                                  every model in models/intent/
+    uv run python scripts/intent_eval.py models/intent/level1.joblib      one model
+    uv run python scripts/intent_eval.py models/intent/level1.joblib models/intent/level2.joblib   side by side
 
 Uses data/intent/ (make it with scripts/make_intent_sets.py) and the loader
 Jarvis uses (src/jarvis/intents/classifier.py), so what you measure is what
@@ -93,10 +94,14 @@ def evaluate(path: Path, dev: list[dict], test: list[dict]) -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("models", nargs="+", type=Path, help="saved model files (.joblib)")
+    ap.add_argument("models", nargs="*", type=Path,
+                    help="saved model files (.joblib); none: every .joblib in models/intent/")
     args = ap.parse_args()
+    models = args.models or sorted((ROOT / "models" / "intent").glob("*.joblib"))
+    if not models:
+        sys.exit("No model in models/intent/ yet: train one first (docs/TRAINING_INTENT.md, step 2)")
     dev, test = load("dev.jsonl"), load("test_real.jsonl")
-    for path in args.models:
+    for path in models:
         r = evaluate(path, dev, test)
         print(f"\n=== {r['name']} ({r['kind']}), {r['ms']:.1f} ms a sentence")
         langs = ", ".join(f"{k} {v:.0%}" for k, v in r["dev_by_lang"].items())
