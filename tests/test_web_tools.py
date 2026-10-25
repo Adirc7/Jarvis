@@ -239,3 +239,68 @@ def test_the_model_knows_jarvis_can_open_youtube():
     prompt = Persona.load().system_prompt(language_instruction="Reply in English.", spoken=True, mode="balanced")
     assert "open Bing and YouTube" in prompt and "never say you can't do it" in prompt
     assert '"pause the video"' in prompt
+
+
+# ---- the laptop, 25 Oct: these reached the model, which only repeated the command words ----
+@pytest.mark.parametrize("text, tool", [
+    ("Open the YouTube.", "youtube_open"),
+    ("Jarvis, open up the YouTube website", "youtube_open"),
+    ("go to the Bing home page", "bing_open"),
+])
+def test_open_with_the(text, tool):
+    tools, opened, _, _ = make()
+    assert tools.handle(text).tool == tool and len(opened) == 1
+
+
+def test_open_youtube_then_play_the_first_one_asks_for_a_topic():
+    tools, opened, _, _ = make()
+    r = tools.handle("Open YouTube. Then play the first one.")
+    assert r.tool == "youtube_need_topic" and r.text.startswith("Which video, sir?")
+    assert opened == ["https://www.youtube.com"]
+    assert tools.handle("Fourier series").tool == "youtube_search"        # the question is still open
+
+
+def test_and_play_the_first_video_after_opening_youtube():
+    tools, opened, _, _ = make()
+    tools.handle("Open the YouTube.")
+    assert tools.handle("And play the first video.").tool == "youtube_need_topic"
+
+
+@pytest.mark.parametrize("text", ["open YouTube and play lofi music", "Open YouTube. Then play lofi music.",
+                                  "open YouTube, then search for lofi music"])
+def test_open_youtube_and_play_something(text):
+    tools, opened, _, _ = make()
+    r = tools.handle(text)
+    assert r.tool == "youtube_search" and opened[-1] == youtube_results_url("lofi music")
+
+
+def test_a_search_with_and_in_it_is_not_split():
+    tools, opened, _, _ = make()
+    tools.handle("search Bing for cats and dogs")
+    assert opened == [bing_url("cats and dogs")]
+    tools.handle("play Romeo and Juliet on YouTube")
+    assert opened[-1] == youtube_results_url("Romeo and Juliet")
+
+
+def test_play_the_video_resumes_a_video_you_opened_yourself():
+    tools, opened, keys, _ = make()
+    assert tools.handle("Jarvis, stop the video.").text == "Paused."          # a video Jarvis didn't open
+    assert tools.handle("Jarvis, play the video.").tool == "media_resume" and keys == ["play/pause"] * 2
+
+
+def test_a_bare_continue_is_not_a_video_command():
+    tools, _, keys, _ = make()
+    assert tools.handle("continue") is None and keys == []
+
+
+def test_questions_with_and_still_go_to_the_model():
+    tools, opened, keys, _ = make()
+    for text in ["what is entropy and why does it increase", "explain Fourier series. Then give an example."]:
+        assert tools.handle(text) is None
+    assert opened == [] and keys == []
+
+
+def test_the_model_never_answers_with_only_the_command_words():
+    from jarvis.persona import Persona
+    prompt = Persona.load().system_prompt(language_instruction="Reply in English.", spoken=True, mode="balanced")
+    assert "never reply with only the command words" in prompt

@@ -891,3 +891,19 @@ or `/camera on`; `/camera off`; `/status` shows the camera. 12 tests with a
 pretend camera and pretend MediaPipe (374 in all); the real camera test is
 on the laptop.
 
+Palm to pause on the laptop (25 Oct, /camera on): a right palm while Jarvis
+was answering stopped it ("[palm] stopped."). The same session showed web
+tool gaps: "Open the YouTube." (with "the") and "Open YouTube. Then play the
+first one." (two requests at once) missed the fixed rules, and the model,
+told to give the words that work, replied with only "open YouTube"; "play the
+video" after pausing a video Adhi opened himself was refused. Fixed: "the"
+and "website/app/home page" are allowed; two requests in one breath are
+split at a sentence end or "and"/"then" when the first part is a command on
+its own ("search Bing for cats and dogs" stays one search); "play the first
+one" with nothing listed yet asks for a topic; an answer like "then play
+lofi music" searches "lofi music"; "play/resume the video" works without a
+page of Jarvis's (a bare "continue" doesn't); and the model now says in a
+sentence that it didn't catch a command instead of only the words. 13 new
+tests, which fail on the old code. Whisper heard "Fourier" as "Furio": a
+vocabulary hint for study words is a candidate fix.
+

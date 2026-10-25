@@ -53,6 +53,7 @@ PHRASES = {
         "no_back": "There's no page to go back to.",
         "which": "Sorry, which one? Say first, second or third.",
         "ask_query": "What should I search for?",
+        "yt_need_topic": "Which video, {address}? Tell me a topic or a title and I'll find it.",
         "ok": "Alright.",
     },
     "si": {
@@ -71,6 +72,7 @@ PHRASES = {
         "no_back": "ආපහු යන්න පිටුවක් නෑ.",
         "which": "සමාවෙන්න, මොකක්ද? පළවෙනි, දෙවෙනි, නැත්නම් තුන්වෙනි එක කියන්න.",
         "ask_query": "මොනවද හොයන්න ඕනේ?",
+        "yt_need_topic": "මොන වීඩියෝ එකද? මාතෘකාවක් හරි නමක් හරි කියන්න, මම හොයලා දෙන්නම්.",
         "ok": "හරි.",
     },
 }
@@ -103,7 +105,8 @@ def _rx(*patterns: str) -> list[re.Pattern[str]]:
     return [re.compile(rf"^{_LEAD}{p}{_TAIL}$", re.IGNORECASE) for p in patterns]
 
 
-OPEN_BING = _rx(rf"(?:{_OPEN_EN})\s+(?:up\s+)?(?:{_BING})", rf"(?:{_BING})", rf"(?:{_BING})\s+eka\s+(?:{_OPEN_SL})",
+_SITE = r"(?:\s+(?:app|website|site|page|home\s+page))?"
+OPEN_BING = _rx(rf"(?:{_OPEN_EN})\s+(?:up\s+)?(?:the\s+)?(?:{_BING}){_SITE}", rf"(?:{_BING})", rf"(?:{_BING})\s+eka\s+(?:{_OPEN_SL})",
                 rf"(?:{_BING})\s+එක\s+(?:{_OPEN_SI})",
                 rf"(?:i\s+want\s+to|i\s+would\s+like\s+to|i'd\s+like\s+to|let's|lets)\s+"
                 rf"(?:use\s+|open\s+|go\s+to\s+|search\s+(?:on\s+|with\s+)?)(?:{_BING})")
@@ -114,7 +117,7 @@ SEARCH_BING = _rx(rf"(?:search|look\s+up|find)(?:\s+me)?\s+(?:on\s+)?(?:{_BING})
                   rf"(?:{_BING})\s+එකේ\s+(?P<q>.+?)\s+(?:{_SEARCH_SI})",
                   rf"(?P<q>.+?)\s+(?:{_BING})\s+එකේ\s+(?:{_SEARCH_SI})",
                   rf"(?:{_BING})\s+(?!{_NOT_QUERY})(?:search\s+)?(?:for\s+)?(?P<q>.+)")
-OPEN_YT = _rx(rf"(?:{_OPEN_EN})\s+(?:up\s+)?(?:{_YT})", rf"(?:{_YT})", rf"(?:{_YT})\s+eka\s+(?:{_OPEN_SL})",
+OPEN_YT = _rx(rf"(?:{_OPEN_EN})\s+(?:up\s+)?(?:the\s+)?(?:{_YT}){_SITE}", rf"(?:{_YT})", rf"(?:{_YT})\s+eka\s+(?:{_OPEN_SL})",
               rf"(?:{_YT})\s+එක\s+(?:{_OPEN_SI})",
               rf"(?:i\s+want\s+to|i\s+would\s+like\s+to|i'd\s+like\s+to|let's|lets)\s+"
               rf"(?:watch\s+(?:something\s+on\s+)?|use\s+|open\s+|go\s+to\s+|go\s+on\s+)(?:{_YT})",
@@ -130,7 +133,8 @@ SEARCH_YT = _rx(rf"(?:search|look\s+up|find)(?:\s+me)?\s+(?:on\s+)?(?:{_YT})\s+(
 PAUSE = _rx(r"(?:stop|pause)\s+(?:the\s+)?(?:video|youtube|music|song)", r"pause(?:\s+it)?",
             r"(?:video|youtube)\s+eka\s+(?:nawaththanna|nawaththannako|pause\s+karanna|stop\s+karanna)",
             r"(?:වීඩියෝ|යූටියුබ්)\s+එක\s+(?:නවත්තන්න|නවත්තන්නකෝ|පෝස්\s+කරන්න|ස්ටොප්\s+කරන්න)")
-RESUME = _rx(r"(?:resume|continue|unpause)(?:\s+(?:the\s+)?(?:video|it))?", r"play\s+(?:the\s+video|it)\s+again",
+RESUME = _rx(r"(?:resume|continue|unpause)(?:\s+(?:the\s+)?(?:video|it|music|song))?",
+             r"play\s+(?:the\s+video|it)\s+again", r"play\s+(?:the\s+)?(?:video|music|song)",
              r"(?:video|youtube)\s+eka\s+(?:aye|ayeth)\s+(?:danna|play\s+karanna)",
              r"(?:වීඩියෝ|යූටියුබ්)\s+එක\s+ආයේ\s+(?:දාන්න|ප්ලේ\s+කරන්න)")
 BACK = _rx(r"(?:go\s+)?back", r"go\s+to\s+the\s+previous\s+page", r"previous\s+page",
@@ -145,6 +149,23 @@ _ORDINALS = [
     {"second", "2", "two", "2nd", "deweni", "දෙවෙනි", "දෙවැනි"},
     {"third", "3", "three", "3rd", "thunweni", "තුන්වෙනි", "තුන්වැනි"},
 ]
+
+
+# Two requests in one breath: "Open YouTube. Then play lofi music." / "open
+# YouTube and play lofi music". Split only where a sentence ends or at "and" /
+# "then", and only if the first part is a command on its own.
+_SPLIT = re.compile(r"\s*[.!?]+\s+|\s*,?\s+(?:and\s+then|then|and)\s+", re.IGNORECASE)
+# Words to drop from the front of an answer: "then play lofi music" -> "lofi music".
+_QUERY_LEAD = re.compile(r"^(?:(?:and|then|so|now|ok|okay|please|jarvis|friday)\s+)*"
+                         r"(?:(?:play|search\s+for|search|find|look\s+up|watch|show\s+me)\s+)?", re.IGNORECASE)
+_FILLER = {"then", "and", "play", "the", "a", "video", "videos", "one", "please", "jarvis", "friday", "now",
+           "watch", "on", "youtube", "danna", "eka", "දාන්න", "එක"}
+
+
+def _only_ordinal(low: str) -> bool:
+    """"play the first video" with nothing to choose from yet."""
+    rest = set(low.split()) - _FILLER
+    return bool(rest) and rest <= set().union(*_ORDINALS)
 
 
 def _clean(text: str) -> str:
@@ -231,7 +252,20 @@ class WebTools:
 
     # ---- the one entry point ------------------------------------------------
     def handle(self, text: str, lang: str = "en", address: str = "sir") -> ToolReply | None:
-        """A reply if `text` is one of these requests (or answers Jarvis's question), else None."""
+        """A reply if `text` is one of these requests (or answers Jarvis's question), else None.
+
+        "Open YouTube. Then play lofi music." is two requests: each part is
+        handled in turn, and Jarvis says the last reply.
+        """
+        words = _clean(text)
+        if words and not any(_match(group, words) for group in _COMMANDS):
+            parts = [part for part in _SPLIT.split(text) if _clean(part)]
+            if len(parts) > 1 and any(_match(group, _clean(parts[0])) for group in _COMMANDS):
+                replies = [r for part in parts if (r := self._handle_one(part, lang, address))]
+                return replies[-1] if replies else None
+        return self._handle_one(text, lang, address)
+
+    def _handle_one(self, text: str, lang: str, address: str) -> ToolReply | None:
         words = _clean(text)
         if not words:
             return None
@@ -263,7 +297,9 @@ class WebTools:
         if _match(PAUSE, words):
             return self._pause(reply)
         if _match(RESUME, words):
-            if not self.pages:
+            # With no page of Jarvis's open, only "play/resume the video" (not a
+            # bare "continue", which may mean "go on with your explanation").
+            if not self.pages and not re.search(r"video|music|song|youtube|වීඩියෝ|යූටියුබ්", words, re.IGNORECASE):
                 return None
             self.media_key()
             self.playing = True
@@ -298,7 +334,10 @@ class WebTools:
             self._open(youtube_watch_url(video_id))
             self.playing = True
             return reply("yt_playing", "youtube_play", title=_short(title))
-        query = words
+        if pending.kind == "youtube_query" and _only_ordinal(low):
+            self.pending = Pending("youtube_query", self.clock() + WAIT_S)   # nothing to choose from yet
+            return reply("yt_need_topic", "youtube_need_topic")
+        query = _QUERY_LEAD.sub("", words).strip() or words
         if pending.kind == "bing_query":
             return self._bing(query, reply)
         return self._youtube_search(query, reply)
