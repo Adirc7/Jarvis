@@ -246,7 +246,7 @@ Jarvis speaks -> ignored. Never sleep, quit, cancel or confirm.
 microphone, both already in Jarvis. No model: a clap is a sharp, short,
 broadband sound, and signal processing can find that.
 
-1. **`src/jarvis/sensors/clap.py`, a pure detector (you).** `ClapDetector`
+1. **`src/jarvis/perception/clap.py`, a pure detector (you).** `ClapDetector`
    gets blocks of 16 kHz audio and returns events; no microphone inside, so
    it can be tested with made-up audio.
    - Frames of 10 ms (160 samples); energy of each frame in dB.
@@ -378,19 +378,25 @@ recognizer = vision.GestureRecognizer.create_from_options(options)
    depends on whether the frame is mirrored; check it rather than assume).
    `scripts/smoke_test.py` already opens the camera with the hand
    landmarker, so start from there.
-2. **`src/jarvis/sensors/gestures.py`, the rules without the camera
-   (you).** `PalmTrigger.update(t, hands) -> bool`, where `hands` is a list of
-   (hand, gesture, score). A small state machine: waiting -> holding ->
-   fired -> re-arming. Allow one or two missed frames in the middle of a
-   hold (tracking flickers).
+2. **`src/jarvis/perception/gestures.py`, the rules without the camera
+   (built 25 Oct: Claude wrote it, Adhi reviews; 17 tests in
+   `tests/test_gestures.py`).** `PalmTrigger.update(t, hands) -> bool`,
+   where `hands` is a list of `HandSeen` (side, gesture, score, the palm's
+   middle and size). `PalmHold` underneath is a small state machine:
+   waiting -> holding -> fired -> rearming. It forgives one or two lost
+   results mid-hold (tracking flickers), restarts the hold if the palm moves
+   more than 0.35 of its size, and reads its numbers from `[gestures]`. The
+   preview and the report use the same `PalmHold`.
    Later the same file holds the `GestureRouter` (Codex section 12): it
    gives the hand to exactly one mode at a time, so while the virtual mouse
    is on, swipes are off and the palm means "freeze the pointer" (D29).
-3. **Tests (you), `tests/test_gestures.py`, with made-up frames:** held
-   0.6 s -> one event; 0.3 s -> none; left hand -> none; held 3 s -> still
-   one; one missed frame mid-hold -> still one; hand lost for five frames
-   mid-hold -> none; palm, drop 0.6 s, palm -> two.
-4. **The camera thread, `src/jarvis/sensors/camera.py` (you):**
+3. **Tests, `tests/test_gestures.py`, with made-up frames:** held 0.6 s
+   -> one event; 0.3 s -> none; left hand -> none (unless chosen); held 3 s
+   -> still one; one lost result mid-hold -> still one; hand lost for five
+   results mid-hold -> none; palm, drop 0.6 s, palm -> two; a 0.2 s drop ->
+   one; a fist between palms re-arms; a wave -> none; a small shake -> one;
+   a rising hand counts once it stops.
+4. **The camera thread, `src/jarvis/perception/camera.py` (you):**
    `CameraSource` (OpenCV owns the camera; only one part of Jarvis may hold
    it at a time, Codex section 8) and `HandTracker` (MediaPipe). It opens
    the camera only when `[gestures] enabled = true` (or `/camera on`; the

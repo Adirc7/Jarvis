@@ -872,3 +872,9 @@ harmless under D29: the palm acts only while Jarvis speaks or a video it
 opened is playing, and then means "hold on". Still to measure: other light
 and distances, and false palms per hour of normal work (Codex "done when").
 
+Palm to pause, step 2 (25 Oct): `src/jarvis/perception/gestures.py`
+(PalmHold, HandSeen, PalmSettings, PalmTrigger), in the perception package
+already set aside for Phase 3, with 17 tests in tests/test_gestures.py. The
+preview and the report now import the same PalmHold, so all three use one
+rule. Plan paths changed from sensors/ to perception/.
+

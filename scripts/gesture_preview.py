@@ -52,7 +52,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+# The palm rule itself (held still for half a second, once) lives in Jarvis,
+# so the preview, the report and Jarvis all use the same one.
 from jarvis.config import load_settings
+from jarvis.perception.gestures import PalmHold
 
 WINDOW = "Jarvis gesture preview"
 
@@ -80,68 +83,6 @@ FINGERS = ("thumb", "index", "middle", "ring", "little")
 # If the points check says "back of hand" while your palm faces the camera,
 # the camera is the other way round: gestures.facing_sign = -1 in settings.
 FACING_SIGN = 1
-
-
-# --------------------------------------------------------------------------
-# The palm rule: held long enough, once, then the hand must drop first.
-# This is the preview's version; step 2 of the plan turns it into
-# PalmTrigger in src/jarvis/sensors/gestures.py, with tests.
-# --------------------------------------------------------------------------
-@dataclass
-class PalmHold:
-    hold_s: float = 0.5        # how long the palm must be held
-    rearm_s: float = 0.5       # how long the hand must be away before the next palm
-    max_missed: int = 2        # frames the tracker may lose mid-hold (it flickers)
-    # How far the middle of the palm may drift during the hold, as a share of
-    # the palm's size. A "stop" palm stays put; a wave swings much further.
-    # None (or 0) switches the stillness check off.
-    max_move: float | None = 0.35
-    state: str = "waiting"     # waiting -> holding -> fired -> rearming -> waiting
-    since: float = 0.0
-    missed: int = 0
-    anchor: tuple[float, float] | None = None    # where the palm was when the hold (re)started
-    moved_at: float = -10.0                      # last time a move restarted the hold
-
-    def update(self, t: float, palm: bool, centre: tuple[float, float] | None = None,
-               size: float | None = None) -> bool:
-        """Feed one result. Returns True only on the frame the palm is accepted.
-
-        `centre` and `size` (in pixels) let the rule check the palm is still.
-        """
-        if self.state == "waiting":
-            if palm:
-                self.state, self.since, self.missed, self.anchor = "holding", t, 0, centre
-        elif self.state == "holding":
-            if palm:
-                self.missed = 0
-                if self._moved(centre, size):
-                    # It's moving (a wave, or the hand still rising): the
-                    # half second starts again from here.
-                    self.since, self.anchor, self.moved_at = t, centre, t
-                elif t - self.since >= self.hold_s:
-                    self.state = "fired"
-                    return True
-            else:
-                self.missed += 1
-                if self.missed > self.max_missed:      # the hand really went: start again
-                    self.state = "waiting"
-        elif self.state == "fired":
-            if not palm:
-                self.state, self.since = "rearming", t
-        elif self.state == "rearming":
-            if palm:
-                self.state = "fired"                   # still the same palm: no second event
-            elif t - self.since >= self.rearm_s:
-                self.state = "waiting"
-        return False
-
-    def _moved(self, centre, size) -> bool:
-        if not self.max_move or centre is None or self.anchor is None or not size:
-            return False
-        return math.dist(centre, self.anchor) > self.max_move * size
-
-    def held(self, t: float) -> float:
-        return t - self.since if self.state == "holding" else 0.0
 
 
 @dataclass
