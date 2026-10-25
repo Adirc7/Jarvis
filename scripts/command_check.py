@@ -17,7 +17,9 @@ opens, no key is pressed, and YouTube searches return the same three videos:
 
 Prints each line (right or wrong, and whether the rules or the model did it),
 then accuracy per language and per kind of request, and saves everything to
-logs/command_check-<time>.json. Add your own lines to eval/commands.jsonl:
+logs/command_check-<time>.json, with Jarvis's own log of the model calls
+(which model answered, fallbacks and their reasons, timings) next to it as
+logs/command_check-<time>.jsonl. Add your own lines to eval/commands.jsonl:
 the more of your real phrasings it holds, the better it measures.
 """
 
@@ -128,13 +130,13 @@ def judge(case: dict, seen: Seen) -> tuple[bool, str]:
     return True, ""
 
 
-async def run(cases: list[dict], rules_only: bool, pause_s: float) -> list[dict]:
+async def run(cases: list[dict], rules_only: bool, pause_s: float, telemetry: Telemetry) -> list[dict]:
     settings = load_settings()                       # your settings and API keys, as Jarvis uses them
     settings.raw.setdefault("tools", {})["model_tools"] = "off" if rules_only else "always"
     settings.raw.setdefault("memory", {})["enabled"] = False
     llm = FallbackLLM(configured_providers(settings.providers(), settings.get("llm.timeout_s", 20),
                                            float(settings.get("llm.keepalive_s", 120))),
-                      Telemetry.disabled(), routes=settings.routes())
+                      telemetry, routes=settings.routes())
     if not rules_only and not llm.providers:
         print("No API keys found (.env). Run with --rules-only, or add a key.")
         return []
@@ -143,7 +145,8 @@ async def run(cases: list[dict], rules_only: bool, pause_s: float) -> list[dict]
         web = PretendWeb()
         set_up(web, case.get("setup", "none"))
         web.recording = True
-        app = App(settings, Telemetry.disabled(), llm=llm, out=lambda *a, **k: None, web=web,
+        telemetry.log("command_check_line", line=i, text=case["text"], lang=case["lang"], setup=case.get("setup"))
+        app = App(settings, telemetry, llm=llm, out=lambda *a, **k: None, web=web,
                   memory=Memory(None), presence=Presence(None))
         start = time.perf_counter()
         if rules_only:
@@ -205,12 +208,14 @@ def main() -> int:
     if args.only:
         cases = [c for c in cases if c["lang"] == args.only]
     print(f"{len(cases)} lines from {args.file.name}" + (" (rules only)" if args.rules_only else ""))
-    results = asyncio.run(run(cases, args.rules_only, args.pause))
+    stamp = f"{datetime.now():%Y%m%d-%H%M%S}"                                    # noqa: DTZ005 - local time
+    out = ROOT / "logs" / f"command_check-{stamp}.json"
+    out.parent.mkdir(exist_ok=True)
+    telemetry = Telemetry.disabled() if args.rules_only else Telemetry(out.with_suffix(".jsonl"))
+    results = asyncio.run(run(cases, args.rules_only, args.pause, telemetry))
     if not results:
         return 1
     summary(results)
-    out = ROOT / "logs" / f"command_check-{datetime.now():%Y%m%d-%H%M%S}.json"   # noqa: DTZ005 - local time
-    out.parent.mkdir(exist_ok=True)
     out.write_text(json.dumps(results, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"Saved: {out.relative_to(ROOT)}")
     return 0

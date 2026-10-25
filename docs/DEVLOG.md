@@ -979,3 +979,21 @@ put on, nawaththanna pause, anthima last, gana about, ...) and says to ask
 one short question when it isn't clear which video is meant. The real-model
 run of command_check.py (both sets) is the next measurement, on the laptop.
 
+Understanding with the real model, on the laptop (25 Oct, 16:44, Groq
+gpt-oss and Gemini, both sets, rules + model with tools):
+- First set 59/60 (98%): English 32/33, Singlish 16/16, Sinhala 11/11.
+- Held-out set 48/48 (100%): English 27/27, Singlish 13/13, Sinhala 8/8.
+- No action anyone didn't ask for (0 of 19 "just answer" lines acted).
+- The model handled every line the rules left it: "the anime one" and
+  "anime eka danna" -> video 3 (the One Piece edit), "I want to see that
+  Luffy clip" and "play the baka song with the Luffy edit" -> a YouTube
+  search, "I'm in the mood for some jazz" -> a search for jazz music.
+- The one miss: "shh, quiet for a moment" with a video playing; the model
+  took it as "Jarvis, be quiet". Now a rule: "shh", "quiet", "hush" pause
+  Jarvis's video while it plays (and mean nothing otherwise).
+- Time: most model calls took 1-3 s for the whole reply, but six took
+  12-25 s, falling back from gpt-oss-20b to gpt-oss-120b or Gemini
+  Flash-Lite; the test sends requests faster than speech, so Groq's free
+  per-minute limits are a likely cause. command_check now saves Jarvis's
+  log of each model call (fallbacks and their reasons) to find out.
+

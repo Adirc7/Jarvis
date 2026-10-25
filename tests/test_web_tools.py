@@ -459,3 +459,14 @@ def test_these_are_not_commands(text):
     tools.handle("search YouTube for lofi")
     tools.handle("first")                                 # even with a video playing
     assert tools.handle(text) is None and keys == []
+
+
+@pytest.mark.parametrize("text", ["shh, quiet for a moment", "quiet please", "shhh"])
+def test_shh_pauses_jarvis_video(text):
+    # The real model (25 Oct) took "shh, quiet for a moment" as "Jarvis, be quiet"
+    # while a video played. With Jarvis's video playing, it pauses the video.
+    tools, _, keys, _ = make()
+    tools.handle("search YouTube for lofi")
+    tools.handle("first")
+    assert tools.handle(text).tool == "media_pause" and keys == ["play/pause"]
+    assert make()[0].handle(text) is None              # with nothing playing: not a command

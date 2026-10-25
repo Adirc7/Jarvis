@@ -186,6 +186,7 @@ PAUSE_PLAYING = _rx(
     rf"{_STOP}(?:\s+(?:it|that|this|the\s+video|the\s+music|the\s+song))?"
     r"(?:\s+(?:for\s+)?(?:a\s+)?(?:sec|second|moment|bit|minute|while))?",
     r"(?:hold\s+on|wait)(?:\s+wait)*",
+    r"(?:sh+|shush|hush|quiet|silence)(?:\s+(?:sh+|quiet|please))*(?:\s+(?:for\s+)?(?:a\s+)?(?:sec|second|moment|bit))?",
     r"(?:video\s+eka\s+(?:.+\s+)?)?(?:nawaththanna|nawaththannako|nawaththapan)",
     r"(?:(?:ඒක|එක|ඕක|වීඩියෝ\s+එක)\s+(?:.+\s+)?)?(?:නවත්තන්න|නවත්තන්නකෝ)")
 RESUME_PAUSED = _rx(
