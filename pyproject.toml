@@ -29,6 +29,13 @@ mms = [
     "transformers>=4.40",
     "torch>=2.2",
 ]
+# Adhi's intent model (docs/TRAINING_INTENT.md): scikit-learn for level 1,
+# sentence-transformers (multilingual-e5, pulls in torch) for level 2.
+ml = [
+    "scikit-learn>=1.5",
+    "joblib>=1.4",
+    "sentence-transformers>=3.0",
+]
 vision = [
     # MediaPipe 1.x: the Tasks API only (the old mp.solutions is gone). It
     # brings opencv-contrib-python (cv2, for the camera); don't also add

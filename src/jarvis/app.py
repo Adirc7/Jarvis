@@ -110,7 +110,7 @@ class App:
         )
         # Which kind of request, so which models (agent/router.py). Adhi's
         # intent classifier replaces the keyword rules later (IntentRouter).
-        self.router = router or KeywordRouter(int(settings.get("llm.long_prompt_chars", 12000)))
+        self.router = router or self._make_router()
         self.sink = sink or TextSink(out)
         # Voice tools for Bing and YouTube (tools/web.py): fixed rules, two sites only.
         if web is not None:
@@ -152,6 +152,25 @@ class App:
             self.persona.user_name = self.memory.name
         if self.settings.get("memory.keep_conversation", True):
             self.history = self.memory.recent_if_fresh(float(self.settings.get("memory.continue_hours", 12)))
+
+    def _make_router(self) -> Router:
+        """The keyword rules, or Adhi's trained intent model in front of them when
+        [intents] model names a file that exists (docs/TRAINING_INTENT.md)."""
+        rules = KeywordRouter(int(self.settings.get("llm.long_prompt_chars", 12000)))
+        path = self.settings.path("intents.model", "models/intent/intent.joblib")
+        if not path.exists():
+            return rules
+        try:
+            from .agent.router import IntentRouter
+            from .intents.classifier import load_classifier
+            classify, saved = load_classifier(path)
+        except Exception as exc:  # noqa: BLE001 - a broken model file must not stop Jarvis
+            self.out(f"[intent model] couldn't load {path.name} ({type(exc).__name__}: {exc}); using the keyword rules")
+            self.telemetry.log("intent_model_failed", error=str(exc)[:200])
+            return rules
+        self.out(f"[intent model] {path.name} ({saved.get('kind', '?')}, trained {saved.get('trained', '?')})")
+        self.telemetry.log("intent_model", file=path.name, kind=saved.get("kind"))
+        return IntentRouter(classify, rules, float(self.settings.get("intents.min_confidence", 0.6)))
 
     # ---- language -------------------------------------------------------
     def _on_language_changed(self, ev: LanguageChanged) -> None:

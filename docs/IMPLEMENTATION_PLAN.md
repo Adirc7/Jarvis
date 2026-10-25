@@ -164,6 +164,9 @@ statistics, data science, computing, research and management, including the
 Kelaniya PMAT, AMAT and PHYS modules and the IT modules, by course code.
 Train on these, test on your real sentences. Class sizes differ a lot
 (greetings 10, study requests 360 in Sinhala), so use class weights.
+**How to train it, step by step:** `docs/TRAINING_INTENT.md` (25 Oct): the
+data sets, levels 1 and 2, measuring with `scripts/intent_eval.py`, your own
+sentences, and plugging it into Jarvis.
 
 **Learn:** JSON schema for tool arguments; what prompt injection is; why
 "verified" and "claimed" differ.

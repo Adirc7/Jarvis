@@ -997,3 +997,29 @@ gpt-oss and Gemini, both sets, rules + model with tools):
   per-minute limits are a likely cause. command_check now saves Jarvis's
   log of each model call (fallbacks and their reasons) to find out.
 
+Your intent model, ready to train (25 Oct). `docs/TRAINING_INTENT.md` is the
+guide: level 1 (character pieces + logistic regression) and level 2
+(multilingual-e5-small vectors + logistic regression), written and run by
+you. Ready around it:
+- `scripts/make_intent_sets.py`: train (13,577 generated sentences), dev
+  (2,053 from templates train never saw, so a template can't be learned by
+  heart) and a real test (the 108 phrasings of eval/commands*.jsonl, with
+  the intents that count as right). Your own sentences go in
+  `data/intent/mine.jsonl` and join train only; a copy of a real test line
+  is left out and named.
+- `scripts/intent_eval.py`: dev accuracy and macro-F1 per language, the
+  real test, how many lines it would decide alone at limits 0.5-0.9 and how
+  often it's right then, speed, confusions and every real mistake.
+- In Jarvis: when `models/intent/intent.joblib` exists, `[intents]` in
+  settings.toml puts it in front of the keyword rules (IntentRouter): it
+  picks the route when at least `min_confidence` sure, the rules decide
+  otherwise; a missing or broken file changes nothing. Tests in
+  tests/test_intent_model.py.
+- A trial run of the guide's level-1 code: trained in 11 s, about 1 ms a
+  sentence; dev 77.3% (macro-F1 0.716), real test 55.7% (English 20/48,
+  Singlish 16/24, Sinhala 13/16); at 0.6 it decides 10 of 88 real lines
+  alone, all right. The gap is the lesson: the generated English says
+  "open YouTube", real English says "pull up YouTube". Step 4 of the guide
+  (your own sentences) is how it closes. Level 2 couldn't run here (the
+  encoder can't be downloaded in the cloud workspace); its first run is on
+  the laptop.

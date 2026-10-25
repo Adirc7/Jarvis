@@ -19,3 +19,5 @@ state/
 data/generated/
 # Your hand's points from scripts/gesture_preview.py (P and N); stay on the laptop
 data/gestures/
+# Data prepared for the intent model (scripts/make_intent_sets.py); rebuild any time
+data/intent/

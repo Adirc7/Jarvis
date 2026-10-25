@@ -21,6 +21,7 @@ if errorlevel 1 goto :fail
 set "EXTRAS=--extra voice --extra vision --extra desktop --extra dev"
 uv pip show nvidia-cudnn-cu12 >nul 2>nul && set "EXTRAS=%EXTRAS% --extra gpu"
 uv pip show torch >nul 2>nul && set "EXTRAS=%EXTRAS% --extra mms"
+uv pip show scikit-learn >nul 2>nul && set "EXTRAS=%EXTRAS% --extra ml"
 
 echo.
 echo === Installing packages: uv sync %EXTRAS%

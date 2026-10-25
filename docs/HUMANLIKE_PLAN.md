@@ -153,7 +153,11 @@ actions at most 2%.
    features with logistic regression). It trains on the 15,630 generated
    sentences plus confirmed corrections, is tested on the messy set, and
    plugs in through `IntentRouter`. Slots (site, query, number) come from
-   the rules, or from the model when they can't.
+   the rules, or from the model when they can't. **Ready to train 25 Oct:**
+   the guide `docs/TRAINING_INTENT.md`, the sets (`scripts/make_intent_sets.py`),
+   the scoring (`scripts/intent_eval.py`), and `[intents]` in settings.toml,
+   which puts the trained file in front of the routing rules; acting on
+   commands comes once it scores well on the real set.
 7. **Confidence gate** with a two-option question ("Bing or YouTube?").
 8. **Learning from corrections** (D27): opt-in examples, the
    similar-examples lookup, a weekly retrain, and the new model kept only if

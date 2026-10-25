@@ -113,6 +113,13 @@ num_hands = 1
 hand_model = "models/hand_landmarker.task"
 gesture_model = "models/gesture_recognizer.task"   # palm, thumbs (docs/IMPLEMENTATION_PLAN.md, M8)
 
+[intents]
+# Adhi's trained intent model (docs/TRAINING_INTENT.md). When this file
+# exists, it decides the kind of request (and so which model answers) when
+# it's at least min_confidence sure; otherwise the keyword rules decide.
+model = "models/intent/intent.joblib"
+min_confidence = 0.6
+
 [gestures]
 # Palm to pause (decision D29; docs/IMPLEMENTATION_PLAN.md, M8): a palm held
 # still for half a second stops Jarvis talking, or plays or pauses a video
