@@ -31,11 +31,14 @@ which check everything.
 ## Step 0: install (once)
 
 ```
-uv sync --extra ml
+scripts\update.cmd
+scripts\update.cmd ml
 ```
 
-(adds scikit-learn, joblib and sentence-transformers; after that,
-`scripts\update.cmd` keeps them). Check:
+(the first gets the new update.cmd, the second adds scikit-learn, joblib
+and sentence-transformers to what you have; after that, plain `scripts\update.cmd` keeps them. Don't
+use `uv sync --extra ml` alone: uv sync removes what you don't list, voice
+and camera included). Check:
 
 ```
 uv run python -c "import sklearn, sentence_transformers; print(sklearn.__version__)"
@@ -348,7 +351,7 @@ check yours with the confident table).
 | What you see | What it means |
 |---|---|
 | `No data/intent/dev.jsonl` | run `scripts/make_intent_sets.py` first |
-| `ModuleNotFoundError: sklearn` | `uv sync --extra ml` |
+| `ModuleNotFoundError: sklearn` | `scripts\update.cmd ml` |
 | `ConvergenceWarning` | raise `max_iter`; harmless if dev scores are fine |
 | `expected a dict saved with joblib` | save the dict as in the code above, not the bare pipeline |
 | level 2: a download error | the first run needs internet (huggingface.co); after that it's cached |

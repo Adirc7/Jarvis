@@ -4,9 +4,10 @@ rem packages with the same options setup chose (GPU and Tamil voice only if
 rem they're already installed). Close Jarvis first: Windows locks files in use.
 rem "git pull" may change this very file while it runs, which confuses cmd,
 rem so it runs from a copy in the temp folder.
+rem "scripts\update.cmd ml" also installs the intent-model tools (docs/TRAINING_INTENT.md).
 if not "%~1"=="--from-temp" (
     copy /y "%~f0" "%TEMP%\jarvis-update.cmd" >nul
-    call "%TEMP%\jarvis-update.cmd" --from-temp "%~dp0.."
+    call "%TEMP%\jarvis-update.cmd" --from-temp "%~dp0.." %*
     exit /b
 )
 setlocal
@@ -21,7 +22,10 @@ if errorlevel 1 goto :fail
 set "EXTRAS=--extra voice --extra vision --extra desktop --extra dev"
 uv pip show nvidia-cudnn-cu12 >nul 2>nul && set "EXTRAS=%EXTRAS% --extra gpu"
 uv pip show torch >nul 2>nul && set "EXTRAS=%EXTRAS% --extra mms"
-uv pip show scikit-learn >nul 2>nul && set "EXTRAS=%EXTRAS% --extra ml"
+set "ML="
+uv pip show scikit-learn >nul 2>nul && set "ML=1"
+if /i "%~3"=="ml" set "ML=1"
+if defined ML set "EXTRAS=%EXTRAS% --extra ml"
 
 echo.
 echo === Installing packages: uv sync %EXTRAS%
