@@ -1,0 +1,48 @@
+{"text": "fire up YouTube", "lang": "en", "setup": "none", "expect": "open_site", "check": {"site": "youtube"}}
+{"text": "can I get Bing on the screen", "lang": "en", "setup": "none", "expect": "open_site", "check": {"site": "bing"}}
+{"text": "let's go on YouTube", "lang": "en", "setup": "none", "expect": "open_site", "check": {"site": "youtube"}}
+{"text": "open up Bing for a sec", "lang": "en", "setup": "none", "expect": "open_site", "check": {"site": "bing"}}
+{"text": "youtube eka arinnako machan", "lang": "singlish", "setup": "none", "expect": "open_site", "check": {"site": "youtube"}}
+{"text": "bing ekata yamu", "lang": "singlish", "setup": "none", "expect": "open_site", "check": {"site": "bing"}}
+{"text": "යූටියුබ් එක අරින්නකෝ", "lang": "si", "setup": "none", "expect": "open_site", "check": {"site": "youtube"}}
+{"text": "I'm in the mood for some jazz", "lang": "en", "setup": "none", "expect": "search_youtube", "check": {"query_any": ["jazz"]}}
+{"text": "find me Naruto openings", "lang": "en", "setup": "none", "expect": "search_youtube", "check": {"query_any": ["naruto"]}}
+{"text": "anything on YouTube about black holes?", "lang": "en", "setup": "none", "expect": "search_youtube", "check": {"query_any": ["black hole"]}}
+{"text": "show me a tutorial on matrices", "lang": "en", "setup": "none", "expect": "search_youtube", "check": {"query_any": ["matri"]}}
+{"text": "machan naruto opening eka danna", "lang": "singlish", "setup": "none", "expect": "search_youtube", "check": {"query_any": ["naruto"]}}
+{"text": "lofi tikak play karanna", "lang": "singlish", "setup": "none", "expect": "search_youtube", "check": {"query_any": ["lofi"]}}
+{"text": "black holes gana video ekak pennanna", "lang": "singlish", "setup": "none", "expect": "search_youtube", "check": {"query_any": ["black hole"]}}
+{"text": "ජෑස් සින්දු ටිකක් දාන්න", "lang": "si", "setup": "none", "expect": "search_youtube", "check": {"query_any": ["ජෑස්", "jazz"]}}
+{"text": "කළු කුහර ගැන වීඩියෝ එකක් පෙන්නන්න", "lang": "si", "setup": "none", "expect": "search_youtube", "check": {"query_any": ["කළු කුහර", "black hole"]}}
+{"text": "search the web for cheap flights to Colombo", "lang": "en", "setup": "none", "expect": "search_bing", "check": {"query_any": ["flight"]}}
+{"text": "browse for vacuum cleaner reviews", "lang": "en", "setup": "none", "expect": "search_bing", "check": {"query_any": ["vacuum"]}}
+{"text": "web eke train timetable hoyanna", "lang": "singlish", "setup": "none", "expect": "search_bing", "check": {"query_any": ["train"]}}
+{"text": "colombo weather eka internet eke balanna", "lang": "singlish", "setup": "none", "expect": "search_bing", "check": {"query_any": ["weather"]}}
+{"text": "වෙබ් එකේ ට්‍රේන් කාලසටහන හොයන්න", "lang": "si", "setup": "none", "expect": "search_bing", "check": {"query_any": ["ට්‍රේන්", "train"]}}
+{"text": "the pirate one", "lang": "en", "setup": "listed", "expect": "play_video", "check": {"number": 3}}
+{"text": "number two please", "lang": "en", "setup": "listed", "expect": "play_video", "check": {"number": 2}}
+{"text": "the third video", "lang": "en", "setup": "listed", "expect": "play_video", "check": {"number": 3}}
+{"text": "not the first, the second", "lang": "en", "setup": "listed", "expect": "play_video", "check": {"number": 2}}
+{"text": "the hip hop one from 2021", "lang": "en", "setup": "listed", "expect": "play_video", "check": {"number": 1}}
+{"text": "deweniya", "lang": "singlish", "setup": "listed", "expect": "play_video", "check": {"number": 2}}
+{"text": "thunweni eka danna", "lang": "singlish", "setup": "listed", "expect": "play_video", "check": {"number": 3}}
+{"text": "අන්තිම වීඩියෝ එක", "lang": "si", "setup": "listed", "expect": "play_video", "check": {"number": 3}}
+{"text": "pause it for a moment", "lang": "en", "setup": "playing", "expect": "pause_media"}
+{"text": "wait wait, stop it", "lang": "en", "setup": "playing", "expect": "pause_media"}
+{"text": "nawaththanna", "lang": "singlish", "setup": "playing", "expect": "pause_media"}
+{"text": "ඒක නවත්තන්න", "lang": "si", "setup": "playing", "expect": "pause_media"}
+{"text": "resume please", "lang": "en", "setup": "paused", "expect": "resume_media"}
+{"text": "play it again", "lang": "en", "setup": "paused", "expect": "resume_media"}
+{"text": "aye play karanna", "lang": "singlish", "setup": "paused", "expect": "resume_media"}
+{"text": "දිගටම දාන්න", "lang": "si", "setup": "paused", "expect": "resume_media"}
+{"text": "back to the results", "lang": "en", "setup": "playing", "expect": "go_back"}
+{"text": "aapahu yanna", "lang": "singlish", "setup": "playing", "expect": "go_back"}
+{"text": "what is a black hole", "lang": "en", "setup": "none", "expect": "none"}
+{"text": "do you like music?", "lang": "en", "setup": "none", "expect": "none"}
+{"text": "who is Luffy", "lang": "en", "setup": "none", "expect": "none"}
+{"text": "how does YouTube make money", "lang": "en", "setup": "none", "expect": "none"}
+{"text": "I paused my studies last year", "lang": "en", "setup": "none", "expect": "none"}
+{"text": "my friend opened a shop near campus", "lang": "en", "setup": "none", "expect": "none"}
+{"text": "can you stop talking so fast", "lang": "en", "setup": "playing", "expect": "none"}
+{"text": "oyata sindu kiyanna puluwanda", "lang": "singlish", "setup": "none", "expect": "none"}
+{"text": "ඔයා කවුද?", "lang": "si", "setup": "none", "expect": "none"}
