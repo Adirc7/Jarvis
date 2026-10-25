@@ -51,7 +51,7 @@ PHRASES = {
         "not_playing": "Nothing is playing right now.",
         "back": "Going back.",
         "no_back": "There's no page to go back to.",
-        "which": "Sorry, which one? Say first, second or third.",
+        "which": "Sorry, which one? Say first, second or third, or a word from the title.",
         "ask_query": "What should I search for?",
         "yt_need_topic": "Which video, {address}? Tell me a topic or a title and I'll find it.",
         "ok": "Alright.",
@@ -70,7 +70,7 @@ PHRASES = {
         "not_playing": "දැන් මුකුත් ප්ලේ වෙන්නේ නෑ.",
         "back": "ආපහු ගියා.",
         "no_back": "ආපහු යන්න පිටුවක් නෑ.",
-        "which": "සමාවෙන්න, මොකක්ද? පළවෙනි, දෙවෙනි, නැත්නම් තුන්වෙනි එක කියන්න.",
+        "which": "සමාවෙන්න, මොකක්ද? පළවෙනි, දෙවෙනි, තුන්වෙනි, නැත්නම් නමේ වචනයක් කියන්න.",
         "ask_query": "මොනවද හොයන්න ඕනේ?",
         "yt_need_topic": "මොන වීඩියෝ එකද? මාතෘකාවක් හරි නමක් හරි කියන්න, මම හොයලා දෙන්නම්.",
         "ok": "හරි.",
@@ -133,6 +133,9 @@ SEARCH_YT = _rx(rf"(?:search|look\s+up|find)(?:\s+me)?\s+(?:on\s+)?(?:{_YT})\s+(
 PAUSE = _rx(r"(?:stop|pause)\s+(?:the\s+)?(?:video|youtube|music|song)", r"pause(?:\s+it)?",
             r"(?:video|youtube)\s+eka\s+(?:nawaththanna|nawaththannako|pause\s+karanna|stop\s+karanna)",
             r"(?:වීඩියෝ|යූටියුබ්)\s+එක\s+(?:නවත්තන්න|නවත්තන්නකෝ|පෝස්\s+කරන්න|ස්ටොප්\s+කරන්න)")
+# "play X" with no site named: only while a YouTube page Jarvis opened is in front.
+PLAY_HERE = _rx(r"(?:play|put\s+on|find)\s+(?:me\s+)?(?!(?:the\s+)?(?:video|music|song|it|first|second|third)\b)"
+                r"(?:the\s+)?(?P<q>.+)")
 RESUME = _rx(r"(?:resume|continue|unpause)(?:\s+(?:the\s+)?(?:video|it|music|song))?",
              r"play\s+(?:the\s+video|it)\s+again", r"play\s+(?:the\s+)?(?:video|music|song)",
              r"(?:video|youtube)\s+eka\s+(?:aye|ayeth)\s+(?:danna|play\s+karanna)",
@@ -160,6 +163,28 @@ _QUERY_LEAD = re.compile(r"^(?:(?:and|then|so|now|ok|okay|please|jarvis|friday)\
                          r"(?:(?:play|search\s+for|search|find|look\s+up|watch|show\s+me)\s+)?", re.IGNORECASE)
 _FILLER = {"then", "and", "play", "the", "a", "video", "videos", "one", "please", "jarvis", "friday", "now",
            "watch", "on", "youtube", "danna", "eka", "දාන්න", "එක"}
+
+
+# Words that say nothing about which video: ignored when matching a title.
+_NOT_TITLE = {"the", "a", "an", "one", "that", "this", "you", "your", "mentioned", "said", "play", "can",
+              "could", "please", "video", "song", "music", "jarvis", "friday", "and", "of", "it", "me", "i",
+              "want", "watch", "with", "on", "youtube", "danna", "eka", "දාන්න", "එක"}
+# The answer sounds like a choice even if it didn't name one ("play festival").
+_CHOICE_HINT = re.compile(r"^(?:play|that|the|this|number)\b|\bone\b|\bmentioned\b|දාන්න|එක", re.IGNORECASE)
+
+
+def _words(text: str) -> set[str]:
+    return {w for w in re.findall(r"[^\W_]+", text.lower()) if len(w) > 1} - _NOT_TITLE
+
+
+def _title_choice(answer: str, videos: list[tuple[str, str]], minimum: int = 1) -> int | None:
+    """"the Luffy edit" -> the video whose title shares the most words, if exactly one does."""
+    said = _words(answer)
+    if not said:
+        return None
+    scores = [len(said & _words(title)) for _, title in videos]
+    best = max(scores, default=0)
+    return scores.index(best) if best >= minimum and scores.count(best) == 1 else None
 
 
 def _only_ordinal(low: str) -> bool:
@@ -226,6 +251,7 @@ class Pending:
     kind: str                     # bing_query | youtube_query | youtube_choice | anything_else
     until: float
     videos: list[tuple[str, str]] = field(default_factory=list)
+    asked_again: bool = False     # "Sorry, which one?" is asked once, then Jarvis lets it go
 
 
 @dataclass
@@ -294,6 +320,8 @@ class WebTools:
             return self._youtube_search(m.group("q"), reply)
         if m := _match(SEARCH_BING, words):
             return self._bing(m.group("q"), reply)
+        if self.pages and self.pages[-1].startswith(YOUTUBE) and (m := _match(PLAY_HERE, words)):
+            return self._youtube_search(m.group("q"), reply)    # YouTube is open: "play X" means there
         if _match(PAUSE, words):
             return self._pause(reply)
         if _match(RESUME, words):
@@ -324,8 +352,23 @@ class WebTools:
                 return reply("ask_query", "ask_query")
             return self._youtube_search(words, reply)
         if pending.kind == "youtube_choice":
-            n = self._ordinal(low)
+            # Two or more title words first ("Luffy edit One Piece"), then
+            # first/second/third, then one title word, then a bare "one".
+            n = _title_choice(words, pending.videos, minimum=2)
             if n is None:
+                n = self._ordinal(low, bare_one=False)
+            if n is None:
+                n = _title_choice(words, pending.videos)
+            if n is None:
+                n = self._ordinal(low)
+            if n is None:
+                if _CHOICE_HINT.search(low) and not pending.asked_again:
+                    # Sounds like a choice but isn't one Jarvis knows (Whisper heard
+                    # "play festival"): ask once, keeping the list, as a person would.
+                    pending.asked_again = True
+                    pending.until = self.clock() + WAIT_S
+                    self.pending = pending
+                    return reply("which", "youtube_which")
                 return None                              # something else: the user has moved on
             if n >= len(pending.videos):
                 self.pending = pending
@@ -343,10 +386,12 @@ class WebTools:
         return self._youtube_search(query, reply)
 
     @staticmethod
-    def _ordinal(words: str) -> int | None:
+    def _ordinal(words: str, bare_one: bool = True) -> int | None:
+        """first / second / third (and 1, 2, 3, palaweni, ...). A bare "one" counts
+        as the first only when `bare_one` (it may be part of a title: "One Piece")."""
         if words in _YES or words in {"play it", "that one", "eka danna", "ඒක දාන්න"}:
             return 0
-        tokens = set(words.split())
+        tokens = set(words.split()) - (set() if bare_one else {"one"})
         for i in (1, 2, 0):                 # "second one" is the second, not "one"
             if tokens & _ORDINALS[i]:
                 return i

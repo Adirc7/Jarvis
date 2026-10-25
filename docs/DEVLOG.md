@@ -907,3 +907,17 @@ sentence that it didn't catch a command instead of only the words. 13 new
 tests, which fail on the old code. Whisper heard "Fourier" as "Furio": a
 vocabulary hint for study words is a candidate fix.
 
+Second laptop run (25 Oct): "Open YouTube and play Luffy Music" (Whisper's
+"lofi") listed three videos, but Whisper then heard "play the first one" as
+"Play Festival.", the list was dropped as "the user moved on", and the model
+went on to invent three video titles and to answer "play the first one" with
+just those words. Now, while Jarvis waits for a choice: two or more words
+from a title pick that video ("Luffy edit One Piece" -> the Luffy edit, not
+"one" = first), then first/second/third, then one title word; an answer that
+sounds like a choice but isn't ("play festival") gets "Sorry, which one?"
+once, keeping the list. While a YouTube page of Jarvis's is open, "play X"
+searches YouTube for X. The character sheet now says the model can't search,
+open or play anything and must never invent results, titles or links. These
+rules will keep missing some wordings: the lasting fix is giving the model
+the web tools to call (HUMANLIKE_PLAN.md, H1 step 1).
+

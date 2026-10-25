@@ -261,7 +261,7 @@ def test_open_youtube_then_play_the_first_one_asks_for_a_topic():
 
 
 def test_and_play_the_first_video_after_opening_youtube():
-    tools, opened, _, _ = make()
+    tools, _, _, _ = make()
     tools.handle("Open the YouTube.")
     assert tools.handle("And play the first video.").tool == "youtube_need_topic"
 
@@ -283,7 +283,7 @@ def test_a_search_with_and_in_it_is_not_split():
 
 
 def test_play_the_video_resumes_a_video_you_opened_yourself():
-    tools, opened, keys, _ = make()
+    tools, _, keys, _ = make()
     assert tools.handle("Jarvis, stop the video.").text == "Paused."          # a video Jarvis didn't open
     assert tools.handle("Jarvis, play the video.").tool == "media_resume" and keys == ["play/pause"] * 2
 
@@ -304,3 +304,57 @@ def test_the_model_never_answers_with_only_the_command_words():
     from jarvis.persona import Persona
     prompt = Persona.load().system_prompt(language_instruction="Reply in English.", spoken=True, mode="balanced")
     assert "never reply with only the command words" in prompt
+
+
+# ---- the laptop, 25 Oct (second run): a misheard choice dropped the list ----
+LUFFY = [("v1", "Best of lofi hip hop 2021 [beats to relax/study to]"),
+         ("v2", "1 A.M Study Session [lofi hip hop]"),
+         ("v3", "Future king of pirates || Luffy Edit - One Piece || #onepiece")]
+
+
+@pytest.mark.parametrize("answer", ["the Luffy edit", "Can you play the Baka song, Luffy edit one piece?",
+                                    "the one piece video"])
+def test_choose_a_video_by_words_from_its_title(answer):
+    tools, opened, _, _ = make(videos=LUFFY)
+    tools.handle("Open YouTube and play lofi music.")
+    r = tools.handle(answer)
+    assert r.tool == "youtube_play" and opened[-1] == youtube_watch_url("v3")
+
+
+def test_a_misheard_choice_is_asked_again_not_dropped():
+    tools, opened, _, _ = make(videos=LUFFY)
+    tools.handle("Open YouTube and play lofi music.")
+    r = tools.handle("Play Festival.")                                   # Whisper, for "play the first one"
+    assert r.tool == "youtube_which" and "which one" in r.text.lower()
+    r = tools.handle("The first one that you mentioned.")
+    assert r.tool == "youtube_play" and opened[-1] == youtube_watch_url("v1")
+
+
+def test_asked_once_then_let_go():
+    tools, opened, _, _ = make(videos=LUFFY)
+    tools.handle("search YouTube for lofi")
+    assert tools.handle("play festival").tool == "youtube_which"
+    assert tools.handle("what is entropy") is None and tools.pending is None
+    tools.handle("search YouTube for lofi")
+    tools.handle("play festival")
+    r = tools.handle("play carnival")                      # asked once already: a new search on YouTube
+    assert r.tool == "youtube_search" and opened[-1] == youtube_results_url("carnival")
+
+
+def test_play_something_while_youtube_is_open_searches_youtube():
+    tools, opened, _, _ = make(videos=LUFFY)
+    tools.handle("open YouTube")
+    tools.handle("never mind")
+    r = tools.handle("Can you play the Baka song?")
+    assert r.tool == "youtube_search" and opened[-1] == youtube_results_url("Baka song")
+
+
+def test_play_something_without_youtube_open_is_left_to_the_model():
+    tools, opened, _, _ = make()
+    assert tools.handle("play the Baka song") is None and opened == []
+
+
+def test_the_model_never_invents_results():
+    from jarvis.persona import Persona
+    prompt = Persona.load().system_prompt(language_instruction="Reply in English.", spoken=True, mode="balanced")
+    assert "never invent search results, video titles" in prompt
