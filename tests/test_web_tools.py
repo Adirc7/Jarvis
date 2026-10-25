@@ -360,9 +360,102 @@ def test_the_model_never_invents_results():
     assert "never invent search results, video titles" in prompt
 
 
-@pytest.mark.parametrize("text", ["youtube ekata yanna", "යූටියුබ් එකට යන්න", "bing eken black holes gana hoyanna"])
-def test_singlish_case_words_are_not_searched_for(text):
+@pytest.mark.parametrize("text, url", [
+    ("youtube ekata yanna", "https://www.youtube.com"),
+    ("යූටියුබ් එකට යන්න", "https://www.youtube.com"),
+    ("bing eken black holes gana hoyanna", "https://www.bing.com/search?q=black+holes"),
+])
+def test_singlish_case_words_are_not_searched_for(text, url):
     # command_check, 25 Oct: these searched for "ekata yanna" and "eken black holes gana
-    # hoyanna". A wrong action is worse than none: none lets the model understand it.
+    # hoyanna". Now "ekata yanna" (go to) opens the site and "gana" (about) is dropped.
     tools, opened, _, _ = make()
-    assert tools.handle(text) is None and opened == []
+    tools.handle(text)
+    assert opened == [url]
+
+
+# ---- command_check, 25 Oct: word families for English, Singlish and Sinhala ----
+@pytest.mark.parametrize("text, site", [
+    ("pull up YouTube", "youtube"), ("take me to YouTube", "youtube"), ("could you get YouTube going for me", "youtube"),
+    ("I wanna use Bing", "bing"), ("bring up Bing please", "bing"), ("open up Bing for a sec", "bing"),
+    ("youtube eka on karanna", "youtube"), ("youtube eka arinnako machan", "youtube"), ("bing eka denna", "bing"),
+    ("bing ekata yamu", "bing"), ("බිං එක දාන්න", "bing"), ("යූටියුබ් එක අරින්නකෝ", "youtube"),
+])
+def test_ways_to_open_a_site(text, site):
+    tools, _, _, _ = make()
+    assert tools.handle(text).tool == f"{site}_open"
+
+
+@pytest.mark.parametrize("text, query", [
+    ("put on some lofi beats", "lofi beats"),
+    ("I feel like listening to some Sinhala songs", "Sinhala songs"),
+    ("can you find a video explaining Fourier series", "Fourier series"),
+    ("find me Naruto openings", "Naruto openings"),
+    ("anything on YouTube about black holes?", "black holes"),
+    ("luffy edit eka youtube eken danna", "luffy edit"),
+    ("fourier series gana video ekak hoyala denna", "fourier series"),
+    ("sinhala sindu tikak danna", "sinhala sindu"),
+    ("lofi tikak play karanna", "lofi"),
+    ("සින්දු ටිකක් දාන්න", "සින්දු"),
+    ("කළු කුහර ගැන වීඩියෝ එකක් පෙන්නන්න", "කළු කුහර"),
+])
+def test_ways_to_ask_for_a_video(text, query):
+    tools, opened, _, _ = make()
+    assert tools.handle(text).tool == "youtube_search" and opened[-1] == youtube_results_url(query)
+
+
+@pytest.mark.parametrize("text, query", [
+    ("google the RC time constant", "the RC time constant"),
+    ("search the web for cheap flights to Colombo", "cheap flights to Colombo"),
+    ("web eke train timetable hoyanna", "train timetable"),
+    ("colombo weather eka internet eke balanna", "colombo weather"),
+    ("අන්තර්ජාලයේ කළු කුහර ගැන හොයන්න", "කළු කුහර"),
+])
+def test_ways_to_search_the_web(text, query):
+    tools, opened, _, _ = make()
+    assert tools.handle(text).tool == "bing_search" and opened[-1] == bing_url(query)
+
+
+@pytest.mark.parametrize("answer, number", [
+    ("the last one you said", 3), ("go with the middle one", 2), ("anthima eka danna", 3),
+    ("අන්තිම එක දාන්න", 3), ("deweniya", 2), ("the pirate one", 3), ("the hip hop one from 2021", 1),
+])
+def test_ways_to_choose(answer, number):
+    luffy = [("v1", "Best of lofi hip hop 2021 [beats to relax/study to]"), ("v2", "1 A.M Study Session [lofi hip hop]"),
+             ("v3", "Future king of pirates || Luffy Edit - One Piece || #onepiece")]
+    tools, opened, _, _ = make(videos=luffy)
+    tools.handle("search YouTube for lofi")
+    assert tools.handle(answer).tool == "youtube_play" and opened[-1] == youtube_watch_url(luffy[number - 1][0])
+
+
+@pytest.mark.parametrize("text", ["hold on, stop that for a sec", "freeze the video", "wait wait, stop it",
+                                  "nawaththanna", "video eka podi welawakata nawaththanna", "ඒක නවත්තන්න"])
+def test_ways_to_pause_while_jarvis_video_plays(text):
+    tools, _, keys, _ = make()
+    tools.handle("search YouTube for lofi")
+    tools.handle("first")
+    assert tools.handle(text).tool == "media_pause" and keys == ["play/pause"]
+
+
+@pytest.mark.parametrize("text", ["okay, carry on", "keep playing", "aye danna", "aye play karanna", "ආයේ දාන්න",
+                                  "දිගටම දාන්න"])
+def test_ways_to_carry_on_after_pausing(text):
+    tools, _, keys, _ = make()
+    tools.handle("search YouTube for lofi")
+    tools.handle("first")
+    tools.handle("pause the video")                       # "Paused. Anything else?"
+    assert tools.handle(text).tool == "media_resume" and keys == ["play/pause"] * 2
+
+
+@pytest.mark.parametrize("text", ["stop it", "hold on", "carry on", "take me back", "nawaththanna"])
+def test_short_phrases_do_nothing_without_jarvis_video(text):
+    tools, opened, keys, _ = make()
+    assert tools.handle(text) is None and opened == [] and keys == []
+
+
+@pytest.mark.parametrize("text", ["can you stop talking so fast", "I paused my studies last year",
+                                  "I want to see my notes", "my friend opened a shop near campus"])
+def test_these_are_not_commands(text):
+    tools, _, keys, _ = make()
+    tools.handle("search YouTube for lofi")
+    tools.handle("first")                                 # even with a video playing
+    assert tools.handle(text) is None and keys == []

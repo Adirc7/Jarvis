@@ -87,12 +87,20 @@ _LEAD = (r"(?:(?:jarvis|friday|hey|hi|please|ok|okay|so|now|ane|hari|podda|macha
          r"|අනේ|හරි|පොඩ්ඩක්|can\s+you|could\s+you|would\s+you|will\s+you|can\s+u|could\s+u"
          r"|i\s+want\s+you\s+to|i\s+need\s+you\s+to|i\s+mean|i\s+said|just|actually|um|uh|and|then|no"
          r"|sorry|wait)\s+)*")
-_TAIL = r"(?:\s+(?:please|for\s+me|now|right\s+now|sir|jarvis|friday|thanks|thank\s+you))*"
+_TAIL = (r"(?:\s+(?:please|for\s+me|now|right\s+now|sir|jarvis|friday|thanks|thank\s+you|machan|bro|ane"
+         r"|for\s+a\s+(?:sec|second|moment|bit|minute)|අනේ))*")
 _BING = r"(?:microsoft\s+)?bing|බිං|බින්ග්"
 _YT = r"youtube|you\s+tube|යූටියුබ්"
-_OPEN_EN = r"open|launch|start|go\s+to|show\s+me"
-_OPEN_SL = r"(?:open|arinna|arin)(?:\s+(?:karanna|karannako|karala\s+denna|karanna\s+puluwanda))?"
-_OPEN_SI = r"(?:ඕපන්|විවෘත)\s+(?:කරන්න|කරන්නකෝ|කරලා\s+දෙන්න|කරන්න\s+පුළුවන්ද)|අරින්න|අරින්නකෝ|අරලා\s+දෙන්න"
+_OPEN_EN = r"open|launch|start|go\s+to|show\s+me|pull\s+up|bring\s+up|fire\s+up|take\s+me\s+to"
+_OPEN_SL = (r"(?:open|on|arinna|arinnako|arin|arala\s+denna|denna|dennako|danna|dannako)"
+            r"(?:\s+(?:karanna|karannako|karala\s+denna|karanna\s+puluwanda))?")
+_OPEN_SI = (r"(?:ඕපන්|විවෘත|ඔන්)\s+(?:කරන්න|කරන්නකෝ|කරලා\s+දෙන්න|කරන්න\s+පුළුවන්ද)|අරින්න|අරින්නකෝ|"
+            r"අරලා\s+දෙන්න|දාන්න|දාන්නකෝ|දෙන්න")
+# "X ekata yanna" / "X එකට යන්න": go to X.
+_GO_SL = r"ekata\s+(?:yanna|yannako|yamu|yamuko)"
+_GO_SI = r"එකට\s+(?:යන්න|යන්නකෝ|යමු)"
+# Things you put on: a YouTube search even without the word "YouTube".
+_MEDIA = r"songs?|music|videos?|clips?|openings?|trailers?|mix|playlist|sindu|සින්දු|ගීත"
 _SEARCH_SL = r"hoyanna|hoyala\s+denna|search\s+karanna|search\s+karala\s+denna"
 _SEARCH_SI = r"හොයන්න|හොයන්නකෝ|හොයලා\s+දෙන්න|සර්ච්\s+කරන්න|සර්ච්\s+කරලා\s+දෙන්න"
 _PLAY_SL = r"danna|dannako|play\s+karanna|play\s+karala\s+denna|" + _SEARCH_SL
@@ -109,23 +117,46 @@ def _rx(*patterns: str) -> list[re.Pattern[str]]:
 
 
 _SITE = r"(?:\s+(?:app|website|site|page|home\s+page))?"
-OPEN_BING = _rx(rf"(?:{_OPEN_EN})\s+(?:up\s+)?(?:the\s+)?(?:{_BING}){_SITE}", rf"(?:{_BING})", rf"(?:{_BING})\s+eka\s+(?:{_OPEN_SL})",
-                rf"(?:{_BING})\s+එක\s+(?:{_OPEN_SI})",
-                rf"(?:i\s+want\s+to|i\s+would\s+like\s+to|i'd\s+like\s+to|let's|lets)\s+"
-                rf"(?:use\s+|open\s+|go\s+to\s+|search\s+(?:on\s+|with\s+)?)(?:{_BING})")
+def _open_patterns(site: str) -> list[re.Pattern[str]]:
+    return _rx(rf"(?:{_OPEN_EN})\s+(?:up\s+)?(?:the\s+)?(?:{site}){_SITE}", rf"(?:{site})",
+               rf"(?:{site})\s+eka\s+(?:{_OPEN_SL})", rf"(?:{site})\s+එක\s+(?:{_OPEN_SI})",
+               rf"(?:{site})\s+{_GO_SL}", rf"(?:{site})\s+{_GO_SI}",
+               rf"(?:get|put)\s+(?:the\s+)?(?:{site})\s+(?:going|up|on|open)(?:\s+on\s+the\s+screen)?",
+               rf"can\s+i\s+(?:get|have|see)\s+(?:the\s+)?(?:{site})(?:\s+(?:up|open|on\s+the\s+screen))?",
+               rf"(?:i\s+want\s+to|i\s+wanna|i\s+would\s+like\s+to|i'd\s+like\s+to|let's|lets|let\s+us)\s+"
+               rf"(?:watch\s+(?:something\s+on\s+)?|use\s+|open\s+|go\s+to\s+|go\s+on\s+|"
+               rf"search\s+(?:on\s+|with\s+)?)(?:the\s+)?(?:{site})")
+
+
+OPEN_BING = _open_patterns(_BING)
 SEARCH_BING = _rx(rf"(?:search|look\s+up|find)(?:\s+me)?\s+(?:on\s+)?(?:{_BING})\s+(?:for\s+)?(?P<q>.+)",
+                  rf"(?:internet|web|net|{_BING})\s+(?:eke|eken)\s+(?P<q>.+?)\s+(?:{_SEARCH_SL}|balanna|balannako)",
+                  rf"(?P<q>.+?)\s+(?:internet|web|net)\s+(?:eke|eken)\s+(?:{_SEARCH_SL}|balanna|balannako)",
+                  rf"(?:අන්තර්ජාලයේ|අන්තර්ජාලය\s+තුළ|වෙබ්\s+එකේ|ඉන්ටර්නෙට්\s+එකේ)\s+(?P<q>.+?)\s+(?:{_SEARCH_SI}|බලන්න)",
                   rf"(?:search|look\s+up|find)\s+(?:for\s+)?(?P<q>.+?)\s+(?:on|in|with)\s+(?:{_BING})",
                   rf"(?:{_BING})\s+eke\s+(?P<q>.+?)\s+(?:{_SEARCH_SL})",
                   rf"(?P<q>.+?)\s+(?:{_BING})\s+eke\s+(?:{_SEARCH_SL})",
                   rf"(?:{_BING})\s+එකේ\s+(?P<q>.+?)\s+(?:{_SEARCH_SI})",
                   rf"(?P<q>.+?)\s+(?:{_BING})\s+එකේ\s+(?:{_SEARCH_SI})",
-                  rf"(?:{_BING})\s+(?!{_NOT_QUERY})(?:search\s+)?(?:for\s+)?(?P<q>.+)")
-OPEN_YT = _rx(rf"(?:{_OPEN_EN})\s+(?:up\s+)?(?:the\s+)?(?:{_YT}){_SITE}", rf"(?:{_YT})", rf"(?:{_YT})\s+eka\s+(?:{_OPEN_SL})",
-              rf"(?:{_YT})\s+එක\s+(?:{_OPEN_SI})",
-              rf"(?:i\s+want\s+to|i\s+would\s+like\s+to|i'd\s+like\s+to|let's|lets)\s+"
-              rf"(?:watch\s+(?:something\s+on\s+)?|use\s+|open\s+|go\s+to\s+|go\s+on\s+)(?:{_YT})",
-              rf"(?:{_YT})\s+(?:eka\s+)?(?:balanna|බලන්න)\s+(?:one|ඕනේ)")
+                  rf"(?:{_BING})\s+(?!{_NOT_QUERY})(?:search\s+)?(?:for\s+)?(?P<q>.+)",
+                  # general ones last, so "look up X on Bing" keeps "on Bing" out of the search
+                  r"(?:google|search\s+(?:the\s+web|online|the\s+internet|on\s+the\s+internet|the\s+net)\s+for|"
+                  r"browse\s+for|search\s+online\s+for|look\s+up|check\s+online)\s+(?P<q>.+)")
+OPEN_YT = _open_patterns(_YT) + _rx(rf"(?:{_YT})\s+(?:eka\s+)?(?:balanna|බලන්න)\s+(?:one|ඕනේ)")
 SEARCH_YT = _rx(rf"(?:search|look\s+up|find)(?:\s+me)?\s+(?:on\s+)?(?:{_YT})\s+(?:for\s+)?(?P<q>.+)",
+                r"(?:put|throw)\s+on\s+(?:some\s+)?(?P<q>.+)",
+                r"i(?:\s+(?:really|kind\s+of|kinda))?\s+(?:want|wanna|would\s+like|'d\s+like|feel\s+like)\s+(?:to\s+)?"
+                r"(?:watch|watching|listen\s+to|listening\s+to|hear|hearing)\s+(?:some\s+)?(?P<q>.+)",
+                rf"(?:find|show|get)(?:\s+me)?\s+(?:a|an|some|the)?\s*(?:{_MEDIA}|tutorials?)\s+"
+                rf"(?:about|on|of|explaining|for|that\s+explains?)\s+(?P<q>.+)",
+                rf"(?:anything|something)\s+on\s+(?:{_YT})\s+(?:about|on|for)\s+(?P<q>.+)",
+                rf"find\s+me\s+(?P<q>.+?\s+(?:{_MEDIA}))",
+                rf"(?P<q>.+?)\s+(?:{_YT})\s+eken\s+(?:{_PLAY_SL})",
+                rf"(?P<q>.+?)\s+gana\s+(?:video|videos)\s+(?:ekak|tikak|ekk)\s+(?:{_PLAY_SL}|pennanna|pennannako)",
+                rf"(?P<q>.+?(?:{_MEDIA}))\s+(?:eka|ekak|tikak)\s+(?:{_PLAY_SL})",
+                r"(?P<q>.+?)\s+(?:tikak|ekak)\s+play\s+(?:karanna|karannako|karala\s+denna)",
+                rf"(?P<q>(?:.+?\s+)?(?:සින්දු|ගීත))\s+(?:ටිකක්|එකක්)\s+(?:{_PLAY_SI})",
+                rf"(?P<q>.+?)\s+ගැන\s+(?:වීඩියෝ|වීඩියො)\s+(?:එකක්|ටිකක්)\s+(?:පෙන්නන්න|පෙන්නන්නකෝ|{_PLAY_SI})",
                 rf"(?:search|look\s+up|find|play|watch|show)(?:\s+me)?\s+(?:for\s+)?(?P<q>.+?)\s+(?:on|in|from)\s+"
                 rf"(?:{_YT})",
                 rf"(?:{_YT})\s+eke\s+(?P<q>.+?)\s+(?:{_PLAY_SL})",
@@ -146,15 +177,36 @@ RESUME = _rx(r"(?:resume|continue|unpause)(?:\s+(?:the\s+)?(?:video|it|music|son
 BACK = _rx(r"(?:go\s+)?back", r"go\s+to\s+the\s+previous\s+page", r"previous\s+page",
            r"(?:aapahu|apahu)\s+(?:yanna|yannako)", r"(?:ආපහු|ආපසු)\s+(?:යන්න|යන්නකෝ)")
 
+# Short ways to say these that only make sense while Jarvis's video is in front:
+# "stop it", "hold on" pause only while it plays; "carry on" plays only while it's
+# paused; "take me back" only with a page to go back to. Otherwise they may mean
+# something else ("stop talking", "go on with your explanation"), so the model decides.
+_STOP = r"(?:(?:hold\s+on|wait|ok|okay)\s+)*(?:stop|pause|freeze)"
+PAUSE_PLAYING = _rx(
+    rf"{_STOP}(?:\s+(?:it|that|this|the\s+video|the\s+music|the\s+song))?"
+    r"(?:\s+(?:for\s+)?(?:a\s+)?(?:sec|second|moment|bit|minute|while))?",
+    r"(?:hold\s+on|wait)(?:\s+wait)*",
+    r"(?:video\s+eka\s+(?:.+\s+)?)?(?:nawaththanna|nawaththannako|nawaththapan)",
+    r"(?:(?:ඒක|එක|ඕක|වීඩියෝ\s+එක)\s+(?:.+\s+)?)?(?:නවත්තන්න|නවත්තන්නකෝ)")
+RESUME_PAUSED = _rx(
+    r"(?:carry\s+on|keep\s+(?:playing|going)|go\s+on|continue|play(?:\s+it)?(?:\s+again)?|start\s+it\s+again|"
+    r"unpause|resume)(?:\s+(?:the\s+)?(?:video|it|music))?",
+    r"(?:aye|ayeth|digatama)\s+(?:danna|dannako|play\s+karanna|yanna)",
+    r"(?:ආයේ|ආයෙත්|දිගටම)\s+(?:දාන්න|දාන්නකෝ|ප්ලේ\s+කරන්න)")
+BACK_MORE = _rx(r"take\s+me\s+back", r"back\s+to\s+the\s+(?:results|list|search|previous\s+page)",
+                r"(?:the\s+)?previous\s+one", r"(?:aapahu|apahu)\s+(?:yamu|yamuko)", r"(?:ආපහු|ආපසු)\s+යමු")
+
 _COMMANDS = (OPEN_YT, OPEN_BING, SEARCH_YT, SEARCH_BING, PAUSE, RESUME, BACK)
 _CANCEL = {"cancel", "no", "nothing", "never mind", "no thanks", "stop", "epa", "nathi", "na",
            "එපා", "නෑ", "කමක් නෑ", "අවලංගු කරන්න"}
 _YES = {"yes", "yeah", "yep", "ok", "okay", "sure", "ow", "ou", "ඔව්", "හරි"}
 _ORDINALS = [
-    {"first", "1", "one", "1st", "palaweni", "පළවෙනි", "පළමු"},
-    {"second", "2", "two", "2nd", "deweni", "දෙවෙනි", "දෙවැනි"},
-    {"third", "3", "three", "3rd", "thunweni", "තුන්වෙනි", "තුන්වැනි"},
+    {"first", "1", "one", "1st", "palaweni", "palaweniya", "පළවෙනි", "පළවෙනියා", "පළමු"},
+    {"second", "2", "two", "2nd", "deweni", "deweniya", "දෙවෙනි", "දෙවෙනියා", "දෙවැනි"},
+    {"third", "3", "three", "3rd", "thunweni", "thunweniya", "තුන්වෙනි", "තුන්වෙනියා", "තුන්වැනි"},
 ]
+_LAST = {"last", "final", "anthima", "anthimaya", "අන්තිම", "අන්තිමයා", "අවසාන"}
+_MIDDLE = {"middle", "mada", "මැද"}
 
 
 # Two requests in one breath: "Open YouTube. Then play lofi music." / "open
@@ -177,7 +229,8 @@ _CHOICE_HINT = re.compile(r"^(?:play|that|the|this|number)\b|\bone\b|\bmentioned
 
 
 def _words(text: str) -> set[str]:
-    return {w for w in re.findall(r"[^\W_]+", text.lower()) if len(w) > 1} - _NOT_TITLE
+    words = {w for w in re.findall(r"[^\W_]+", text.lower()) if len(w) > 1} - _NOT_TITLE
+    return {w[:-1] if len(w) > 3 and w.endswith("s") and not w.endswith("ss") else w for w in words}
 
 
 def _title_choice(answer: str, videos: list[tuple[str, str]], minimum: int = 1) -> int | None:
@@ -194,6 +247,17 @@ def _only_ordinal(low: str) -> bool:
     """"play the first video" with nothing to choose from yet."""
     rest = set(low.split()) - _FILLER
     return bool(rest) and rest <= set().union(*_ORDINALS)
+
+
+_QUERY_TRAIL = {"eka", "ekak", "tikak", "gana", "ගැන", "එක", "එකක්", "ටිකක්"}
+
+
+def _tidy_query(query: str) -> str:
+    """Drop Singlish/Sinhala case words left at the end: "colombo weather eka" -> "colombo weather"."""
+    words = query.split()
+    while len(words) > 1 and words[-1].lower() in _QUERY_TRAIL:
+        words.pop()
+    return " ".join(words)
 
 
 def _clean(text: str) -> str:
@@ -381,6 +445,17 @@ class WebTools:
             return reply("resumed", "media_resume")
         if _match(BACK, words):
             return self._back(reply)
+        on_video = bool(self.pages) and "/watch?" in self.pages[-1]
+        if self.playing and _match(PAUSE_PLAYING, words):
+            return self._pause(reply)
+        if on_video and not self.playing and _match(RESUME_PAUSED, words):
+            self.pending = None
+            self.media_key()
+            self.playing = True
+            return reply("resumed", "media_resume")
+        if len(self.pages) >= 2 and _match(BACK_MORE, words):
+            self.pending = None
+            return self._back(reply)
         return None
 
     # ---- pieces -------------------------------------------------------------------
@@ -389,7 +464,7 @@ class WebTools:
         low = words.lower().replace("\u200d", "")
         if low in _CANCEL:
             return reply("ok", "cancel")
-        if any(_match(group, words) for group in _COMMANDS):
+        if any(_match(group, words) for group in _COMMANDS) or self._context_command(words):
             return None                                  # a new command, not an answer
         if pending.kind == "youtube_choice" and _match(RESUME, words):
             return None
@@ -412,6 +487,8 @@ class WebTools:
                 n = _title_choice(words, pending.videos)
             if n is None and not _words(words):
                 n = self._ordinal(low)                 # just "one" / "play one": the first
+            if n == -1:
+                n = len(pending.videos) - 1             # "the last one"
             if n is None and self.ask_model:
                 self.pending = pending                 # the model decides, seeing the list
                 return None
@@ -436,6 +513,13 @@ class WebTools:
             return self._bing(query, reply)
         return self._youtube_search(query, reply)
 
+    def _context_command(self, words: str) -> bool:
+        """"carry on", "stop it", "take me back": commands only in front of Jarvis's video."""
+        on_video = bool(self.pages) and "/watch?" in self.pages[-1]
+        return bool((self.playing and _match(PAUSE_PLAYING, words))
+                    or (on_video and not self.playing and _match(RESUME_PAUSED, words))
+                    or (len(self.pages) >= 2 and _match(BACK_MORE, words)))
+
     @staticmethod
     def _ordinal(words: str, bare_one: bool = True) -> int | None:
         """first / second / third (and 1, 2, 3, palaweni, ...). A bare "one" counts
@@ -446,6 +530,10 @@ class WebTools:
         for i in (1, 2, 0):                 # "second one" is the second, not "one"
             if tokens & _ORDINALS[i]:
                 return i
+        if tokens & _LAST:
+            return -1                       # the caller turns it into the last of its list
+        if tokens & _MIDDLE:
+            return 1
         return None
 
     def _play(self, videos: list[tuple[str, str]], n: int, reply) -> ToolReply:
@@ -459,10 +547,12 @@ class WebTools:
         self.pages.append(url)
 
     def _bing(self, query: str, reply) -> ToolReply:
+        query = _tidy_query(query)
         self._open(bing_url(query))
         return reply("bing_results", "bing_search", q=query)
 
     def _youtube_search(self, query: str, reply) -> ToolReply:
+        query = _tidy_query(query)
         if self.search_videos is None:                  # no API key: the results page, no titles
             self._open(youtube_results_url(query))
             return reply("yt_page", "youtube_results_page", q=query)

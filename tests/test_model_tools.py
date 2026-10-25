@@ -113,11 +113,11 @@ async def test_a_question_about_youtube_gets_words_not_an_action():
 
 
 async def test_every_request_gets_the_tools_by_default():
-    # "I want to see that Luffy clip" has no word like video/play/search: a
+    # "got that Luffy clip from yesterday?" has no word like video/play/search: a
     # list of trigger words would miss it, so the model always sees the tools.
     client = ModelClient(tool="search_youtube", arguments='{"query": "Luffy clip"}')
     app, _, opened, _ = make(client)
-    await app.handle_text("I want to see that Luffy clip")
+    await app.handle_text("got that Luffy clip from yesterday?")
     assert client.kwargs["tools"] is TOOL_SPECS and opened[-1] == youtube_results_url("Luffy clip")
 
 
@@ -134,7 +134,7 @@ async def test_off_means_no_tools(settings):
     settings.raw["tools"]["model_tools"] = "off"
     client = ModelClient(words=["Sure."])
     app, web, _, _ = make(client)
-    await app.handle_text("I want to see that Luffy clip")
+    await app.handle_text("got that Luffy clip from yesterday?")
     assert "tools" not in client.kwargs and web.ask_model is False
 
 

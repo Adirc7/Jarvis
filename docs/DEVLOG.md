@@ -956,3 +956,21 @@ want to see that Luffy clip" has none). With the model, an answer to "Paused.
 Anything else?" ("okay, carry on") goes to the model too, instead of being
 searched. The full run needs the API keys, so it runs on the laptop.
 
+Fixed rules, widened by word families (25 Oct). A held-out set
+(`eval/commands_heldout.jsonl`, 48 new phrasings) was written and committed
+before any tuning, so its score is honest. Rules only, before -> after:
+first set 18/60 -> 55/60 (92%); held-out 19/48 -> 47/48 (98%); wrong actions
+0 throughout. Added: ways to open (pull/bring/fire up, take me to, get ...
+going, wanna use; Singlish on/denna/danna/arinnako, "ekata yanna"; Sinhala
+"එකට යන්න", "දාන්න"); ways to ask for media without saying YouTube ("put on
+X", "I feel like listening to X", "find a video explaining X", "X youtube
+eken danna", "X gana video ekak pennanna", "X sindu tikak danna", "X ගැන
+වීඩියෝ එකක් පෙන්නන්න"); web searches ("google X", "search the web for X",
+"X internet eke balanna", "අන්තර්ජාලයේ X හොයන්න"); last/middle and more
+ordinal spellings; plural title words; Singlish case words dropped from the
+end of a query. Short phrases ("stop it", "hold on", "carry on", "take me
+back", "nawaththanna", "ආයේ දාන්න") act only in front of Jarvis's own video,
+so "can you stop talking so fast" and "I want to see my notes" stay with the
+model. The misses left are meant for the model ("the anime one", "I'm in the
+mood for some jazz", "shh, quiet for a moment").
+
