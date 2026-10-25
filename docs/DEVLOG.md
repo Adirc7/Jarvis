@@ -842,3 +842,13 @@ the hands swapped. The status text was doubled because OpenCV 5 draws thick
 text (the black outline) with a wider font than thin text; it's now drawn
 once on a darkened band.
 
+First recording with the hands right (25 Oct, right hand): MediaPipe's
+open-palm score is higher than the left hand's (low 10% 0.65, middle 0.69);
+not-palm frames: 0% counted as a palm at any limit from 0.40, and 0 false
+palms through the hold. Palm rows were only half open palms (34% fist, the
+hand lowering between palms). Through the hold, limits 0.50-0.60 with the
+stillness check gave 15 palms; waving still got 3 through in about 80 s of
+continuous waving. The report gains a table of stillness (max_move) and hold
+length against palms kept and waves let through, and lists each accepted
+palm with what the hand did before it, to spot a palm counted twice.
+

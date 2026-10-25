@@ -12,7 +12,11 @@ palm) and prints, for the "palm" rows and the "not palm" rows separately:
      "not palm" frames it would wrongly count, frame by frame,
   4. the recording replayed through the 0.5 s hold, as Jarvis would use it:
      palms accepted per minute while you showed palms, and false ones per
-     minute while you didn't (and while you waved, if you recorded waves).
+     minute while you didn't (and while you waved, if you recorded waves),
+  5. how still the palm must be (max_move) and how long it's held, against
+     real palms kept and waves let through,
+  6. each palm accepted while you showed palms, and what the hand did since
+     the one before: a palm counted twice shows up as "stayed open".
 """
 
 from __future__ import annotations
@@ -151,6 +155,34 @@ def main() -> int:
             label = f"{title}, still" if still else title
             print(f"   {label:34} " + "".join(f"{c:>12}" for c in cells))
     print("   Wanted: about one per palm you showed under palm, and 0 under not palm and wave.")
+
+    # 5. How still, and how long: real palms kept vs waves let through.
+    limit = float(settings.get("gestures.min_score", 0.6))
+    print(f"\n5. How still and how long (MediaPipe >= {limit:.2f}); count of palms accepted")
+    print("   max_move     hold 0.5 s: palm  wave     hold 0.7 s: palm  wave")
+    for move in (0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.50):
+        cells = []
+        for hold_s in (0.5, 0.7):
+            for name in ("palm", "wave"):
+                if name in groups:
+                    events, _ = replay(rows_by_segment(rows, name), lambda r: mp_palm(r, limit), move, hold_s)
+                    cells.append(f"{events:>5}")
+                else:
+                    cells.append("    -")
+        mark = "  <- now" if abs(move - max_move) < 1e-9 else ""
+        print(f"   {move:8.2f}               {cells[0]} {cells[1]}                  {cells[2]} {cells[3]}{mark}")
+    print("   Pick the row that keeps your palms and lets the fewest waves through.")
+
+    # 6. Each accepted palm: was it a new palm, or the same one counted twice?
+    times: list[tuple[float, str]] = []
+    replay(rows_by_segment(rows, "palm"), lambda r: mp_palm(r, limit), max_move, 0.5, times)
+    if times:
+        print(f"\n6. Palms accepted while you showed palms (MediaPipe >= {limit:.2f}, still): {len(times)}")
+        print("   " + "; ".join(f"{t:.1f} s ({why})" for t, why in times))
+        twice = sum(why == "stayed open" for _, why in times)
+        if twice:
+            print(f"   {twice} came while the hand stayed open since the one before: the same palm counted "
+                  "again\n   because MediaPipe lost it for half a second.")
     return 0
 
 
@@ -171,20 +203,36 @@ def rows_by_segment(rows: list[dict], name: str) -> list[list[dict]]:
     return [seg for seg in segments if seg]
 
 
-def replay(segments: list[list[dict]], is_palm, max_move: float | None) -> tuple[int, float]:
-    """Run each stretch through the preview's hold rule; count accepted palms."""
+def replay(segments: list[list[dict]], is_palm, max_move: float | None, hold_s: float = 0.5,
+           times: list[tuple[float, str]] | None = None) -> tuple[int, float]:
+    """Run each stretch through the preview's hold rule; count accepted palms.
+
+    With `times`, also note when each palm was accepted and what the hand did
+    since the previous one: "left the picture", "closed" (two or fewer fingers
+    out), or "stayed open" (the same palm, counted again).
+    """
     events, seconds = 0, 0.0
     for seg in segments:
-        hold = gp.PalmHold(max_move=max_move)
+        hold = gp.PalmHold(hold_s=hold_s, max_move=max_move)
         prev = None
+        since = "first"
         for r in seg:
             t = float(r["t"])
+            hand = hand_of(r)
+            w, h = int(r["frame_w"]), int(r["frame_h"])
             if prev is not None and t - prev > 0.2:        # the hand left the picture
                 for _ in range(hold.max_missed + 1):
                     hold.update(prev + 0.1, False)
                 hold.update(t - 0.01, False)
-            geometry = gp.palm_geometry(hand_of(r), int(r["frame_w"]), int(r["frame_h"]))
-            events += hold.update(t, is_palm(r), *geometry)
+                if since != "first":
+                    since = "left the picture"
+            elif since == "stayed open" and sum(gp.fingers_out(hand, w, h)) <= 2:
+                since = "closed"
+            if hold.update(t, is_palm(r), *gp.palm_geometry(hand, w, h)):
+                events += 1
+                if times is not None:
+                    times.append((t, since))
+                since = "stayed open"
             prev = t
         seconds += float(seg[-1]["t"]) - float(seg[0]["t"])
     return events, seconds / 60
