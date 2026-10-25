@@ -852,3 +852,11 @@ continuous waving. The report gains a table of stillness (max_move) and hold
 length against palms kept and waves let through, and lists each accepted
 palm with what the hand did before it, to spot a palm counted twice.
 
+Same recording, sections 5-6: all 15 accepted palms followed a closed hand,
+so none was counted twice (about 15 palms shown, all caught). The 3 waves
+accepted stayed at 3 even with max_move 0.10 and a 0.7 s hold: the palm's
+middle was nearly still for over half a second, so these were a still
+"hello" palm or a finger wave, not a swinging wave. The report now also tries
+"MediaPipe and the points check" (bending fingers break the points check)
+and says when, after pressing W, each wave was accepted.
+

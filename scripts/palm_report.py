@@ -145,7 +145,8 @@ def main() -> int:
     for limit in (0.50, 0.55, 0.60, 0.65, 0.70):
         rules.append((f"MediaPipe >= {limit:.2f}", lambda r, limit=limit: mp_palm(r, limit)))
     rules += [("points check", points),
-              ("MediaPipe >= 0.50 or points", lambda r: mp_palm(r, 0.5) or points(r))]
+              ("MediaPipe >= 0.50 or points", lambda r: mp_palm(r, 0.5) or points(r)),
+              ("MediaPipe >= 0.60 and points", lambda r: mp_palm(r, 0.6) and points(r))]
     for title, rule in rules:
         for still in (None, max_move):
             cells = []
@@ -183,6 +184,12 @@ def main() -> int:
         if twice:
             print(f"   {twice} came while the hand stayed open since the one before: the same palm counted "
                   "again\n   because MediaPipe lost it for half a second.")
+    if "wave" in groups:
+        waves: list[tuple[float, str]] = []
+        replay(rows_by_segment(rows, "wave"), lambda r: mp_palm(r, limit), max_move, 0.5, waves)
+        first = float(groups["wave"][0]["t"])
+        print(f"\n   Accepted while you waved: {len(waves)}"
+              + (" at " + ", ".join(f"{t - first:.1f} s" for t, _ in waves) + " after you pressed W" if waves else ""))
     return 0
 
 
