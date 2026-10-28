@@ -1,0 +1,49 @@
+{"text": "get me onto YouTube real quick", "lang": "en", "accept": ["open_app"]}
+{"text": "can you load up Bing for me", "lang": "en", "accept": ["open_app"]}
+{"text": "start up Spotify for me", "lang": "en", "accept": ["open_app"]}
+{"text": "play some Coldplay", "lang": "en", "accept": ["play_music", "search_web"]}
+{"text": "I need some background music while I study", "lang": "en", "accept": ["play_music", "search_web"]}
+{"text": "show me a video on how transistors work", "lang": "en", "accept": ["play_music", "search_web"]}
+{"text": "search the internet for cheap flights to Bangkok", "lang": "en", "accept": ["search_web"]}
+{"text": "hold the video for a second", "lang": "en", "accept": ["pause_media", "stop"]}
+{"text": "go back a page", "lang": "en", "accept": ["go_back"]}
+{"text": "what's the derivative of x squared sin x", "lang": "en", "accept": ["solve_problem"]}
+{"text": "explain how a capacitor stores energy", "lang": "en", "accept": ["explain_concept"]}
+{"text": "my python loop keeps throwing a KeyError, can you help", "lang": "en", "accept": ["debug_code"]}
+{"text": "it's way too loud, bring the volume down", "lang": "en", "accept": ["volume_down"]}
+{"text": "tell me when twenty minutes are up", "lang": "en", "accept": ["set_timer", "set_reminder"]}
+{"text": "I'm so tired of failing these labs", "lang": "en", "accept": ["feeling_low"]}
+{"text": "thanks, that really helped", "lang": "en", "accept": ["thanks"]}
+{"text": "what do you think about pineapple on pizza", "lang": "en", "no_action": true}
+{"text": "I watched a great YouTube documentary yesterday", "lang": "en", "no_action": true}
+{"text": "is it worth learning Rust this year", "lang": "en", "no_action": true}
+{"text": "machan youtube eka pennanna", "lang": "singlish", "accept": ["open_app"]}
+{"text": "bing eka load karanna", "lang": "singlish", "accept": ["open_app"]}
+{"text": "mata lofi sindu tikak ahanna ona", "lang": "singlish", "accept": ["play_music", "search_web"]}
+{"text": "physics lecture video ekak hoyala denna", "lang": "singlish", "accept": ["play_music", "search_web"]}
+{"text": "google eke phone prices balanna", "lang": "singlish", "accept": ["search_web"]}
+{"text": "video eka tikakata hold karanna", "lang": "singlish", "accept": ["pause_media", "stop"]}
+{"text": "ithuru tika play karanna", "lang": "singlish", "accept": ["resume_media"]}
+{"text": "aye kalin tibba page eka denna", "lang": "singlish", "accept": ["go_back"]}
+{"text": "me integral eka kohomada hadanne", "lang": "singlish", "accept": ["solve_problem", "explain_concept"]}
+{"text": "entropy kiyanne mokakda kiyala explain karanna", "lang": "singlish", "accept": ["explain_concept"]}
+{"text": "mage code eke error ekak enawa, balanna puluwanda", "lang": "singlish", "accept": ["debug_code"]}
+{"text": "sadde podi wadi karapan", "lang": "singlish", "accept": ["volume_up"]}
+{"text": "heta exam ekata revise karanna udaw karanna", "lang": "singlish", "accept": ["exam_prep"]}
+{"text": "ada nam hari dukai machan", "lang": "singlish", "accept": ["feeling_low"]}
+{"text": "thanks machan, ela", "lang": "singlish", "accept": ["thanks"]}
+{"text": "oyata monawada kamathi?", "lang": "singlish", "no_action": true}
+{"text": "යූටියුබ් එක විවෘත කරලා දෙන්න", "lang": "si", "accept": ["open_app"]}
+{"text": "බිං එක පෙන්නන්න", "lang": "si", "accept": ["open_app"]}
+{"text": "මට සිංදු ටිකක් අහන්න ඕනේ", "lang": "si", "accept": ["play_music", "search_web"]}
+{"text": "අන්තර්ජාලයේ බස් කාලසටහන හොයන්න", "lang": "si", "accept": ["search_web"]}
+{"text": "වීඩියෝ එක පොඩ්ඩක් නතර කරන්න", "lang": "si", "accept": ["pause_media", "stop"]}
+{"text": "මුලින් තිබ්බ පිටුවට ආපහු යමු", "lang": "si", "accept": ["go_back"]}
+{"text": "මේ ගාණ හදන හැටි පෙන්නන්න", "lang": "si", "accept": ["solve_problem"]}
+{"text": "විද්‍යුත් ධාරාව කියන්නේ මොකක්ද කියලා සරලව කියන්න", "lang": "si", "accept": ["explain_concept"]}
+{"text": "ශබ්දය ටිකක් වැඩි කරන්න", "lang": "si", "accept": ["volume_up"]}
+{"text": "විනාඩි දහයකින් මට මතක් කරන්න", "lang": "si", "accept": ["set_reminder", "set_timer"]}
+{"text": "අද මට හරිම තනිකමක් දැනෙනවා", "lang": "si", "accept": ["feeling_low"]}
+{"text": "ස්තූතියි, ඔයා නියමයි", "lang": "si", "accept": ["thanks"]}
+{"text": "අද හවසට වැස්ස එයිද කියලා බලන්න", "lang": "si", "accept": ["ask_weather"]}
+{"text": "ඔයාගේ ප්‍රියතම චිත්‍රපටිය මොකක්ද?", "lang": "si", "no_action": true}

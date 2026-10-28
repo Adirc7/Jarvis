@@ -8,9 +8,11 @@ Writes data/intent/ (gitignored; run again any time, the same seed gives the sam
                    time so they match the current patterns) to learn from
   dev.jsonl        generated sentences from PATTERNS the training set never saw:
                    choose settings on this (which features, the limit, ...)
-  test_real.jsonl  the real phrasings of eval/commands.jsonl and
-                   eval/commands_heldout.jsonl, with the intents that count as
-                   right for each; report on this, never tune on it
+  test_real.jsonl  the real phrasings of eval/commands.jsonl,
+                   eval/commands_heldout.jsonl and eval/intents_heldout.jsonl
+                   (written 28 Oct, before the data was changed), with the
+                   intents that count as right for each; report on this,
+                   never tune on it
   labels.txt       the 46 intents
 
 Your own sentences go in data/intent/mine.jsonl, one per line, written by
@@ -104,6 +106,16 @@ def real_tests() -> list[dict]:
                 # intent model can know from the sentence alone.
                 "context": expect == "play_video",
                 "accept": ACCEPT.get(expect, []), "no_action": expect == "none",
+            })
+    # Written 28 Oct before any change to the training data, for the intent
+    # model only: the intents that count as right are given directly.
+    for line in (ROOT / "eval" / "intents_heldout.jsonl").read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            case = json.loads(line)
+            rows.append({
+                "text": case["text"], "lang": {"singlish": "si-Latn"}.get(case["lang"], case["lang"]),
+                "expect": "", "setup": "none", "set": "intents_heldout", "context": False,
+                "accept": case.get("accept", []), "no_action": bool(case.get("no_action")),
             })
     return rows
 

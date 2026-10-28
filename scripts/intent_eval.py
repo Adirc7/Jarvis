@@ -83,6 +83,11 @@ def evaluate(path: Path, dev: list[dict], test: list[dict]) -> dict:
         sub = [(r, i) for r, i, _ in results if r["lang"] == lang]
         if sub:
             out["test_by_lang"][lang] = (sum(right(r, i) for r, i in sub), len(sub))
+    out["test_by_set"] = {}
+    for name in ("commands", "commands_heldout", "intents_heldout"):
+        sub = [(r, i) for r, i, _ in results if r["set"] == name]
+        if sub:
+            out["test_by_set"][name] = (sum(right(r, i) for r, i in sub), len(sub))
     out["confident"] = []
     for limit in (0.5, 0.6, 0.7, 0.8, 0.9):
         sure = [(r, i) for r, i, c in results if c >= limit]
@@ -108,6 +113,8 @@ def main() -> int:
         print(f"dev        accuracy {r['dev_acc']:.1%}, macro-F1 {r['dev_f1']:.3f}  ({langs})")
         langs = ", ".join(f"{k} {a}/{n}" for k, (a, n) in r["test_by_lang"].items())
         print(f"real test  {r['test_acc']:.1%}  ({langs})")
+        sets = ", ".join(f"{k} {a}/{n}" for k, (a, n) in r["test_by_set"].items())
+        print(f"           by set: {sets}")
         print("confident  limit  decides alone   right when it does")
         for limit, n, ok, total in r["confident"]:
             print(f"           {limit:.1f}    {n:3}/{total}        {ok}/{n} = {ok / n:.0%}" if n else
