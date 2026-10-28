@@ -1060,3 +1060,33 @@ verbs the data never had ("get me onto", "pennanna", "hold the video"):
 level 1 is near its limit on new wordings. Next levers: level 2 (sentence
 meaning) and Adhi's own phrasings.
 
+## 2026-10-28: nine days left; Windows blocked Python; the safety gate
+
+Adhi has 9 days to submit. The working plan: finish a smaller Jarvis
+completely (laptop running, intent model, safe tools with the gate and
+confirm box, the empathy learner, an emotion baseline, study level 1,
+Sinhala with a ready-made Whisper and a small window, one evaluation run,
+report and demo); phone calls, wake word and clap, the news map, the other
+skills, multi-step tasks and training our own Sinhala model become future
+work.
+
+Day 1, the laptop: `uv run jarvis` failed with "uv trampoline failed to
+spawn Python child process ... os error 4551" (Windows App Control: the
+uv-installed Python, python-build-standalone 3.12.12, has no known
+publisher). Protection history was empty; Smart App Control is now Off
+(Defender, firewall and SmartScreen stay on; turning it back on needs a
+Windows reset until Microsoft's fix for the greyed-out switch arrives).
+Next: `uv run python --version`, then the smoke test.
+
+Started early, while waiting (Phase 2 build step 1, Claude drafts):
+`tools/registry.py` (Tool, Tier, Result, Registry: the model sees every
+tool except "never" ones) and `tools/gate.py` (registered tools only,
+arguments checked against the tool's schema with unknown keys refused,
+every path resolved, links included, and kept inside the allowed folders;
+"ask first" runs only after a click, and "do and log" asks too when the turn
+holds outside text or comes from the phone; the confirm box's words come
+from the tool's code, never from the model; the kill switch; verify();
+done / claimed / unconfirmed told apart; a crashing tool is a failure, not
+a crash; logs/actions-YYYYMMDD.jsonl; "undo that"). 23 tests with made-up
+tools, nothing touches the PC.
+
