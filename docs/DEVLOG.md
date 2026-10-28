@@ -1126,3 +1126,13 @@ Day 3, started the same morning: the first PC tools, all through the gate.
   for a click that never came, 0 unsafe actions (8 harmless wrong notes).
   37 new tests; 541 in all.
 
+First try of the PC tools on the laptop (28 Oct, 08:28-08:31, by voice):
+"open notepad" (open_app, verified: notepad.exe appeared, 711 ms), "turn the
+volume down" (change_volume, done but not measured: no pycaw), "set a timer
+for 1 minute" (rang 60 s later, said out loud), "write a note exam on
+Friday" (create_note, verified). Each took 0.8-1.6 s for the model to pick
+the tool. One miss: "undo that" -> gpt-oss-120b called undo_last_action with
+{"action": {}}, and the gate refused the unknown argument. A tool that takes
+no arguments now ignores filler ones (logged); tools with parameters stay
+strict.
+

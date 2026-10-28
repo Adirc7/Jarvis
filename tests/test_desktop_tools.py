@@ -152,3 +152,12 @@ def test_every_action_is_logged(desk):
     tools.call("open_app", '{"name": "cmd"}')
     lines = [json.loads(x) for f in (tmp / "logs").glob("*.jsonl") for x in f.read_text().splitlines()]
     assert [(e["tool"], e["decision"]) for e in lines] == [("open_app", "ran"), ("open_app", "refused")]
+
+
+def test_filler_arguments_on_a_tool_that_takes_none_are_ignored(desk):
+    # Seen on the laptop, 28 Oct: gpt-oss-120b called undo_last_action with {"action": {}}.
+    tools, _, _ = desk
+    tools.call("create_note", '{"text": "exam on Friday", "title": "exam"}')
+    out = tools.call("undo_last_action", '{"action": {}}')
+    assert out.status == "done" and out.text.startswith("Note removed")
+    assert tools.call("open_app", '{"name": "notepad", "action": {}}').status == "refused"   # still strict here

@@ -159,6 +159,11 @@ class Gate:
                 return self._refuse(name, ["arguments aren't valid JSON"])
         else:
             args = dict(arguments)
+        if not tool.parameters.get("properties") and isinstance(args, dict) and args:
+            # A tool that takes nothing (undo, screenshot): models sometimes send
+            # filler like {"action": {}}. The tool can't use it, so drop it.
+            self.log.write(tool=name, args=args, decision="ignored_arguments")
+            args = {}
         problems = schema_problems(args, tool.parameters)
         if problems:
             return self._refuse(name, problems, args if isinstance(args, dict) else {})
