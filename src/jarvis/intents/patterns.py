@@ -371,7 +371,7 @@ EN_PATTERNS = [
 
 LANGUAGES = {"si": (SI_VOCAB, SI_PATTERNS), "si-Latn": (SL_VOCAB, SL_PATTERNS), "en": (EN_VOCAB, EN_PATTERNS)}
 # How many examples per intent, per language (the most for Sinhala, the research focus).
-PER_INTENT = {"si": 220, "si-Latn": 90, "en": 70}
+PER_INTENT = {"si": 220, "si-Latn": 90, "en": 110}   # en was 70 until 28 Oct: English was the thinnest
 
 
 # ============================================================================
@@ -1588,4 +1588,60 @@ EN_PATTERNS += [
     Pattern("resume_media", "{w}play it again"),
     Pattern("go_back", "{w}go back"), Pattern("go_back", "{w}go to the previous page"),
     Pattern("go_back", "{w}back to the last page"),
+]
+
+
+# ============================================================================
+# More ways to open, play and search (28 Oct). The first trained intent model
+# had never seen an English sentence that opens YouTube, nor "pull up", "fire
+# up" or "bring up": these verbs and apps come from Adhi's own generator
+# (scripts he wrote for his dataset). Written after eval/intents_heldout.jsonl
+# was committed, and kept away from its wordings so that test stays fair.
+# ============================================================================
+
+EN_VOCAB["w"] = EN_W + [C("yo, "), C("hey, ")]
+EN_VOCAB["open_en"] = [C("pull up"), C("fire up"), C("bring up"), C("switch to"), C("run"), C("open up"),
+                       C("launch"), C("open")]
+EN_VOCAB["app"] += [C("Blender", "blender"), C("Discord", "discord"), C("Telegram", "telegram"),
+                    C("Task Manager", "task_manager"), C("Obsidian", "obsidian"), C("MATLAB", "matlab"),
+                    C("Notion", "notion"), C("Postman", "postman"), C("Figma", "figma"),
+                    C("the terminal", "terminal"), C("Settings", "settings"), C("PyCharm", "pycharm")]
+EN_VOCAB["music"] += [C("some study music", "study_music"), C("some instrumental music", "instrumental"),
+                      C("a Taylor Swift song", "taylor_swift"), C("some rock music", "rock"),
+                      C("some piano music", "piano")]
+SL_VOCAB["open"] += [V("open karapan", "casual"), V("start karanna", "polite"), V("run karanna", "polite"),
+                     V("open karala deepan", "for_me"), V("danna", "polite")]
+SL_VOCAB["app"] += [C("terminal eka", "terminal"), C("discord eka", "discord"), C("telegram eka", "telegram"),
+                    C("docker eka", "docker"), C("postman eka", "postman"), C("photoshop eka", "photoshop"),
+                    C("task manager eka", "task_manager"), C("file explorer eka", "explorer"),
+                    C("matlab eka", "matlab"), C("pycharm eka", "pycharm"), C("settings", "settings")]
+SI_OPEN += [V("ඕපන් කරපන්", "casual"), V("ස්ටාර්ට් කරන්න", "polite"), V("දාන්න", "polite")]
+SI_APP += [C("ටර්මිනල් එක", "terminal"), C("ෆොටෝෂොප් එක", "photoshop"), C("ටාස්ක් මැනේජර් එක", "task_manager"),
+           C("සෙටින්ග්ස්", "settings")]
+
+EN_PATTERNS += [
+    Pattern("open_app", "{w}{open_en} {app}"), Pattern("open_app", "{w}can you {open_en} {app}"),
+    Pattern("open_app", "{w}{open_en} {app} for me"), Pattern("open_app", "{w}{open_en} {app} right now"),
+    Pattern("open_app", "{w}could you {open_en} {app} please"),
+    Pattern("play_music", "{w}I want to listen to {music}"), Pattern("play_music", "{w}can you play {music}"),
+    Pattern("play_music", "{w}play {music} for me"),
+    Pattern("search_web", "{w}search YouTube for {topic}"),
+    Pattern("search_web", "{w}find a YouTube video about {topic}"),
+    Pattern("search_web", "{w}search the web for {query}"), Pattern("search_web", "{w}find {query} online"),
+    Pattern("search_web", "{w}google {query}"),
+    Pattern("pause_media", "{w}pause the music"), Pattern("pause_media", "{w}pause it for a moment"),
+    Pattern("pause_media", "{w}stop the music"),
+    Pattern("resume_media", "{w}unpause the video"), Pattern("resume_media", "{w}resume playing"),
+    Pattern("resume_media", "{w}start the video again"),
+    Pattern("go_back", "{w}return to the previous page"), Pattern("go_back", "{w}back to where we were"),
+]
+SL_PATTERNS += [
+    Pattern("pause_media", "{w}video eka stop karanna"), Pattern("pause_media", "{w}poddak nawaththanna"),
+    Pattern("resume_media", "{w}video eka continue karanna"), Pattern("resume_media", "{w}aye danna"),
+    Pattern("go_back", "{w}back yanna"), Pattern("go_back", "{w}kalin thibba page ekata yanna"),
+]
+SI_PATTERNS += [
+    Pattern("pause_media", "{w}වීඩියෝ එක ස්ටොප් කරන්න"),
+    Pattern("resume_media", "{w}වීඩියෝ එක කන්ටිනියු කරන්න"),
+    Pattern("go_back", "{w}බැක් යන්න"),
 ]

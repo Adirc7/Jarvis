@@ -1039,3 +1039,24 @@ now accepts new intent names and lists them. The generator isn't used yet:
 its labels clash with the 46, its 10,500 lines come from about 360 core phrases,
 and it has mixed-script slips (Devanagari, Gujarati).
 
+Intent model, round 3 (28 Oct). First a new held-out set,
+eval/intents_heldout.jsonl: 49 new phrasings (19 English, 16 Singlish, 14
+Sinhala) over opening, playing, searching, pausing, going back, study, code,
+device, feelings, thanks and chat, committed before any data change (none a
+copy of training, mine.jsonl or the old tests; Claude wrote it, so it is
+less blind than one Adhi writes). Then the data at the source
+(intents/patterns.py): the open verbs from Adhi's generator (pull up, fire
+up, bring up, switch to, run, open up) and his apps, more ways to ask for
+music and to search the web or YouTube, a few more pause / resume / back
+phrasings, and 110 English sentences per intent instead of 70. Level 1,
+with mine.jsonl, before -> after:
+- real test 59.9% -> 62.0%: old commands 25/48 -> 28/48, old held-out
+  24/40 -> 23/40, new held-out 33/49 -> 34/49
+- right when it decides alone: at 0.6, 19/19 -> 21/22 (the miss: "can you
+  stop talking so fast" -> stop 0.64); at 0.7, 16/16 -> 17/17
+- dev isn't comparable (a new dev split, since the templates changed)
+The honest set moved by one line. Character pieces don't carry over to
+verbs the data never had ("get me onto", "pennanna", "hold the video"):
+level 1 is near its limit on new wordings. Next levers: level 2 (sentence
+meaning) and Adhi's own phrasings.
+
