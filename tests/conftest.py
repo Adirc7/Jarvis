@@ -56,4 +56,6 @@ def settings(tmp_path):
     # Keep Jarvis's memory of "when you last talked" out of the real state/ folder.
     s.raw.setdefault("general", {})["state_dir"] = str(tmp_path / "state")
     s.raw.setdefault("tools", {})["web"] = False      # tests never open a browser or press media keys
+    s.raw["tools"]["desktop"] = False                 # nor use the real PC tools (tests pass stand-ins)
+    s.raw.setdefault("general", {})["log_dir"] = str(tmp_path / "logs")
     return s

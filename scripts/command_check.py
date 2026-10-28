@@ -134,6 +134,7 @@ async def run(cases: list[dict], rules_only: bool, pause_s: float, telemetry: Te
     settings = load_settings()                       # your settings and API keys, as Jarvis uses them
     settings.raw.setdefault("tools", {})["model_tools"] = "off" if rules_only else "always"
     settings.raw.setdefault("memory", {})["enabled"] = False
+    settings.raw["tools"]["desktop"] = False         # this check is about the web tools; no real PC actions
     llm = FallbackLLM(configured_providers(settings.providers(), settings.get("llm.timeout_s", 20),
                                            float(settings.get("llm.keepalive_s", 120))),
                       telemetry, routes=settings.routes())
