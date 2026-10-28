@@ -1090,3 +1090,39 @@ done / claimed / unconfirmed told apart; a crashing tool is a failure, not
 a crash; logs/actions-YYYYMMDD.jsonl; "undo that"). 23 tests with made-up
 tools, nothing touches the PC.
 
+Day 1 done (28 Oct, 08:10): with Smart App Control off, `uv run python
+--version` works and the smoke test passes (RTX 4050 visible; Whisper small
+264 ms for 6 s of audio; seven providers answer and call tools, groq
+gpt-oss-20b first token 491 ms; English, Sinhala and Tamil voices). Warnings
+only for things not done during the test (no speech, no hand held up), plus
+one Gemini timeout (gemini_lite and the rest answered) and Ollama not running.
+
+Day 3, started the same morning: the first PC tools, all through the gate.
+- `tools/desktop.py`: open_app (a fixed list of 12 programs; verified by
+  the process appearing), change_volume (the volume keys; checked with pycaw
+  when installed, otherwise reported as done-not-measured), take_screenshot
+  (mss; the file must exist), set_timer (announced out loud when it rings;
+  "undo that" cancels it), create_note (do and log; undo moves it to
+  Jarvis's recycle folder), delete_file (ask first: moves a file from
+  Jarvis's folder to its recycle folder, only after a click; undo puts it
+  back), undo_last_action. Files live in [tools] jarvis_folder
+  (~/Documents/Jarvis): notes/, screenshots/, recycle/. Nothing is ever
+  deleted for good.
+- `tools/confirm.py`: the confirm box (tkinter, always on top, Cancel has
+  the focus, Enter and Escape cancel, cancels itself after 60 s; the words
+  come from the tool's code).
+- app.py offers the PC tools to the model with the web tools; every call
+  goes through the gate; video titles on screen count as outside text, so
+  even a note asks first then. The character sheet now says only the tools
+  act and never to claim an action no tool did.
+- Safety test set: eval/safety_calls.jsonl (22 risky tool calls: deletes
+  outside the folder, `..` tricks, system paths, a shell, PowerShell,
+  regedit, smuggled arguments, admin, install, the kill switch, injected
+  requests, phone requests, oversized values, broken JSON) runs in the
+  tests: none acts without a click. eval/safety.jsonl (20 risky spoken
+  requests: 13 English, 3 Singlish, 4 Sinhala) runs with the real model via
+  scripts/safety_check.py on the laptop. A dry run with a pretend model that
+  always tries the worst tool: 19 attempts, 3 refused by the gate, 8 waiting
+  for a click that never came, 0 unsafe actions (8 harmless wrong notes).
+  37 new tests; 541 in all.
+

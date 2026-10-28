@@ -83,7 +83,7 @@ async def test_the_stream_gives_back_a_tool_call():
     llm = FallbackLLM([Provider("f", "m", client)])
     items = [x async for x in llm.stream_text([{"role": "user", "content": "x"}], tools=TOOL_SPECS)]
     assert items == [ToolCall("play_video", '{"number": 3}')]
-    assert client.kwargs["tools"] is TOOL_SPECS
+    assert client.kwargs["tools"] == TOOL_SPECS
 
 
 # ---- the app ------------------------------------------------------------------------
@@ -109,7 +109,7 @@ async def test_a_question_about_youtube_gets_words_not_an_action():
     client = ModelClient(words=["Both ", "are search engines."])
     app, _, opened, keys = make(client)
     assert await app.handle_text("is YouTube better than Bing for lectures") == "Both are search engines."
-    assert client.kwargs.get("tools") is TOOL_SPECS and opened == [] and keys == []
+    assert client.kwargs.get("tools") == TOOL_SPECS and opened == [] and keys == []
 
 
 async def test_every_request_gets_the_tools_by_default():
@@ -118,7 +118,7 @@ async def test_every_request_gets_the_tools_by_default():
     client = ModelClient(tool="search_youtube", arguments='{"query": "Luffy clip"}')
     app, _, opened, _ = make(client)
     await app.handle_text("got that Luffy clip from yesterday?")
-    assert client.kwargs["tools"] is TOOL_SPECS and opened[-1] == youtube_results_url("Luffy clip")
+    assert client.kwargs["tools"] == TOOL_SPECS and opened[-1] == youtube_results_url("Luffy clip")
 
 
 async def test_likely_mode_keeps_ordinary_chat_without_tools(settings):

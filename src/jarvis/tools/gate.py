@@ -188,7 +188,8 @@ class Gate:
         verified = None
         if result.ok and tool.verify:
             try:
-                verified = bool(tool.verify(args, result))
+                checked = tool.verify(args, result)       # None: this time it couldn't be measured
+                verified = None if checked is None else bool(checked)
             except Exception:  # noqa: BLE001 - a check that crashes counts as not confirmed
                 verified = False
         ms = round((time.perf_counter() - start) * 1000)

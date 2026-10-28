@@ -44,6 +44,7 @@ vision = [
 ]
 desktop = [
     "pynput>=1.7.6",
+    "mss>=9.0",                 # screenshots (pure Python, MIT)
 ]
 # CUDA 12 libraries that faster-whisper (CTranslate2) needs on Windows.
 # Installing them with pip avoids a manual CUDA/cuDNN install.

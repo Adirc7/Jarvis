@@ -143,6 +143,15 @@ facing_sign = 1
 # "go back". Only bing.com and youtube.com. YouTube titles need a free
 # YOUTUBE_API_KEY in .env; without it Jarvis opens the results page.
 web = true
+# PC tools (src/jarvis/tools/desktop.py), every call through the safety gate
+# (tools/gate.py): open a program from a fixed list, volume, screenshot,
+# timer, notes, and moving a file to Jarvis's recycle folder (only after a
+# click). Jarvis's files go in jarvis_folder (notes/, screenshots/,
+# recycle/); it can't touch anything outside it and allowed_folders.
+# Every action is written to logs/actions-YYYYMMDD.jsonl.
+desktop = true
+jarvis_folder = "~/Documents/Jarvis"
+allowed_folders = []
 browser = "edge"            # "edge" (Microsoft Edge on Windows) or "default"
 # Requests the fixed rules miss ("I'd rather hear the anime one") go to the
 # model with the same actions as tools, and what's on screen (the videos

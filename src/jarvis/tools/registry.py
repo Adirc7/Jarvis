@@ -43,7 +43,7 @@ class Tool:
     parameters: dict[str, Any]                       # JSON schema of an object
     tier: Tier
     run: Callable[[Args], Result]
-    verify: Callable[[Args, Result], bool] | None = None
+    verify: Callable[[Args, Result], bool | None] | None = None   # None back: couldn't measure it
     undo: Callable[[Args, Result], Result] | None = None
     path_params: tuple[str, ...] = ()               # arguments that are file paths: must be in allowed folders
     describe: Callable[[Args], str] | None = None   # the confirm box's words, written by code from the arguments
