@@ -1192,3 +1192,47 @@ now record when they were ready (marks.reply_ready), so the next run can
 time them too. Still to measure on the laptop: safety_check.py, the confirm
 box, intent level 2.
 
+## 2026-10-30: news with Jarvis's own take, the world news map, research, study
+
+Adhi asked for the news, research and study side now, built my own way
+while he studies (non-ML; the ML parts wait for him).
+
+- `knowledge/news.py`: the latest headlines by theme (technology, politics,
+  military, space, business, sport), country or topic. Worldwide from GDELT
+  (free, no key, one request per 5 s, kept to), Sri Lanka from Ada Derana,
+  EconomyNext and Daily News RSS, BBC World when nothing else answers. Each
+  story gets its theme and the countries its headline is about
+  (`knowledge/places.py`: 80 countries with their people, cities and
+  leaders, whole words only, so "Colombo" isn't Colombia and "us" isn't the
+  USA); duplicates of one event are merged. `read` fetches an article's text
+  for "tell me more".
+- `knowledge/news_map.py`: a world map page (Leaflet, dark tiles, the
+  colours of Adhi's UI concept): one marker per country, sized by stories,
+  coloured by theme, each headline linking to its source; stories naming no
+  country listed beside it. Saved in Documents/Jarvis/news and opened in the
+  browser.
+- `knowledge/research.py`: Wikipedia (English, Sinhala, Tamil) and OpenAlex
+  papers (authors, year, venue, DOI, citations, the abstract rebuilt from
+  OpenAlex's word index).
+- `knowledge/mathcheck.py`: SymPy works out simplify, expand, factor, solve,
+  differentiate, integrate (indefinite ones checked by differentiating
+  back), limit, series and evaluate. The model writes the expression, so
+  only maths characters and known function names get through; no dots,
+  quotes, brackets or other names, so no Python; 8 s limit.
+- `tools/info.py`: get_news, read_article, show_news_map, look_up,
+  find_papers, check_maths, all through the gate. When one fetches
+  something, Jarvis asks the model a second time with the data marked as
+  fetched and untrusted, and no tools, so a headline can't make it act.
+  News answers: the 3-5 most important stories with their sources, then
+  "My take:" (Sinhala "මගේ අදහස:") as a thoughtful friend would, facts and
+  interpretation kept apart, contested political questions given fairly
+  from the main sides. Research answers cite only what was fetched. Maths:
+  hints first, every result checked. Follow-ups see the fetched data for
+  15 minutes, and while it's there even a note needs a click.
+- The character sheet no longer says Jarvis can't check the news; it says to
+  use the tools and to say so plainly when they fetch nothing.
+- 24 tests with stand-ins for the internet (575 in all). None of the sites
+  is reachable from the cloud workspace, so the first real fetch happens on
+  the laptop: "what's the latest news in Sri Lanka", "show me the news map",
+  "find papers on Sinhala speech recognition", "integrate x squared sin x".
+

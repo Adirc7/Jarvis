@@ -150,6 +150,11 @@ web = true
 # recycle/); it can't touch anything outside it and allowed_folders.
 # Every action is written to logs/actions-YYYYMMDD.jsonl.
 desktop = true
+# News (GDELT worldwide, Sri Lankan RSS feeds, BBC), the world news map,
+# Wikipedia, research papers (OpenAlex) and maths checked by SymPy
+# (src/jarvis/tools/info.py, src/jarvis/knowledge/). The model answers from
+# what they fetch, naming sources, then gives its own labelled take.
+knowledge = true
 jarvis_folder = "~/Documents/Jarvis"
 allowed_folders = []
 browser = "edge"            # "edge" (Microsoft Edge on Windows) or "default"

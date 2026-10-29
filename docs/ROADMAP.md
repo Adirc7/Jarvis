@@ -51,11 +51,11 @@ Research, News; Friend grows with Phase 1.5.
 
 | Skill | What it does | Free tools | Done when |
 |---|---|---|---|
-| **Study** | Tutor for the Physical Science degree: hints first, checked maths, quizzes later | SymPy | Used for a week on one subject; every stated maths result checked |
+| **Study** | Tutor for the Physical Science degree: hints first, checked maths, quizzes later (SymPy checking built 30 Oct) | SymPy | Used for a week on one subject; every stated maths result checked |
 | **Visualise** | Graphs, 3D surfaces, vector fields, ODE solutions, physics simulations | matplotlib, plotly, SymPy, PhET; Manim later | 15 plot requests drawn correctly, checked by you |
 | **Data** | Excel/CSV analysis, regression, help with Power BI | pandas, numpy, statsmodels | 10 test questions match Excel's own results |
-| **Research** | Look things up across the sciences, read PDFs, summarise with page references, keep a reading list | Wikipedia, Tavily, OpenAlex, arXiv, pypdf | Zero invented references in 20 requests |
-| **News** | Spoken summary and a clickable world map, only when asked | GDELT | Summaries grounded in fetched articles, sources named |
+| **Research** | Look things up across the sciences, read PDFs, summarise with page references, keep a reading list (Wikipedia and OpenAlex lookups built 30 Oct) | Wikipedia, Tavily, OpenAlex, arXiv, pypdf | Zero invented references in 20 requests |
+| **News** | Spoken summary and a clickable world map, only when asked (built 30 Oct: themes, countries, Sri Lankan feeds, a labelled take) | GDELT | Summaries grounded in fetched articles, sources named |
 | **Friend** | Warm talk about stress, relationships, love, psychology, with limits | Character sheet, empathy modes | Wellbeing measures in longer trials (quick win 2) |
 
 ## Research priorities

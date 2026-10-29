@@ -208,8 +208,9 @@ def test_latex_is_spoken_in_words():
 def test_honesty_about_current_events_is_in_the_prompt():
     from jarvis.persona import Persona
     prompt = Persona.load().system_prompt(language_instruction="Reply in English.", spoken=True, mode="balanced")
-    assert "can't check the latest yet" in prompt
-    assert "check current news, prices or events itself" in prompt
+    assert "can't check the latest right now" in prompt                  # when the news tools aren't there
+    assert "unless it came from a tool in this conversation" in prompt
+    assert "browse the web freely or check prices" in prompt
     assert "Never write maths as symbols or LaTeX" in prompt
 
 
