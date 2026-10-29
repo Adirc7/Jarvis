@@ -38,11 +38,12 @@ guide) · [decisions](docs/DECISIONS.md) · [dev log](docs/DEVLOG.md) ·
 
 ## Status
 
-**Built:** spoken conversation with push-to-talk, three voices, free LLMs,
-the character and empathy modes, the startup greeting, one-click setup, and
-the evaluation tools. **Now:** the first run on the laptop (milestone M0).
-**Next:** replying in the language you speak, the empathy learner, then
-Phase 2 (tools and safety) and the first skill, Study.
+**Built and running on the laptop:** spoken conversation with push-to-talk in
+English, Sinhala and Tamil; the character and empathy modes; the greeting;
+YouTube and Bing by voice in any wording; palm to pause; PC tools behind a
+safety gate; news, research and checked maths; the window. **Waiting for the
+ML parts (Adhi's):** the intent model's level 2, the empathy learner, the
+emotion model. Measurements: [docs/RESULTS.md](docs/RESULTS.md).
 
 ## What works now
 
@@ -67,15 +68,32 @@ Phase 2 (tools and safety) and the first skill, Study.
   about 0.2 s to the first word), Gemini, OpenRouter's free router, local Ollama.
 - **Measured from day one**: every stage is timed in `logs/`; scripts to
   record test sentences and score Whisper models (WER/CER).
+- **Acts on the PC, safely**: "open Notepad", "turn the volume down", "take a
+  screenshot", "set a timer for 25 minutes", "write a note: exam on Friday",
+  "undo that". Every action goes through a safety gate (only listed tools,
+  checked arguments, only Jarvis's folder); deleting asks you to click, and
+  only moves files to Jarvis's recycle folder. Logged in `logs/actions-*.jsonl`.
+- **YouTube and Bing in any words**: "pull up YouTube", "lofi sindu tikak
+  danna", "play the anime one".
+- **The news, with its own take**: "what's the latest news in Sri Lanka?",
+  "any space news today?", "show me the news map". The latest headlines
+  (GDELT worldwide, Ada Derana, EconomyNext, Daily News, BBC), briefed with
+  sources, then a labelled "My take", balanced on politics; a world map of
+  the stories by theme.
+- **Research and study**: Wikipedia and research papers with real references
+  ("find papers on Sinhala speech recognition"); maths worked out and checked
+  by SymPy, hints first ("help me integrate x squared sin x").
+- **A window**: http://127.0.0.1:8765 opens with Jarvis: the orb (gold for
+  Jarvis, teal for Friday), captions, actions, timers and the latest news.
+- **Palm to pause**: hold your right palm up to stop Jarvis talking or pause
+  its video (`/camera on`).
 
 ## Coming next
 
-"Hey Jarvis", double-clap and wave to wake it; a Jarvis window with an orb
-and your skills around it; calling Jarvis from your phone; a tutor for
-physics and maths that gives hints first and checks every result; plots,
-data analysis, research with page references, and news on a world map; hand
-gestures (open palm to stop, thumbs up or down as feedback, swipes). All
-free, private by default, and planned in the [roadmap](docs/ROADMAP.md).
+The intent model's level 2, the empathy learner and the emotion model
+(Adhi's ML parts); "Hey Jarvis" and double-clap to wake it; calling Jarvis
+from your phone; plots and data analysis; more hand gestures. All free,
+private by default, and planned in the [roadmap](docs/ROADMAP.md).
 
 ## Setup on Windows
 
