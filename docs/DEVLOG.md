@@ -1251,3 +1251,34 @@ browser when Jarvis starts ([window] in settings.toml). Checked in a
 headless browser against a live server: every part updates, no script
 errors. 5 tests.
 
+
+First run of news and the window on the laptop (30 Oct, Adhi's log): the Sri
+Lanka briefing and the follow-ups ("your own idea about Sri Lanka's
+progress") worked from the fetched stories. Four things went wrong, now
+fixed:
+- The window didn't open ("[window] open ... (ValueError)"): it used the web
+  tools' opener, which only takes YouTube and Bing. `ui/server.open_page`
+  opens only Jarvis's own pages (http://127.0.0.1 or a file it wrote), in
+  Edge on Windows; the news map opens from the window's /map when the window
+  runs. The map had the same bug.
+- "Tell me about England" got BBC World headlines (Alaska, Kherson, Israel)
+  that the model called "the top UK stories". The country search went to
+  GDELT, which timed out after 12 s, and the world feed was the fallback,
+  unfiltered. Now a country is read from its own feeds (Sri Lanka's papers;
+  BBC UK, US, India, China, Australia) or picked out of its region's BBC
+  feed by name (Europe, Asia, Middle East, Africa, Latin America), with
+  GDELT asked at the same time and given 7 s. All feeds are fetched at once
+  (the three Sri Lankan ones took 3.1 s one after another). If nothing
+  about the country comes back, the world headlines come with a note at the
+  top: say so plainly, and don't call them that country's news.
+- The take after an English briefing came in Sinhala ("මගේ අදහස:"), because
+  the note named the Sinhala label; and its Sinhala had Hindi and Bengali
+  letters inside words ("खेළ", "সাফল্য"). The take is now in the reply's
+  language; the language instruction says Sinhala and Tamil words use only
+  their own letters; and the turn log counts stray letters
+  (`stray_letters`) so evaluate_all can measure how often it still happens.
+- The last question (25 characters) went to the "long" route and waited
+  35 s (Gemini timed out, then Gemini Lite answered): the router counted
+  Jarvis's own instructions and the fetched news (12,724 characters). It
+  now counts only the conversation.
+8 tests (589 in all).

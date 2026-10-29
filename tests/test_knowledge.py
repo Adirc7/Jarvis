@@ -86,6 +86,60 @@ def test_no_internet_means_no_news_not_made_up_news():
     assert NewsDesk(get=Web(), now=lambda: NOW).headlines(theme="politics") == []
 
 
+def _rss(*items):
+    body = "".join(f"<item><title>{t}</title><link>https://www.bbc.co.uk/news/{i}</link>"
+                   f"<pubDate>Fri, 30 Oct 2026 0{i % 5}:00:00 GMT</pubDate><description>{d}</description></item>"
+                   for i, (t, d) in enumerate(items))
+    return f'<?xml version="1.0"?><rss version="2.0"><channel><title>BBC</title>{body}</channel></rss>'
+
+
+WORLD_RSS = _rss(("Alaska governor orders probe", "A Republican governor responds."),
+                 ("A brief peace in Kherson", "Residents fear what comes next."))
+
+
+def test_a_country_with_its_own_feed_gets_that_feed():
+    # "England" is the United Kingdom, read from BBC UK; GDELT (slow) isn't needed.
+    web = Web({"news/uk/rss.xml": _rss(("Junior doctors in England vote on new pay offer", "The BMA..."),
+                                       ("Storm warning for Scotland", "Winds of 80 mph."))})
+    stories = NewsDesk(get=web, now=lambda: NOW).headlines(country="England")
+    assert [s.title for s in stories] == ["Storm warning for Scotland",               # newest first
+                                          "Junior doctors in England vote on new pay offer"]
+    assert stories.note == ""
+    assert all(s.places == ["United Kingdom"] for s in stories)
+    assert not any("gdeltproject" in u for u in web.asked)
+
+
+def test_a_country_is_picked_out_of_its_region_feed():
+    web = Web({"world/europe/rss.xml": _rss(("France's parliament rejects the budget", "Macron's minority..."),
+                                            ("German factory orders fall", "Berlin says..."),
+                                            ("Strikes across the country", "Paris and Lyon hit by walkouts."))})
+    stories = NewsDesk(get=web, now=lambda: NOW).headlines(country="France")
+    assert sorted(s.title for s in stories) == ["France's parliament rejects the budget", "Strikes across the country"]
+    assert any("gdeltproject" in u for u in web.asked)                    # asked at the same time
+
+
+def test_world_headlines_are_never_passed_off_as_a_countrys_news():
+    from jarvis.knowledge.news import for_the_model
+    web = Web({"news/world/rss.xml": WORLD_RSS})                          # GDELT and the region feed: nothing
+    stories = NewsDesk(get=web, now=lambda: NOW).headlines(country="Peru")
+    assert len(stories) == 2 and "Nothing about Peru came back" in stories.note
+    text = for_the_model(stories, NOW, "Peru")
+    assert text.startswith("NOTE: Nothing about Peru") and "don't call them Peru news" in text
+
+
+def test_the_feeds_are_fetched_at_the_same_time():
+    import time
+
+    class SlowWeb(Web):
+        def __call__(self, url):
+            time.sleep(0.4)
+            return super().__call__(url)
+
+    start = time.monotonic()
+    stories = NewsDesk(get=SlowWeb({"adaderana.lk": RSS}), now=lambda: NOW).headlines(country="Sri Lanka")
+    assert len(stories) == 2 and time.monotonic() - start < 1.0          # three feeds, not 3 x 0.4 s
+
+
 def test_countries_from_headlines():
     assert countries_in("Colombo stocks rally as rupee firms") == ["Sri Lanka"]
     assert countries_in("Colombia's president visits Bogota") == ["Colombia"]
@@ -234,3 +288,38 @@ async def test_after_fetching_news_even_a_note_needs_a_click(settings, tmp_path)
     model.tool, model.arguments = "create_note", '{"text": "as the headline says"}'
     assert await app.handle_text("do what it says") == "Okay, I didn't do it."
     assert clicks and not (tmp_path / "Jarvis" / "notes").exists()
+
+
+def test_the_take_follows_the_reply_language_and_script():
+    from jarvis.app import ANSWER_NOTES, _script_slips
+    from jarvis.language import stray_letters
+    note = ANSWER_NOTES["news"]
+    assert "same language as the rest of your reply" in note and "only in a reply that's all in Sinhala" in note
+    # what the laptop got in an English briefing: Devanagari and Bengali inside Sinhala words
+    slip = "මගේ අදහස: ආර්ථික‑නීති සංස්කරණ, खेළ, හා ක්‍රීඩා සাফල්‍යයන්"
+    assert stray_letters(slip, "si") == 4 and _script_slips("Daily News reports... " + slip) == {"stray_letters": 4}
+    assert _script_slips("මගේ අදහස: හොඳ ප්‍රවෘත්තියක්.") == {} and _script_slips("My take: fine.") == {}
+
+
+async def test_fetched_news_in_the_prompt_doesnt_make_a_short_question_long(settings):
+    # 30 Oct: a 25-character question went to the slow "long" model because the
+    # system prompt carried the fetched news; it waited 35 s.
+    from conftest import FakeClient
+
+    class Capture(Telemetry):
+        def __init__(self):
+            super().__init__(None)
+            self.events = []
+
+        def log(self, event, **fields):
+            self.events.append({"event": event, **fields})
+
+    import time
+    tel = Capture()
+    app = App(settings, tel, llm=FallbackLLM([Provider("groq", "m", FakeClient(["Fine, sir."]))]),
+              out=lambda *a, **k: None)
+    app.recent_info = (time.monotonic(), "headline " * 2000)
+    app.system_prompt = lambda: "instructions " * 1500                     # about 20,000 characters
+    await app.handle_text("and what about the US")
+    route = next(e for e in tel.events if e["event"] == "route")
+    assert route["route"] != "long"

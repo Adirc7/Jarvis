@@ -13,7 +13,9 @@ the laptop. The latest news map is served at /map.
 from __future__ import annotations
 
 import json
+import os
 import queue
+import sys
 import threading
 import time
 from collections import deque
@@ -21,8 +23,26 @@ from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 PAGE = Path(__file__).with_name("index.html")
+
+
+def open_page(url: str, browser: str = "edge") -> None:
+    """Open one of Jarvis's own pages: the window (http://127.0.0.1:port/...) or a file Jarvis wrote (file://).
+
+    Not the web tools' opener, which only takes YouTube and Bing (tools/web.py):
+    anything else here is refused too, so a model can't open a site through it.
+    """
+    parts = urlsplit(url)
+    local = parts.scheme == "http" and parts.hostname in ("127.0.0.1", "localhost")
+    if not (local or parts.scheme == "file"):
+        raise ValueError(f"not one of Jarvis's own pages: {url[:80]}")
+    if local and browser == "edge" and sys.platform == "win32":
+        os.startfile(f"microsoft-edge:{url}")       # a fixed scheme and this computer's own address
+        return
+    import webbrowser
+    webbrowser.open(url)
 
 
 class LiveView:

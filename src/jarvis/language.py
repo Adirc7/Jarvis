@@ -59,6 +59,17 @@ def language_by_script(text: str, languages: dict[str, Language], min_share: flo
     return best if best_share >= min_share else None
 
 
+# Indic scripts a model sometimes slips into Sinhala or Tamil words ("खेළ", "সাফল্য"):
+# Devanagari (0900) up to Malayalam (0D7F), and Sinhala (0D80-0DFF) for a Tamil reply.
+_OTHER_INDIC = {"si": ((0x0900, 0x0D7F),), "ta": ((0x0900, 0x0B7F), (0x0C00, 0x0DFF))}
+
+
+def stray_letters(text: str, code: str) -> int:
+    """Letters from another Indic script in a reply meant to be Sinhala or Tamil (0 for English)."""
+    spans = _OTHER_INDIC.get(code, ())
+    return sum(any(a <= ord(c) <= b for a, b in spans) for c in text)
+
+
 def normalize(text: str) -> str:
     """Lowercase, NFC, drop zero-width joiners, turn punctuation into spaces.
 
@@ -168,9 +179,10 @@ class LanguageManager:
     def llm_instruction(self) -> str:
         lang = self.current
         if lang.code == "en":
-            return "Reply in English."
+            return "Reply in English, all of it (any comment or take of your own too)."
         return (
             f"Always reply in {lang.name} ({lang.native_name}), written in {lang.name} script, "
-            f"even if the user mixes in English words. "
+            f"even if the user mixes in English words. Every word in {lang.name} letters only: never mix "
+            f"Hindi (Devanagari), Bengali or any other script into a word. "
             f"Keep app names, file names and code in their original form."
         )

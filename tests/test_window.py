@@ -99,3 +99,29 @@ async def test_the_app_sends_what_was_said(settings, monkeypatch):
                                ("jarvis", {"text": "Hello, sir.", "speaker": "Jarvis"})]
     snap = app._snapshot()
     assert snap["speaker"] == "Jarvis" and snap["mode"] == "idle" and snap["timers"] == [] and snap["news"] == []
+
+
+def test_jarvis_opens_only_its_own_pages(monkeypatch):
+    # The web tools' opener takes only YouTube and Bing, so it refused the window (ValueError on the laptop).
+    import webbrowser
+
+    from jarvis.ui.server import open_page
+    opened = []
+    monkeypatch.setattr(webbrowser, "open", opened.append)
+    monkeypatch.setattr("sys.platform", "linux")
+    open_page("http://127.0.0.1:8765/")
+    open_page("file:///C:/Users/me/Documents/Jarvis/news/news-map.html")
+    assert opened == ["http://127.0.0.1:8765/", "file:///C:/Users/me/Documents/Jarvis/news/news-map.html"]
+    for other in ("https://example.com/", "https://www.youtube.com/", "http://192.168.1.5:8765/", "javascript:alert(1)"):
+        with pytest.raises(ValueError):
+            open_page(other)
+
+
+def test_the_news_map_opens_from_the_window_when_it_runs(settings, monkeypatch):
+    opened = []
+    monkeypatch.setattr("jarvis.ui.server.open_page", lambda url, browser="edge": opened.append(url))
+    app = App(settings, Telemetry.disabled(), out=lambda *a, **k: None)
+    app._open_map("file:///tmp/news-map.html")                    # no window: the file itself
+    app.view = LiveView(port=0)
+    app._open_map("file:///tmp/news-map.html")                    # the window's /map is the newest map
+    assert opened == ["file:///tmp/news-map.html", app.view.url + "map"]

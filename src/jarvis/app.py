@@ -43,7 +43,7 @@ from .events import (
 )
 from .greeting import FULL, Greeter, Presence, fill, greeting_kind
 from .killswitch import HotkeyListener, Once
-from .language import LanguageManager, normalize
+from .language import LanguageManager, normalize, stray_letters
 from .memory import Memory, detect_fact, detect_name
 from .persona import Persona
 from .state import CancelToken, Mode, SharedState
@@ -89,8 +89,10 @@ KNOWLEDGE_NOTE = ("Knowledge tools this turn: for anything about current events 
 ANSWER_NOTES = {
     "news": ("Brief the user from the fetched news only: the most important 3 to 5 stories first, one or two spoken "
              "sentences each, naming the source of each (\"Ada Derana reports...\"). Don't add facts that aren't in "
-             "the data; if you only have a headline, say so. Then give your own take, labelled (\"My take:\", in "
-             "Sinhala \"මගේ අදහස:\"), the way a thoughtful, well-read friend would: what links the stories, why they "
+             "the data; if you only have a headline, say so. If the data starts with a NOTE, do what it says first. "
+             "Then give your own take, in the same language as the rest of your reply, labelled \"My take:\" (only "
+             "in a reply that's all in Sinhala, \"මගේ අදහස:\"), the way a thoughtful, well-read friend would: "
+             "what links the stories, why they "
              "matter (for Sri Lanka, for a student, for technology), and what to watch next. Keep facts and your "
              "interpretation clearly apart. On contested political or moral questions, give the main views fairly "
              "instead of taking a side; on questions of fact you may say what the evidence supports. Keep it under "
@@ -115,6 +117,14 @@ DESK_WORDS = re.compile(
 LLM_UNAVAILABLE = "I can't reach any language model right now. Check the internet connection or start Ollama."
 REPLY_BROKE_OFF = "Sorry, the connection dropped in the middle of my answer. Please ask again."
 
+
+def _script_slips(reply: str) -> dict:
+    """For the turn log: letters of another Indic script inside Sinhala or Tamil text ("खेළ"), if any."""
+    for code, (low, high) in (("si", (0x0D80, 0x0DFF)), ("ta", (0x0B80, 0x0BFF))):
+        if any(low <= ord(c) <= high for c in reply):
+            n = stray_letters(reply, code)
+            return {"stray_letters": n} if n else {}
+    return {}
 
 
 @dataclass(frozen=True)
@@ -197,8 +207,7 @@ class App:
             self.info: InfoTools | None = info
         elif settings.get("tools.knowledge", True):
             self.info = InfoTools(settings.get("tools.jarvis_folder", "~/Documents/Jarvis"),
-                                  ActionLog(settings.path("general.log_dir", "logs")),
-                                  opener=self.web.opener if self.web is not None else None)
+                                  ActionLog(settings.path("general.log_dir", "logs")), opener=self._open_map)
         else:
             self.info = None
         self.recent_info: tuple[float, str] | None = None     # (when, what was fetched) for follow-ups
@@ -404,7 +413,9 @@ class App:
             + [{"role": "user", "content": text}]
         )
         lang = self.lang.current
-        decision = self.router.route(text, lang.code, sum(len(m["content"]) for m in messages))
+        # "Long" is about the conversation (a pasted essay, a long chat), not Jarvis's own
+        # instructions and fetched news: those once sent a 25-character question to the slow model.
+        decision = self.router.route(text, lang.code, sum(len(m["content"]) for m in messages[1:]))
         if decision.route in ("maths", "teach") and self.info is not None and extra.get("tools"):
             messages[0]["content"] += "\n\n" + STUDY_NOTE
         self.telemetry.log("route", route=decision.route, reason=decision.reason, intent=decision.intent,
@@ -448,7 +459,7 @@ class App:
             self.memory.set_recent(self.history[-HISTORY_TURNS * 2:])
             self.memory.save()
         turn.finish(kind="chat", provider=self.llm.last_provider, route=decision.route, language=lang.code,
-                    chars=len(reply), cancelled=token.cancelled)
+                    chars=len(reply), cancelled=token.cancelled, **_script_slips(reply))
         return reply
 
     def _tools_mode(self) -> str:
@@ -561,11 +572,18 @@ class App:
         self.out(f"[window] {url}")
         self.telemetry.log("window_start", url=url)
         if self.settings.get("window.open_on_start", True):
-            opener = self.web.opener if self.web is not None else None
             try:
-                (opener or __import__("webbrowser").open)(url)
+                self._open_page(url)
             except Exception as exc:  # noqa: BLE001 - no browser: the address is printed above
                 self.out(f"[window] open {url} in a browser ({type(exc).__name__})")
+
+    def _open_page(self, url: str) -> None:
+        from .ui.server import open_page
+        open_page(url, str(self.settings.get("tools.browser", "edge")))
+
+    def _open_map(self, file_uri: str) -> None:
+        """The news map: from the window's server when it's running (/map is the newest map), else the file."""
+        self._open_page(self.view.url + "map" if self.view is not None else file_uri)
 
     def _recent_info_note(self) -> str:
         if self.recent_info is None or time.monotonic() - self.recent_info[0] > RECENT_INFO_S:
@@ -603,7 +621,7 @@ class App:
                 self.memory.set_recent(self.history[-HISTORY_TURNS * 2:])
                 self.memory.save()
         turn.finish(kind="knowledge", kinds=kinds, provider=self.llm.last_provider, route=route,
-                    language=lang.code, chars=len(reply), cancelled=token.cancelled)
+                    language=lang.code, chars=len(reply), cancelled=token.cancelled, **_script_slips(reply))
         return reply
 
     def _timer_rang(self, label: str) -> None:

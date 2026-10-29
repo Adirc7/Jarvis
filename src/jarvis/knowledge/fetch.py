@@ -12,6 +12,8 @@ from collections.abc import Callable
 USER_AGENT = "Jarvis/0.1 (personal study assistant; +https://github.com/Adirc7/Jarvis)"
 # Seconds between two requests to the same site. GDELT asks for one request every 5 s.
 SPACING = {"api.gdeltproject.org": 5.0}
+# How long to wait for a site. GDELT is often slow and has a fallback (news.py), so it gets less.
+TIMEOUTS = {"api.gdeltproject.org": 7.0}
 
 Get = Callable[[str], str]
 
@@ -31,9 +33,10 @@ def url_with(base: str, params: dict[str, object] | None = None) -> str:
     return f"{base}?{urllib.parse.urlencode(clean)}"
 
 
-def get_text(url: str, timeout: float = 12.0, max_bytes: int = 2_000_000) -> str:
+def get_text(url: str, timeout: float | None = None, max_bytes: int = 2_000_000) -> str:
     """The page's text. Waits if the same site was asked too recently."""
     host = urllib.parse.urlsplit(url).hostname or ""
+    timeout = timeout or TIMEOUTS.get(host, 10.0)
     if urllib.parse.urlsplit(url).scheme not in ("http", "https"):
         raise FetchError(f"not a web address: {url[:80]}")
     gap = SPACING.get(host, 0.0)
