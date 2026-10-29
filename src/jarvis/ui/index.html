@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jarvis</title>
+<style>
+:root { --bg:#03070d; --panel:#091522; --line:#12314a; --text:#eaf5ff; --muted:#8fa7ba; --cyan:#4de1ff;
+        --amber:#ffb43b; --teal:#4ce2c4; --green:#64efb7; --red:#ff766f; --accent:var(--amber); }
+body[data-speaker="Friday"] { --accent:var(--teal); }
+* { box-sizing:border-box; }
+html, body { margin:0; height:100%; background:var(--bg); color:var(--text);
+             font-family:"Segoe UI", "Iskoola Pota", "Nirmala UI", system-ui, sans-serif; }
+header { display:flex; align-items:center; gap:14px; padding:12px 20px; border-bottom:1px solid var(--line); }
+header h1 { margin:0; font-size:18px; font-weight:500; letter-spacing:6px; color:var(--accent); }
+.pill { font-size:12px; color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:3px 10px; }
+.pill b { color:var(--text); font-weight:500; }
+#link { margin-left:auto; }
+main { display:grid; grid-template-columns:minmax(0,1fr) 360px; height:calc(100% - 53px); }
+.stage { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; min-width:0; }
+canvas { width:min(52vh, 90%); aspect-ratio:1; }
+#status { margin-top:6px; font-size:14px; letter-spacing:3px; color:var(--accent); text-transform:uppercase; }
+.captions { width:min(760px, 100%); margin-top:18px; }
+.cap { margin:8px 0; font-size:17px; line-height:1.5; }
+.cap .who { display:block; font-size:11px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; }
+#capJarvis { color:var(--text); } #capYou { color:var(--muted); }
+aside { background:var(--panel); border-left:1px solid var(--line); overflow:auto; padding:14px 16px; }
+aside h2 { font-size:12px; font-weight:500; letter-spacing:2px; color:var(--cyan); text-transform:uppercase; margin:14px 0 8px; }
+.item { font-size:13px; line-height:1.4; margin:6px 0; padding-bottom:6px; border-bottom:1px solid #0e2235; }
+.item .meta { color:var(--muted); font-size:11px; }
+.item a { color:var(--text); text-decoration:none; } .item a:hover { color:var(--cyan); }
+.ok { color:var(--green); } .ask { color:var(--amber); } .no { color:var(--red); }
+.empty { color:var(--muted); font-size:12px; }
+#mapBtn { display:inline-block; margin-top:6px; font-size:12px; color:var(--bg); background:var(--cyan);
+          border-radius:6px; padding:5px 10px; text-decoration:none; }
+#mapBtn[hidden] { display:none; }
+#offline { position:fixed; bottom:12px; left:12px; font-size:12px; color:var(--red); }
+@media (max-width: 900px) { main { grid-template-columns:1fr; height:auto; } aside { border-left:0; } }
+</style>
+</head>
+<body data-speaker="Jarvis" data-mode="idle">
+<header>
+  <h1 id="name">JARVIS</h1>
+  <span class="pill">language <b id="lang">-</b></span>
+  <span class="pill">model <b id="model">-</b></span>
+  <span class="pill" id="link">live</span>
+</header>
+<main>
+  <section class="stage">
+    <canvas id="orb" width="640" height="640" aria-label="Jarvis's orb"></canvas>
+    <div id="status">idle</div>
+    <div class="captions">
+      <div class="cap"><span class="who">You</span><span id="capYou">-</span></div>
+      <div class="cap"><span class="who" id="capWho">Jarvis</span><span id="capJarvis">-</span></div>
+    </div>
+  </section>
+  <aside>
+    <h2>Conversation</h2><div id="talk"><div class="empty">Nothing yet.</div></div>
+    <h2>Actions</h2><div id="actions"><div class="empty">No actions yet.</div></div>
+    <h2>Timers</h2><div id="timers"><div class="empty">No timers.</div></div>
+    <h2>Latest news</h2><div id="news"><div class="empty">Ask "what's the news today?"</div></div>
+    <a id="mapBtn" href="/map" target="_blank" rel="noopener" hidden>Open the news map</a>
+  </aside>
+</main>
+<div id="offline" hidden>Jarvis isn't running.</div>
+<script>
+const $ = id => document.getElementById(id);
+const LABELS = { idle: "idle", listening: "listening...", thinking: "thinking...", speaking: "speaking",
+                 paused: "paused", gesture: "gesture mode" };
+const safeUrl = u => /^https?:\/\//i.test(String(u || "")) ? u : null;
+
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text; return e; }
+
+function addTalk(who, text) {
+  const box = $("talk"); if (box.querySelector(".empty")) box.textContent = "";
+  const item = el("div", "item"); item.append(el("div", "meta", who), el("div", "", text));
+  box.prepend(item); while (box.children.length > 30) box.lastChild.remove();
+}
+function addAction(a) {
+  const box = $("actions"); if (box.querySelector(".empty")) box.textContent = "";
+  const cls = ["done", "claimed"].includes(a.status) ? "ok" : a.status === "cancelled" ? "ask" : "no";
+  const item = el("div", "item");
+  const head = el("div", "meta"); head.append(el("span", cls, a.status || ""), document.createTextNode(" · " + (a.tool || "")));
+  item.append(head, el("div", "", a.text || "")); box.prepend(item);
+  while (box.children.length > 12) box.lastChild.remove();
+}
+function showState(s) {
+  if (!s) return;
+  document.body.dataset.mode = s.mode || "idle";
+  document.body.dataset.speaker = s.speaker || "Jarvis";
+  $("name").textContent = (s.speaker || "Jarvis").toUpperCase();
+  $("capWho").textContent = s.speaker || "Jarvis";
+  $("status").textContent = LABELS[s.mode] || s.mode || "";
+  $("lang").textContent = s.language || "-";
+  $("model").textContent = s.provider || "-";
+  const timers = $("timers"); timers.textContent = "";
+  for (const t of s.timers || []) {
+    const m = Math.floor(t.ends_in_s / 60), sec = String(Math.floor(t.ends_in_s % 60)).padStart(2, "0");
+    timers.append(el("div", "item", `${t.label || "Timer"}: ${m}:${sec} left`));
+  }
+  if (!timers.children.length) timers.append(el("div", "empty", "No timers."));
+  const news = $("news");
+  if ((s.news || []).length) {
+    news.textContent = "";
+    s.news.slice(0, 8).forEach((n, i) => {
+      const item = el("div", "item"); const href = safeUrl(n.url);
+      const title = href ? el("a", "", `${i + 1}. ${n.title}`) : el("span", "", `${i + 1}. ${n.title}`);
+      if (href) { title.href = href; title.target = "_blank"; title.rel = "noopener"; }
+      item.append(title, el("div", "meta", `${n.source} · ${n.theme}`)); news.append(item);
+    });
+  }
+  $("mapBtn").hidden = !s.map;
+}
+function onEvent(e) {
+  if (e.kind === "state") showState(e.state);
+  else if (e.kind === "you") { $("capYou").textContent = e.text; addTalk("You", e.text); }
+  else if (e.kind === "jarvis") { $("capJarvis").textContent = e.text; addTalk(e.speaker || "Jarvis", e.text); }
+  else if (e.kind === "action") addAction(e);
+}
+
+fetch("/state").then(r => r.json()).then(d => {
+  showState(d.state);
+  for (const e of d.history || []) onEvent(e);
+}).catch(() => {});
+let source;
+function connect() {
+  source = new EventSource("/events");
+  source.onmessage = m => { try { onEvent(JSON.parse(m.data)); } catch (err) {} };
+  source.onopen = () => { $("offline").hidden = true; $("link").textContent = "live"; };
+  source.onerror = () => { $("offline").hidden = false; $("link").textContent = "offline"; };
+}
+connect();
+
+// ---- the orb: a particle sphere (ROADMAP "The orb"): gold for Jarvis, teal for Friday ----
+const canvas = $("orb"), ctx = canvas.getContext("2d");
+const N = 900, pts = [];
+for (let i = 0; i < N; i++) {                       // points spread evenly over a sphere
+  const y = 1 - (i / (N - 1)) * 2, r = Math.sqrt(1 - y * y), th = i * Math.PI * (3 - Math.sqrt(5));
+  pts.push([Math.cos(th) * r, y, Math.sin(th) * r]);
+}
+const look = { idle: [0.15, 0.55, 0.92], listening: [0.35, 0.8, 1.0], thinking: [1.2, 0.75, 0.95],
+               speaking: [0.5, 1.0, 1.05], paused: [0.05, 0.3, 0.85], gesture: [0.3, 0.7, 0.95] };
+let angle = 0, last = performance.now();
+function colour() { return getComputedStyle(document.body).getPropertyValue("--accent").trim() || "#ffb43b"; }
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  const mode = document.body.dataset.mode, [spin, glow, size] = look[mode] || look.idle;
+  angle += dt * spin;
+  const W = canvas.width, C = W / 2, base = W * 0.3 * size;
+  const pulse = mode === "listening" ? 1 + 0.05 * Math.sin(now / 180) : mode === "speaking" ? 1 + 0.04 * Math.sin(now / 90) : 1;
+  const R = base * pulse, col = colour();
+  ctx.clearRect(0, 0, W, W);
+  const g = ctx.createRadialGradient(C, C, 0, C, C, R * 0.9);
+  g.addColorStop(0, col); g.addColorStop(0.25, col + "66"); g.addColorStop(1, "transparent");
+  ctx.globalAlpha = glow; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(C, C, R * 0.9, 0, 7); ctx.fill();
+  if (mode === "speaking") {                        // rays
+    ctx.strokeStyle = col; ctx.lineWidth = 2;
+    for (let k = 0; k < 24; k++) {
+      const a = k / 24 * Math.PI * 2 + angle * 0.5, len = R * (1.15 + 0.12 * Math.sin(now / 70 + k));
+      ctx.globalAlpha = 0.25; ctx.beginPath();
+      ctx.moveTo(C + Math.cos(a) * R * 1.02, C + Math.sin(a) * R * 1.02);
+      ctx.lineTo(C + Math.cos(a) * len, C + Math.sin(a) * len); ctx.stroke();
+    }
+  }
+  const ca = Math.cos(angle), sa = Math.sin(angle), tilt = 0.35, ct = Math.cos(tilt), st = Math.sin(tilt);
+  ctx.fillStyle = col;
+  for (const [x, y, z] of pts) {                    // rotate, tilt, project
+    const x1 = x * ca + z * sa, z1 = -x * sa + z * ca, y1 = y * ct - z1 * st, z2 = y * st + z1 * ct;
+    const depth = (z2 + 1.6) / 2.6;
+    ctx.globalAlpha = Math.max(0.05, depth * glow * 0.9);
+    ctx.fillRect(C + x1 * R, C + y1 * R, 1.6 * depth + 0.4, 1.6 * depth + 0.4);
+  }
+  if (mode === "thinking") {                        // rings and orbiting sparks
+    ctx.strokeStyle = col; ctx.lineWidth = 1.5;
+    for (let k = 0; k < 3; k++) {
+      ctx.globalAlpha = 0.35; ctx.beginPath();
+      ctx.ellipse(C, C, R * 1.25, R * 0.35, angle * (k + 1) * 0.7 + k, 0, Math.PI * 2); ctx.stroke();
+      const a = angle * 3 + k * 2.1;
+      ctx.globalAlpha = 0.9; ctx.beginPath(); ctx.arc(C + Math.cos(a) * R * 1.25, C + Math.sin(a) * R * 0.5, 3, 0, 7); ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(frame);                    // the browser pauses this when the page is hidden
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

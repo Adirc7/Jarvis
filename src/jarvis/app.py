@@ -202,6 +202,7 @@ class App:
         else:
             self.info = None
         self.recent_info: tuple[float, str] | None = None     # (when, what was fetched) for follow-ups
+        self.view = None                                       # the window (ui/server.py), started by run()
         self.state.empathy = self.persona.default_mode
         self._apply_empathy_voice()
         self.transcriber = transcriber
@@ -322,7 +323,11 @@ class App:
         token = token or self.state.token()           # taken now: a stop from here on cancels it
         turn = turn or self.telemetry.turn(source=source)
         async with self._turn_lock:
-            return await self._handle_text(text, source, turn, token)
+            self._show("you", text=text, source=source)
+            reply = await self._handle_text(text, source, turn, token)
+            if reply and not token.cancelled:
+                self._show("jarvis", text=reply, speaker=self._speaker())
+            return reply
 
     def _cancelled(self, turn: Turn, where: str) -> None:
         """A turn stopped by the kill switch or a new push-to-talk: nothing more happens."""
@@ -487,6 +492,7 @@ class App:
                 if outcome.acted and data.get("for_model"):
                     fetched.append((data.get("kind", "research"), data["for_model"]))
                 result = ToolSaid(f"info_{call.name}_{outcome.status}", words_for(outcome, lang.code))
+                self._show("action", tool=call.name, status=outcome.status, text=outcome.text)
             elif self.desk is not None and call.name in self.desk.names():
                 # Outside text in this turn (video titles on screen, fetched news or
                 # papers): anything above "just do it" needs a click.
@@ -496,6 +502,7 @@ class App:
                 self.telemetry.log("model_tool", name=call.name, ok=outcome.acted, status=outcome.status,
                                    reasons=outcome.reasons[:3], arguments=call.arguments[:200])
                 result = ToolSaid(f"desk_{call.name}_{outcome.status}", words_for(outcome, lang.code))
+                self._show("action", tool=call.name, status=outcome.status, text=outcome.text)
             elif self.web is not None:
                 result = await loop.run_in_executor(None, self.web.call, call.name, call.arguments, lang.code,
                                                     self.persona.address)
@@ -509,6 +516,56 @@ class App:
         if done is None:                     # arguments that didn't check out: nothing was done
             done = WebTools._replier(lang.code, self.persona.address)("couldnt", "model_tool_failed")
         return await self._tool_reply(text, done, turn, token)
+
+    # ---- the window ---------------------------------------------------------
+    def _speaker(self) -> str:
+        return self.lang.current.assistant_name or self.persona.name
+
+    def _show(self, kind: str, **data: Any) -> None:
+        if self.view is not None:
+            self.view.publish(kind, **data)
+
+    def _snapshot(self) -> dict[str, Any]:
+        """What the window shows besides the conversation: polled a few times a second."""
+        now = datetime.now()  # noqa: DTZ005 - local, like the timers
+        timers = []
+        if self.desk is not None:
+            for label, timer, started in list(self.desk.timers.values()):
+                left = getattr(timer, "interval", 0) - (now - started).total_seconds()
+                timers.append({"label": label, "ends_in_s": max(0, round(left))})
+        news = []
+        if self.info is not None:
+            news = [{"title": s.title, "url": s.url, "source": s.source, "theme": s.theme}
+                    for s in self.info.last_stories[:8]]
+        return {"mode": getattr(self.state.mode, "value", str(self.state.mode)), "language": self.lang.current.name,
+                "speaker": self._speaker(), "provider": self.llm.last_provider or "", "timers": timers,
+                "news": news, "map": bool(self._latest_map())}
+
+    def _latest_map(self):
+        if self.info is None:
+            return None
+        maps = sorted((self.info.home / "news").glob("news-map *.html"))
+        return maps[-1] if maps else None
+
+    def _start_window(self) -> None:
+        if not self.settings.get("window.enabled", True):
+            return
+        from .ui.server import LiveView
+        try:
+            self.view = LiveView(self._snapshot, int(self.settings.get("window.port", 8765)), self._latest_map)
+            url = self.view.start()
+        except OSError as exc:                       # the port is taken (another Jarvis running?)
+            self.view = None
+            self.out(f"[window] couldn't start ({exc}); carrying on without it.")
+            return
+        self.out(f"[window] {url}")
+        self.telemetry.log("window_start", url=url)
+        if self.settings.get("window.open_on_start", True):
+            opener = self.web.opener if self.web is not None else None
+            try:
+                (opener or __import__("webbrowser").open)(url)
+            except Exception as exc:  # noqa: BLE001 - no browser: the address is printed above
+                self.out(f"[window] open {url} in a browser ({type(exc).__name__})")
 
     def _recent_info_note(self) -> str:
         if self.recent_info is None or time.monotonic() - self.recent_info[0] > RECENT_INFO_S:
@@ -818,6 +875,7 @@ class App:
                      "/mute, /stop, /camera on|off, /status, /quit")
         if self.settings.get("gestures.enabled", False):
             self._start_camera()
+        self._start_window()
         self.telemetry.log("session_start", language=self.state.language, providers=names, mode=mode)
         try:
             await self.greet()
@@ -840,6 +898,8 @@ class App:
             for t in tasks:
                 t.cancel()
             self._stop_camera()
+            if self.view is not None:
+                self.view.stop()
             if self._hotkeys:
                 self._hotkeys.stop()
             if self._ptt:

@@ -58,5 +58,6 @@ def settings(tmp_path):
     s.raw.setdefault("tools", {})["web"] = False      # tests never open a browser or press media keys
     s.raw["tools"]["desktop"] = False                 # nor use the real PC tools (tests pass stand-ins)
     s.raw["tools"]["knowledge"] = False               # nor fetch news or papers from the internet
+    s.raw.setdefault("window", {})["enabled"] = False # nor open the window
     s.raw.setdefault("general", {})["log_dir"] = str(tmp_path / "logs")
     return s

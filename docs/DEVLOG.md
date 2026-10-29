@@ -1236,3 +1236,18 @@ while he studies (non-ML; the ML parts wait for him).
   the laptop: "what's the latest news in Sri Lanka", "show me the news map",
   "find papers on Sinhala speech recognition", "integrate x squared sin x".
 
+Jarvis's window (30 Oct, M6, first version), in the style of Adhi's UI
+concept (UI/jarvis-future-complete-ui.html): `ui/server.py` serves a live
+page at http://127.0.0.1:8765, only to this computer, read-only (GET only,
+Host header checked against DNS-rebinding pages), with Server-Sent Events.
+`ui/index.html`: the orb from ROADMAP "The orb" (a canvas particle sphere,
+900 points; gold for Jarvis, teal for Friday; idle dim and slow, listening
+pulsing, thinking with spinning rings and orbiting sparks, speaking bright
+with rays; the browser pauses it when hidden) with a text label; what you
+said and what Jarvis answered; the conversation; actions with their status;
+timers counting down; the latest news with links (only http and https
+links); a button to the latest news map (served at /map). It opens in the
+browser when Jarvis starts ([window] in settings.toml). Checked in a
+headless browser against a live server: every part updates, no script
+errors. 5 tests.
+

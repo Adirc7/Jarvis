@@ -120,6 +120,16 @@ gesture_model = "models/gesture_recognizer.task"   # palm, thumbs (docs/IMPLEMEN
 model = "models/intent/intent.joblib"
 min_confidence = 0.6
 
+[window]
+# Jarvis's window (src/jarvis/ui/): a live page at http://127.0.0.1:8765 that
+# only this computer can open, read-only. The orb shows what Jarvis is doing
+# (gold for Jarvis, teal for Friday); beside it what you said and what Jarvis
+# answered, its actions, timers, the latest news and the news map. Opens in
+# the browser when Jarvis starts.
+enabled = true
+port = 8765
+open_on_start = true
+
 [gestures]
 # Palm to pause (decision D29; docs/IMPLEMENTATION_PLAN.md, M8): a palm held
 # still for half a second stops Jarvis talking, or plays or pauses a video
