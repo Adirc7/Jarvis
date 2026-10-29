@@ -9,6 +9,7 @@ within 60 seconds counts as cancelled.
 
 from __future__ import annotations
 
+import gc
 import threading
 from typing import Any
 
@@ -16,48 +17,60 @@ _one_at_a_time = threading.Lock()
 
 
 def confirm_box(tool: Any, args: dict, words: str, timeout_s: float = 60.0) -> bool:
-    """True only if Adhi clicked "Yes, do it" before the time ran out."""
+    """True only if the user clicked "Yes, do it" before the time ran out.
+
+    Runs on the gate's worker thread. Tk must also be torn down on the thread
+    that made it ("Tcl_AsyncDelete: async handler deleted by the wrong thread"
+    aborts the whole program otherwise), so the window's objects are freed
+    here, before returning, not later by the garbage collector elsewhere.
+    """
+    with _one_at_a_time:
+        answer = _show(words, timeout_s)
+        gc.collect()
+        return answer
+
+
+def _show(words: str, timeout_s: float) -> bool:
     import tkinter as tk
 
-    with _one_at_a_time:
-        answer = {"yes": False}
-        root = tk.Tk()
-        root.title("Jarvis asks")
-        root.attributes("-topmost", True)
-        root.resizable(False, False)
-        frame = tk.Frame(root, padx=18, pady=14)
-        frame.pack()
-        tk.Label(frame, text="Jarvis wants to:", font=("Segoe UI", 10)).pack(anchor="w")
-        tk.Label(frame, text=words, font=("Segoe UI", 12, "bold"), wraplength=440,
-                 justify="left").pack(anchor="w", pady=(4, 10))
-        left = tk.Label(frame, text="", font=("Segoe UI", 9), fg="gray")
-        left.pack(anchor="w")
-        buttons = tk.Frame(frame, pady=8)
-        buttons.pack(anchor="e")
+    answer = {"yes": False}
+    root = tk.Tk()
+    root.title("Jarvis asks")
+    root.attributes("-topmost", True)
+    root.resizable(False, False)
+    frame = tk.Frame(root, padx=18, pady=14)
+    frame.pack()
+    tk.Label(frame, text="Jarvis wants to:", font=("Segoe UI", 10)).pack(anchor="w")
+    tk.Label(frame, text=words, font=("Segoe UI", 12, "bold"), wraplength=440,
+             justify="left").pack(anchor="w", pady=(4, 10))
+    left = tk.Label(frame, text="", font=("Segoe UI", 9), fg="gray")
+    left.pack(anchor="w")
+    buttons = tk.Frame(frame, pady=8)
+    buttons.pack(anchor="e")
 
-        def yes() -> None:
-            answer["yes"] = True
+    def yes() -> None:
+        answer["yes"] = True
+        root.destroy()
+
+    tk.Button(buttons, text="Yes, do it", width=12, command=yes).pack(side="left", padx=4)
+    cancel = tk.Button(buttons, text="Cancel", width=12, command=root.destroy, default="active")
+    cancel.pack(side="left", padx=4)
+    cancel.focus_set()
+    root.bind("<Return>", lambda e: root.destroy())          # Enter cancels, it never confirms
+    root.bind("<Escape>", lambda e: root.destroy())
+    root.protocol("WM_DELETE_WINDOW", root.destroy)
+
+    deadline = {"s": int(timeout_s)}
+
+    def tick() -> None:
+        if deadline["s"] <= 0:
             root.destroy()
+            return
+        left.config(text=f"Cancels by itself in {deadline['s']} s")
+        deadline["s"] -= 1
+        root.after(1000, tick)
 
-        tk.Button(buttons, text="Yes, do it", width=12, command=yes).pack(side="left", padx=4)
-        cancel = tk.Button(buttons, text="Cancel", width=12, command=root.destroy, default="active")
-        cancel.pack(side="left", padx=4)
-        cancel.focus_set()
-        root.bind("<Return>", lambda e: root.destroy())          # Enter cancels, it never confirms
-        root.bind("<Escape>", lambda e: root.destroy())
-        root.protocol("WM_DELETE_WINDOW", root.destroy)
-
-        deadline = {"s": int(timeout_s)}
-
-        def tick() -> None:
-            if deadline["s"] <= 0:
-                root.destroy()
-                return
-            left.config(text=f"Cancels by itself in {deadline['s']} s")
-            deadline["s"] -= 1
-            root.after(1000, tick)
-
-        tick()
-        root.lift()
-        root.mainloop()
-        return answer["yes"]
+    tick()
+    root.lift()
+    root.mainloop()
+    return answer["yes"]

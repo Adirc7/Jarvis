@@ -1162,3 +1162,13 @@ by then is skipped for the next one on the route and left alone for 30 s;
 the last model left has no deadline, so a slow answer still beats none.
 With it, the 13.3 s turn would have started in about 5.5 s. 4 tests.
 
+The confirm box, tested on a virtual screen (Xvfb, 30 Oct), opened from a
+worker thread as the gate does: clicking "Yes, do it" confirms; the Cancel
+button, Enter, Escape, closing the window and 1.5 s without a click all
+cancel; Cancel has the focus; the tool's words are shown exactly; two boxes
+never open at once. It found a real bug: Tk objects freed later on another
+thread abort the whole program ("Tcl_AsyncDelete: async handler deleted by
+the wrong thread"), which would have killed Jarvis after the first box. The
+box now frees its window on its own thread before returning. The 7 tests
+open real windows, so they run only with JARVIS_GUI_TESTS=1.
+
