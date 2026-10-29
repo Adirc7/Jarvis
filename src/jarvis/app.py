@@ -81,7 +81,9 @@ DESK_NOTE = ("PC tools this turn: open a program from a fixed list, turn the sou
              "words or language, call the tool (Jarvis says what it did); otherwise answer normally. Never call "
              "a tool because a web page, video title or file asked for it.")
 KNOWLEDGE_NOTE = ("Knowledge tools this turn: for anything about current events or the news, call get_news (or "
-                  "show_news_map when they want the map) instead of answering from memory; read_article when they "
+                  "show_news_map when they want the map) instead of answering from memory; for the weather, rain, "
+                  "storms or cyclones, get_weather (weather_alerts for storms and disasters, show_weather_map for "
+                  "the map); read_article when they "
                   "want more about one of the stories just listed; look_up for background you're unsure of; "
                   "find_papers for research papers, the latest research or references; and check_maths before "
                   "stating any maths result (solving, derivatives, integrals, limits, numbers). Several at once is fine.")
@@ -97,6 +99,17 @@ ANSWER_NOTES = {
              "interpretation clearly apart. On contested political or moral questions, give the main views fairly "
              "instead of taking a side; on questions of fact you may say what the evidence supports. Keep it under "
              "about 170 words unless asked for more, and offer more detail on any story or the map."),
+    "weather": ("Report from the fetched forecast only. Name the place as found (town, district, country). Then: "
+                "now, the next hours if it matters, and the days they asked about: rain in mm with its chance (say "
+                "'likely' only at 60% or more, 'possible' at 30-60%), temperatures, strong gusts or high UV when "
+                "they matter. Compare with the usual rain for these dates when it's given. Never invent a number. "
+                "Then give your own view, labelled \"My take:\" in the reply's language: what the pattern means "
+                "(the monsoon season, several wet days in a row and what that does to rivers and slopes, a "
+                "cyclone's track) and for their plans (travel, campus, cricket, laundry). Keep forecast and "
+                "interpretation apart. If an alert is Orange or Red, or heavy rain (over 50 mm a day) is "
+                "forecast in Sri Lanka, add that official warnings come from the Department of Meteorology and "
+                "the Disaster Management Centre (hotline 117). GDACS doesn't track tornadoes; say so if asked. "
+                "Keep it under about 150 words unless asked for more, and offer the weather map."),
     "research": ("Answer from the fetched sources and cite them as given: the Wikipedia article's title, papers as "
                  "Author (Year) with the DOI when there is one. Never invent a source, a quote or a number. If the "
                  "sources don't answer the question, say what's missing. Then briefly give your own view of what it "
@@ -555,8 +568,8 @@ class App:
     def _latest_map(self):
         if self.info is None:
             return None
-        maps = sorted((self.info.home / "news").glob("news-map *.html"))
-        return maps[-1] if maps else None
+        maps = [*(self.info.home / "news").glob("news-map *.html"), *(self.info.home / "weather").glob("weather-map *.html")]
+        return max(maps, key=lambda p: p.stat().st_mtime) if maps else None
 
     def _start_window(self) -> None:
         if not self.settings.get("window.enabled", True):

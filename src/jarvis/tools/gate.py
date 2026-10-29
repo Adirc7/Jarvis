@@ -61,6 +61,10 @@ def schema_problems(value: Any, schema: dict[str, Any], where: str = "arguments"
         if "pattern" in schema and not re.fullmatch(schema["pattern"], value):
             problems.append(f"{where} doesn't match {schema['pattern']}")
     if kind == "array":
+        if "maxItems" in schema and len(value) > schema["maxItems"]:
+            problems.append(f"{where} has more than {schema['maxItems']} items")
+        if "minItems" in schema and len(value) < schema["minItems"]:
+            problems.append(f"{where} has fewer than {schema['minItems']} items")
         for i, item in enumerate(value):
             problems += schema_problems(item, schema.get("items", {}), f"{where}[{i}]")
     if kind == "object":

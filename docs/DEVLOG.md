@@ -1282,3 +1282,34 @@ fixed:
   Jarvis's own instructions and the fetched news (12,724 characters). It
   now counts only the conversation.
 8 tests (589 in all).
+
+Weather (30 Oct, Adhi asked: rain values, patterns, storms, "what about
+Kaduwela and Colombo in the coming days", Jarvis's own view, and a map):
+- `knowledge/weather.py`: Open-Meteo's place search (GeoNames; a same-named
+  place in Sri Lanka first, a country if one is named; Sri Lanka's 16 main
+  towns need no search), its forecast (now, the next 24 hours of rain hour by
+  hour, and up to 16 days: rain in mm, its chance and hours, temperatures,
+  wind and gusts, UV), and its archive (ERA5): the same dates over the last
+  10 years, so Jarvis can say "about twice the usual rain for this week".
+  GDACS's feed for current cyclones, floods, earthquakes, volcanoes,
+  droughts and wildfires, worst first, by country or within 1,200 km (a
+  Bay of Bengal cyclone counts for Colombo). Sri Lanka's four seasons from
+  the Department of Meteorology as background, labelled as not from the
+  forecast. A country asked as one place gets a note that it's one point.
+- `knowledge/weather_map.py`: a map like the news map: each town a circle
+  coloured by that day's rain and sized by its chance, a slider through the
+  days (a monsoon's rain moving across the island), the alerts linked to
+  their GDACS reports (a click on one flies to it), and RainViewer's latest
+  radar frame on request, where there is coverage. Checked in headless
+  Chromium: the slider, the lists and the escaping work, no script errors.
+- Tools get_weather (up to 6 places at once), weather_alerts and
+  show_weather_map, "just do it", through the gate (which now checks array
+  sizes). The answer: the forecast numbers only, "likely" from 60%,
+  "possible" from 30%, compared with the usual; then "My take:" on what the
+  pattern means (season, rivers and slopes after days of rain, a cyclone's
+  track) and for the user's plans; for Orange or Red alerts, or heavy rain
+  in Sri Lanka, the official word is the Department of Meteorology and the
+  DMC (117). GDACS doesn't track tornadoes, and Jarvis says so.
+- The window's button opens the latest map, news or weather.
+- 9 tests (598 in all). As with the news, the sites aren't reachable from
+  the cloud workspace; the first real forecast comes on the laptop.

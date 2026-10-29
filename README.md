@@ -79,7 +79,15 @@ emotion model. Measurements: [docs/RESULTS.md](docs/RESULTS.md).
   "any space news today?", "show me the news map". The latest headlines
   (GDELT worldwide, Ada Derana, EconomyNext, Daily News, BBC), briefed with
   sources, then a labelled "My take", balanced on politics; a world map of
-  the stories by theme.
+  the stories by theme. A country's news comes from its own feeds, or Jarvis
+  says plainly that none came back.
+- **Weather**: "will it rain in Kaduwela this week?", "weather in Chennai
+  and Mumbai", "any cyclones near Sri Lanka?", "show me the weather map".
+  Open-Meteo forecasts for any place (now, the next 24 hours, up to 16 days),
+  compared with the usual rain for those dates over the last 10 years; GDACS
+  storm and flood alerts; Sri Lanka's monsoon season as background; then
+  Jarvis's labelled view. The map shows rain day by day for 16 towns, alerts
+  and rain radar.
 - **Research and study**: Wikipedia and research papers with real references
   ("find papers on Sinhala speech recognition"); maths worked out and checked
   by SymPy, hints first ("help me integrate x squared sin x").

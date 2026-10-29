@@ -1,4 +1,4 @@
-"""Tools that look things up for the model: news, the news map, Wikipedia, papers, checked maths.
+"""Tools that look things up for the model: news, weather, the maps, Wikipedia, papers, checked maths.
 
 All "just do it" (they only read, or write a map page into Jarvis's folder)
 and all through the gate like every other tool. Each returns what it found as
@@ -17,6 +17,15 @@ from ..knowledge.mathcheck import TASKS, MathError, check
 from ..knowledge.news import THEMES, NewsDesk, Story, for_the_model
 from ..knowledge.news_map import save_map
 from ..knowledge.research import Research, page_for_the_model, papers_for_the_model
+from ..knowledge.weather import (
+    SRI_LANKA_TOWNS,
+    Place,
+    Weather,
+    WeatherError,
+    alerts_for_the_model,
+    forecast_for_the_model,
+)
+from ..knowledge.weather_map import save_weather_map
 from .gate import ActionLog, Gate
 from .registry import Args, Registry, Result, Tier, Tool
 
@@ -27,11 +36,12 @@ def _obj(props: dict, required: list[str]) -> dict:
 
 class InfoTools:
     def __init__(self, jarvis_folder: Path | str, log: ActionLog | None = None, *, news: NewsDesk | None = None,
-                 research: Research | None = None, opener: Callable[[str], None] | None = None,
-                 now: Callable[[], datetime] = lambda: datetime.now(UTC)):
+                 research: Research | None = None, weather: Weather | None = None,
+                 opener: Callable[[str], None] | None = None, now: Callable[[], datetime] = lambda: datetime.now(UTC)):
         self.home = Path(jarvis_folder).expanduser()
         self.news = news or NewsDesk()
         self.research = research or Research()
+        self.weather = weather or Weather()
         self.opener = opener or _open_in_browser
         self.now = now
         self.last_stories: list[Story] = []
@@ -80,6 +90,76 @@ class InfoTools:
     def _map_saved(self, args: Args, result: Result) -> bool:
         return Path(result.data["path"]).exists()
 
+    # ---- weather ------------------------------------------------------------------------
+    def _get_weather(self, args: Args) -> Result:
+        names, country, days = args["places"], args.get("country", ""), int(args.get("days", 7))
+        parts, found, missing = [], [], []
+        try:
+            for name in names:
+                place = self.weather.find(name, country)
+                if place is None:
+                    missing.append(name)
+                    continue
+                fc = self.weather.forecast(place, days)
+                usual = self.weather.usual_rain(place, fc.days)
+                try:
+                    alerts = self.weather.alerts(near=place)
+                except WeatherError:
+                    alerts = []
+                parts.append(forecast_for_the_model(fc, usual, alerts, self.now()))
+                found.append(place.label())
+        except WeatherError as exc:
+            return Result(False, "I couldn't get the weather.", data={"kind": "weather", "say": ("weather_none", {}),
+                          "for_model": f"The weather service didn't answer ({exc}). Say so; don't guess."})
+        if missing:
+            parts.append(f"No place found called: {', '.join(missing)}. Say so and ask which place they mean.")
+        if not found:
+            return Result(False, "I couldn't find that place.", data={"kind": "weather", "for_model": "\n".join(parts),
+                                                                       "say": ("weather_none", {})})
+        return Result(True, f"Got the weather for {'; '.join(found)}.",
+                      data={"kind": "weather", "for_model": "\n\n".join(parts)})
+
+    def _weather_alerts(self, args: Args) -> Result:
+        country = args.get("country", "")
+        try:
+            alerts = self.weather.alerts(country=country)
+        except WeatherError as exc:
+            return Result(False, "I couldn't reach GDACS.", data={"kind": "weather", "for_model": (
+                f"GDACS didn't answer ({exc}). Say so; don't guess.")})
+        where = f"for {country}" if country else "worldwide"
+        return Result(True, f"Found {len(alerts)} alerts.", data={"kind": "weather", "for_model": "\n".join(
+            alerts_for_the_model(alerts, where))})
+
+    def _show_weather_map(self, args: Args) -> Result:
+        area = (args.get("area") or "Sri Lanka").strip()
+        try:
+            if area.lower() in ("sri lanka", "lanka", "srilanka"):
+                places = [Place(n, lat, lon, "Sri Lanka", kind="PPL") for n, (lat, lon) in SRI_LANKA_TOWNS.items()]
+                centre, zoom, alerts = (7.8, 80.7), 7, self.weather.alerts(near=places[0], radius_km=1500)
+            elif area.lower() in ("world", "the world", "everywhere"):
+                places, centre, zoom, alerts = [], (15.0, 30.0), 2, self.weather.alerts()
+            else:
+                place = self.weather.find(area)
+                if place is None:
+                    return Result(False, f"I couldn't find {area}.", data={"kind": "weather", "for_model": (
+                        f"No place found called {area}. Say so and ask which place they mean.")})
+                places = [place]
+                centre, zoom = (place.lat, place.lon), 5 if place.kind.startswith("PCL") else 9
+                alerts = self.weather.alerts(near=place, radius_km=1500)
+            forecasts = self.weather.forecasts(places, 7)
+        except WeatherError as exc:
+            return Result(False, "I couldn't get the weather for the map.", data={"kind": "weather", "for_model": (
+                f"The weather services didn't answer ({exc}). Say so.")})
+        title = f"Weather: {area}"
+        path = save_weather_map(forecasts, alerts, self.home / "weather", title, self.now(), centre, zoom)
+        self.opener(path.as_uri())
+        wettest = sorted(((fc.days[0].rain_mm or 0, fc.place.name) for fc in forecasts if fc.days), reverse=True)[:5]
+        summary = "; ".join(f"{name} {mm:.1f} mm today" for mm, name in wettest)
+        return Result(True, f"Opened the weather map: {len(forecasts)} places, {len(alerts)} alerts.",
+                      data={"path": str(path), "kind": "weather", "say": ("weather_map", {"n": len(forecasts)}),
+                            "for_model": (f"Opened the weather map ({title}). Wettest today: {summary or 'n/a'}.\n"
+                                          + "\n".join(alerts_for_the_model(alerts, "on the map")))})
+
     # ---- research ------------------------------------------------------------------------
     def _look_up(self, args: Args) -> Result:
         page = self.research.wikipedia(args["query"], args.get("language", "en"))
@@ -120,6 +200,21 @@ class InfoTools:
                                                             "business"]},
                        "topic": {**text, "maxLength": 80}}, []),
                  Tier.JUST_DO, self._show_news_map, verify=self._map_saved),
+            Tool("get_weather", "Get the weather for one or more places (towns, cities; e.g. 'Kaduwela', "
+                 "'Colombo', 'Chennai'): now, the next 24 hours of rain, and day by day up to 16 days (rain in mm "
+                 "and its chance, temperature, wind, UV), the usual rain for those dates, and storm or flood alerts "
+                 "nearby. For a country, pass its main cities. Use it for any weather question; never guess.",
+                 _obj({"places": {"type": "array", "items": {**text, "maxLength": 60}, "minItems": 1, "maxItems": 6},
+                       "country": {**text, "maxLength": 40},
+                       "days": {"type": "integer", "minimum": 1, "maximum": 16}}, ["places"]),
+                 Tier.JUST_DO, self._get_weather),
+            Tool("weather_alerts", "Current storm and disaster alerts from GDACS (tropical cyclones, floods, "
+                 "earthquakes, volcanoes, droughts, wildfires) worldwide or for a country. Not tornadoes.",
+                 _obj({"country": {**text, "maxLength": 40}}, []), Tier.JUST_DO, self._weather_alerts),
+            Tool("show_weather_map", "Open a weather map in the browser: rain and temperature day by day for "
+                 "Sri Lanka's towns (the default), a place, or 'world', with storm alerts and rain radar.",
+                 _obj({"area": {**text, "maxLength": 60}}, []), Tier.JUST_DO, self._show_weather_map,
+                 verify=self._map_saved),
             Tool("look_up", "Look something up on Wikipedia (background on a person, place, idea or event).",
                  _obj({"query": text, "language": {"type": "string", "enum": ["en", "si", "ta"]}}, ["query"]),
                  Tier.JUST_DO, self._look_up),

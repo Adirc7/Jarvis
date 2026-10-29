@@ -113,9 +113,9 @@ RULES: list[tuple[str, list[str]]] = [
         "exam|past papers|short note|formula sheet|study plan|study timetable|revise|mcqs",
         "එක්සෑම්|විභාග|පාස්ට් පේපර්ස්|ෂෝට් නෝට්|ෆෝමියුලා ෂීට්|රිවිෂන්|ස්ටඩි ටයිම්ටේබල්")),
     ("general", _words(                                # needs the internet: weather, news, research, the web
-        "weather|rain|news|research|google|video",
-        "wahiyida|weather eka|news|research",
-        "කාලගුණ|වහියිද|වෙදර්|ප්‍රවෘත්ති|නිව්ස්|මොකද වෙන්නේ|මොකද වෙලා|රිසර්ච්|පර්යේෂණ|ගූගල්|වීඩියෝ|රෙෆරන්ස්")),
+        "weather|rain|raining|forecast|cyclone|storm|monsoon|flood|floods|news|research|google|video",
+        "wahiyida|wahinawada|wessa|weather eka|news|research",
+        "කාලගුණ|වහියිද|වහිනවද|වැස්ස|වැසි|සුළි කුණාටු|ගංවතුර|මෝසම්|වෙදර්|ප්‍රවෘත්ති|නිව්ස්|මොකද වෙන්නේ|මොකද වෙලා|රිසර්ච්|පර්යේෂණ|ගූගල්|වීඩියෝ|රෙෆරන්ස්")),
     ("command", _words(
         "open|close|launch|start|volume|louder|quieter|mute|screenshot|brightness|brighter|dimmer|timer|alarm",
         "remind|reminder|shut down|shutdown|restart|lock|put to sleep|wifi|wi-fi|bluetooth|dark mode",
