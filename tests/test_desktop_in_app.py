@@ -100,3 +100,34 @@ async def test_a_finished_timer_is_announced(make):
     assert await app.handle_text("five minute timer for my tea") == "Timer set for 5 minutes: tea."
     app._timer_rang("tea")                                      # no event loop running here: printed
     assert out[-1].strip() == "Jarvis: Time's up: tea, sir."
+
+
+# ---- replies in Sinhala and Tamil (tools/desk_phrases.py) ---------------------------------
+async def test_friday_says_what_the_tool_did_in_sinhala(make):
+    app, *_ = make("create_note", json.dumps({"text": "exam on Friday", "title": "exam"}))
+    app.lang.set("si", source="test")
+    assert await app.handle_text("හෙට එක්සෑම් එක ගැන නෝට් එකක් ලියන්න") == "නෝට් එක සේව් කළා: 2026-10-28 0930 exam."
+
+
+async def test_a_refusal_in_sinhala(make):
+    app, *_ = make("open_app", json.dumps({"name": "powershell"}))
+    app.lang.set("si", source="test")
+    assert await app.handle_text("පවර්ෂෙල් එක ඕපන් කරන්න") == "සමාවෙන්න, ඒක කරන්න මට බෑ."
+
+
+async def test_a_timer_in_tamil(make):
+    app, *_ = make("set_timer", json.dumps({"minutes": 10}))
+    app.lang.set("ta", source="test")
+    assert await app.handle_text("பத்து நிமிட டைமர்") == "10 நிமிடத்துக்கு டைமர் வைத்தேன்."
+
+
+def test_every_reply_a_tool_can_give_has_a_sinhala_and_tamil_phrase():
+    import re
+    from pathlib import Path
+
+    from jarvis.tools.desk_phrases import PHRASES
+    source = (Path(__file__).resolve().parents[1] / "src" / "jarvis" / "tools" / "desktop.py").read_text()
+    keys = set(re.findall(r'"say": \("(\w+)"', source)) | {"timer_label", "volume_up", "volume_down", "volume_mute"}
+    keys |= {"nothing_to_undo", "refused", "cancelled", "stopped", "failed", "unconfirmed"}
+    for lang in ("si", "ta"):
+        assert keys <= set(PHRASES[lang]), (lang, keys - set(PHRASES[lang]))

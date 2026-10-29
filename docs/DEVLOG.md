@@ -1172,3 +1172,9 @@ the wrong thread"), which would have killed Jarvis after the first box. The
 box now frees its window on its own thread before returning. The 7 tests
 open real windows, so they run only with JARVIS_GUI_TESTS=1.
 
+The PC tools now answer in the language Jarvis is speaking: each reply
+carries a key ("note_saved", "refused", ...) and tools/desk_phrases.py has
+spoken Sinhala (as Friday talks) and Tamil for every one, English stays the
+tool's own words. Timers ring in all three. A test checks every reply a tool
+can give has both phrases.
+

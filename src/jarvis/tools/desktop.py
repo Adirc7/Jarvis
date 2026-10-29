@@ -130,7 +130,7 @@ class DesktopTools:
     def _open_app(self, args: Args) -> Result:
         target, _ = APPS[args["name"]]
         self.start(target)
-        return Result(True, f"Opening {args['name']}.")
+        return Result(True, f"Opening {args['name']}.", data={"say": ("opening", {"name": args["name"]})})
 
     def _app_opened(self, args: Args, result: Result) -> bool:
         names = APPS[args["name"]][1]
@@ -145,7 +145,7 @@ class DesktopTools:
         before = self.read_volume()
         self.press_volume(args["direction"], int(args.get("steps", 3)))
         words = {"up": "Volume up.", "down": "Volume down.", "mute": "Sound muted or unmuted."}[args["direction"]]
-        return Result(True, words, data={"before": before})
+        return Result(True, words, data={"before": before, "say": (f"volume_{args['direction']}", {})})
 
     def _volume_changed(self, args: Args, result: Result) -> bool | None:
         before, after = result.data.get("before"), self.read_volume()
@@ -160,7 +160,7 @@ class DesktopTools:
         self.shots.mkdir(parents=True, exist_ok=True)
         path = self.shots / f"screenshot {self.now():%Y-%m-%d %H%M%S}.png"
         self.screenshot(path)
-        return Result(True, f"Screenshot saved in {self.shots.name}.", data={"path": str(path)})
+        return Result(True, f"Screenshot saved in {self.shots.name}.", data={"path": str(path), "say": ("screenshot", {})})
 
     def _screenshot_saved(self, args: Args, result: Result) -> bool:
         path = Path(result.data["path"])
@@ -185,7 +185,8 @@ class DesktopTools:
 
         self.timers[number] = (label, self.timer_factory(minutes * 60, ring), self.now())
         shown = f"{minutes:g} minute" + ("" if minutes == 1 else "s")
-        return Result(True, f"Timer set for {shown}" + (f": {label}." if label else "."), undo_data=number)
+        return Result(True, f"Timer set for {shown}" + (f": {label}." if label else "."), undo_data=number,
+                      data={"say": ("timer_label" if label else "timer", {"minutes": f"{minutes:g}", "label": label})})
 
     def _timer_running(self, args: Args, result: Result) -> bool:
         return result.undo_data in self.timers
@@ -193,9 +194,9 @@ class DesktopTools:
     def _cancel_timer(self, args: Args, result: Result) -> Result:
         entry = self.timers.pop(result.undo_data, None)
         if entry is None:
-            return Result(False, "That timer has already finished.")
+            return Result(False, "That timer has already finished.", data={"say": ("timer_finished", {})})
         entry[1].cancel()
-        return Result(True, "Timer cancelled.")
+        return Result(True, "Timer cancelled.", data={"say": ("timer_cancelled", {})})
 
     # ---- create_note -------------------------------------------------------------------
     def _create_note(self, args: Args) -> Result:
@@ -207,7 +208,8 @@ class DesktopTools:
             path = path.with_name(f"{self.now():%Y-%m-%d %H%M} {title} ({n}).txt")
             n += 1
         path.write_text(args["text"], encoding="utf-8")
-        return Result(True, f"Saved a note: {path.stem}.", data={"path": str(path)}, undo_data=str(path))
+        return Result(True, f"Saved a note: {path.stem}.", undo_data=str(path),
+                      data={"path": str(path), "say": ("note_saved", {"title": path.stem})})
 
     def _note_saved(self, args: Args, result: Result) -> bool:
         path = Path(result.data["path"])
@@ -226,20 +228,21 @@ class DesktopTools:
     def _unsave_note(self, args: Args, result: Result) -> Result:
         path = Path(result.undo_data)
         if not path.exists():
-            return Result(False, "That note isn't there any more.")
+            return Result(False, "That note isn't there any more.", data={"say": ("note_gone", {})})
         self._to_recycle(path)
-        return Result(True, "Note removed (it's in Jarvis's recycle folder).")
+        return Result(True, "Note removed (it's in Jarvis's recycle folder).", data={"say": ("note_removed", {})})
 
     # ---- delete_file -------------------------------------------------------------------
     def _delete_file(self, args: Args) -> Result:
         path = Path(args["path"])
         if not path.is_file():
-            return Result(False, "I can't find that file in Jarvis's folder.")
+            return Result(False, "I can't find that file in Jarvis's folder.", data={"say": ("not_found", {})})
         if self.recycle in path.parents:
-            return Result(False, "That's already in the recycle folder; empty it yourself if you want it gone.")
+            return Result(False, "That's already in the recycle folder; empty it yourself if you want it gone.",
+                          data={"say": ("already_recycled", {})})
         target = self._to_recycle(path)
-        return Result(True, f"Moved {path.name} to Jarvis's recycle folder.",
-                      data={"from": str(path), "to": str(target)}, undo_data=(str(path), str(target)))
+        return Result(True, f"Moved {path.name} to Jarvis's recycle folder.", undo_data=(str(path), str(target)),
+                      data={"from": str(path), "to": str(target), "say": ("moved", {"name": path.name})})
 
     def _deleted(self, args: Args, result: Result) -> bool:
         return not Path(result.data["from"]).exists() and Path(result.data["to"]).exists()
@@ -247,14 +250,15 @@ class DesktopTools:
     def _restore(self, args: Args, result: Result) -> Result:
         original, recycled = (Path(p) for p in result.undo_data)
         if original.exists() or not recycled.exists():
-            return Result(False, "I couldn't put it back.")
+            return Result(False, "I couldn't put it back.", data={"say": ("cant_restore", {})})
         shutil.move(str(recycled), str(original))
-        return Result(True, f"Put {original.name} back.")
+        return Result(True, f"Put {original.name} back.", data={"say": ("restored", {"name": original.name})})
 
     # ---- undo_last_action ----------------------------------------------------------------
     def _undo_last(self, args: Args) -> Result:
         out = self.gate.undo_last()
-        return Result(out.status == "done", out.text)
+        say = out.result.data.get("say") if out.result else ("nothing_to_undo", {})
+        return Result(out.status == "done", out.text, data={"say": say})
 
     # ---- the list --------------------------------------------------------------------------
     def _tools(self) -> list[Tool]:
