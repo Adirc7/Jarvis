@@ -112,6 +112,16 @@ class Settings:
                     raise ValueError(f"{where} names '{name}' but [llm.providers.{name}] is missing")
         return routes
 
+    def first_chunk_deadlines(self) -> dict[str, float]:
+        """[llm] first_chunk_s (the default) and [llm.first_chunk_s_by_route]: how long
+        to wait for a model's first chunk before trying the next one (agent/llm.py)."""
+        default = self.get("llm.first_chunk_s", 0)
+        if not default:
+            return {}
+        table = {"default": float(default)}
+        table.update({k: float(v) for k, v in self.get("llm.first_chunk_s_by_route", {}).items()})
+        return table
+
     def providers(self) -> list[ProviderConfig]:
         """Every provider used by llm.order or a route, each once."""
         table = self.get("llm.providers", {})

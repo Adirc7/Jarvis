@@ -150,6 +150,14 @@ def rate_limit_wait(exc: BaseException) -> float | None:
 
 
 SLOW_REST_S = 120.0
+# A model that hasn't sent anything by its first-reply deadline rests this long:
+# on 24 Oct gpt-oss-20b took 8.7 s and 13.3 s to send its first chunk (laptop
+# logs), while the next model in line answers in about 1 s.
+FIRST_CHUNK_REST_S = 30.0
+
+
+class SlowFirstChunk(TimeoutError):
+    """Nothing came back by the first-reply deadline; the reply hadn't started, so the next model tries."""
 
 
 def failure_rest(exc: BaseException) -> float | None:
@@ -162,6 +170,8 @@ def failure_rest(exc: BaseException) -> float | None:
     wait = rate_limit_wait(exc)
     if wait is not None:
         return wait
+    if isinstance(exc, SlowFirstChunk):
+        return FIRST_CHUNK_REST_S
     if getattr(exc, "status_code", None) in (500, 502, 503, 504):
         return SLOW_REST_S
     if isinstance(exc, TimeoutError) or "Timeout" in type(exc).__name__:
@@ -304,6 +314,15 @@ class FallbackLLM:
     resting: dict[str, float] = field(default_factory=dict)   # quota key -> when it may be tried again
     last_route: str | None = None
     clock: Any = time.monotonic
+    # Seconds to wait for a model's first chunk before trying the next one, per
+    # route ("default" for the rest). Never applied to the last model available,
+    # so a slow answer still beats no answer. Empty: no deadline.
+    first_chunk_s: dict[str, float] = field(default_factory=dict)
+
+    def _deadline(self, route: str | None, later: list[Provider]) -> float | None:
+        if not self.first_chunk_s or not any(self._resting_for(q) <= 0 for q in later):
+            return None
+        return self.first_chunk_s.get(route or "general", self.first_chunk_s.get("default"))
 
     def chain(self, route: str | None = None, lang: str | None = None) -> list[Provider]:
         """The providers to try for this kind of request (in this language), in
@@ -347,7 +366,8 @@ class FallbackLLM:
         failures: list[tuple[str, str]] = []
         prompt_chars = sum(len(str(m.get("content") or "")) for m in messages)
         self.last_route = route or "general"
-        for p in self.chain(route, lang):
+        chain = self.chain(route, lang)
+        for index, p in enumerate(chain):
             wait = self._resting_for(p)
             if wait > 0:
                 failures.append((p.name, f"resting after a rate limit or timeout ({wait:.0f} s left)"))
@@ -360,11 +380,36 @@ class FallbackLLM:
             think = ThinkFilter()
             leak = LeakFilter()
             calls: dict[int, list[str]] = {}     # tool calls arrive in pieces: index -> [name, arguments]
+            deadline = self._deadline(route, chain[index + 1:])
             try:
-                stream = await p.client.chat.completions.create(
-                    model=p.model, messages=messages, stream=True, **p.request_kwargs(kwargs)
-                )
-                async for chunk in stream:
+                async def opened(p=p):
+                    stream = await p.client.chat.completions.create(
+                        model=p.model, messages=messages, stream=True, **p.request_kwargs(kwargs)
+                    )
+                    it = stream.__aiter__()
+                    try:
+                        return stream, it, await it.__anext__()
+                    except StopAsyncIteration:
+                        return stream, it, None
+
+                if deadline:
+                    try:
+                        stream, it, first = await asyncio.wait_for(opened(), deadline)
+                    except TimeoutError:
+                        self.telemetry.log("llm_slow_first_chunk", provider=p.name, model=p.model,
+                                           deadline_s=deadline)
+                        raise SlowFirstChunk(f"nothing back within {deadline:g} s") from None
+                else:
+                    stream, it, first = await opened()
+
+                async def chunks(first=first, it=it):
+                    if first is None:
+                        return
+                    yield first
+                    async for later_chunk in it:
+                        yield later_chunk
+
+                async for chunk in chunks():
                     if token is not None and token.cancelled:
                         close = getattr(stream, "close", None)
                         if close is not None:

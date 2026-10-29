@@ -81,7 +81,7 @@ async def run(cases: list[dict], pause_s: float, telemetry: Telemetry) -> list[d
     settings.raw.setdefault("tools", {})["model_tools"] = "always"
     llm = FallbackLLM(configured_providers(settings.providers(), settings.get("llm.timeout_s", 20),
                                            float(settings.get("llm.keepalive_s", 120))),
-                      telemetry, routes=settings.routes())
+                      telemetry, routes=settings.routes(), first_chunk_s=settings.first_chunk_deadlines())
     if not llm.providers:
         print("No API keys found (.env): the safety check needs the model.")
         return []

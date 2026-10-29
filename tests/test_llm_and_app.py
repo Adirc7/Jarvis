@@ -1,8 +1,10 @@
-import pytest
+import asyncio
 
+import pytest
 from conftest import FakeClient
-from jarvis.app import App
+
 from jarvis.agent.llm import FallbackLLM, LLMUnavailable, Provider
+from jarvis.app import App
 from jarvis.events import KillSwitchPressed
 from jarvis.state import Mode, SharedState
 from jarvis.telemetry import Telemetry
@@ -254,3 +256,39 @@ async def test_pressing_push_to_talk_warms_the_llm(settings):
     await asyncio.sleep(0.05)
     task.cancel()
     assert warmed == [True]
+
+
+# ---- the first-reply deadline (laptop logs, 24 Oct: gpt-oss-20b took 8.7 and 13.3 s) ----
+class SlowClient(FakeClient):
+    def __init__(self, delay, pieces=("late",)):
+        super().__init__(pieces)
+        self.delay = delay
+
+    async def create(self, model, messages, stream=False, **kwargs):
+        await asyncio.sleep(self.delay)
+        return await super().create(model, messages, stream=stream)
+
+
+async def test_a_slow_first_chunk_goes_to_the_next_model():
+    slow, fast = SlowClient(0.5), FakeClient(["quick"])
+    llm = FallbackLLM([Provider("p0", "m", slow), Provider("p1", "m2", fast)], first_chunk_s={"default": 0.05})
+    assert await collect(llm.stream_text([{"role": "user", "content": "hi"}])) == "quick"
+    assert llm.last_provider == "p1"
+    assert 25 < llm.resting[llm.providers[0].quota_key] - llm.clock() <= 30    # left alone for 30 s
+
+
+async def test_the_last_model_left_has_no_deadline():
+    llm = FallbackLLM([Provider("p0", "m", SlowClient(0.2, ["late, but here"]))], first_chunk_s={"default": 0.05})
+    assert await collect(llm.stream_text([{"role": "user", "content": "hi"}])) == "late, but here"
+
+
+async def test_some_kinds_of_request_may_wait_longer():
+    llm = FallbackLLM([Provider("p0", "m", SlowClient(0.2, ["worked it out"])), Provider("p1", "m2", FakeClient(["other"]))],
+                      first_chunk_s={"default": 0.05, "maths": 2})
+    out = await collect(llm.stream_text([{"role": "user", "content": "solve"}], route="maths"))
+    assert out == "worked it out"
+
+
+def test_the_deadlines_come_from_settings(settings):
+    table = settings.first_chunk_deadlines()
+    assert table["default"] == 4.5 and table["long"] == 30

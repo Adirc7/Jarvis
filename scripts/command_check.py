@@ -137,7 +137,7 @@ async def run(cases: list[dict], rules_only: bool, pause_s: float, telemetry: Te
     settings.raw["tools"]["desktop"] = False         # this check is about the web tools; no real PC actions
     llm = FallbackLLM(configured_providers(settings.providers(), settings.get("llm.timeout_s", 20),
                                            float(settings.get("llm.keepalive_s", 120))),
-                      telemetry, routes=settings.routes())
+                      telemetry, routes=settings.routes(), first_chunk_s=settings.first_chunk_deadlines())
     if not rules_only and not llm.providers:
         print("No API keys found (.env). Run with --rules-only, or add a key.")
         return []

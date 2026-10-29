@@ -1136,3 +1136,29 @@ the tool. One miss: "undo that" -> gpt-oss-120b called undo_last_action with
 no arguments now ignores filler ones (logged); tools with parameters stay
 strict.
 
+## 2026-10-30: real response times from the laptop's logs; a first-reply deadline
+
+Adhi has an exam on Saturday; the ML parts (empathy learner, emotion model,
+intent model level 2) wait for him until after it. Meanwhile, the non-ML
+work, without the laptop.
+
+Measured from Jarvis's own logs on the laptop (18 sessions, 21-28 Oct,
+read-only):
+- time to the first spoken word (first_audio), all answered turns: p50 1.9 s,
+  p95 8.2 s (72 turns; voice 64: p50 1.9 s, p95 8.9 s; typed 8: p50 1.9 s,
+  p95 2.6 s). By day, p50: 2.4 s (21 Oct, before the speed fixes), 1.5 s
+  (24 Oct), 2.7 s (25 Oct, longer replies with tools).
+- the model's first chunk: gpt-oss-120b (groq_oss) p50 0.9 s, p95 2.0 s,
+  slowest 3.8 s (60 replies); gpt-oss-20b (groq) p50 0.9 s but p95 8.7 s:
+  twice the server sent nothing for 8.7 s and 13.3 s (not thinking: 44
+  characters of reasoning). Those two turns are the 9-15 s spikes.
+- fallbacks: Gemini timed out once (then rested 2 min, as designed); once
+  gpt-oss-20b wrote a tool call Groq couldn't parse, and gpt-oss-120b
+  answered instead.
+
+Fix: a first-reply deadline (agent/llm.py, [llm] first_chunk_s = 4.5, 30 s
+for long documents, 8 s for maths and code). A model that has sent nothing
+by then is skipped for the next one on the route and left alone for 30 s;
+the last model left has no deadline, so a slow answer still beats none.
+With it, the 13.3 s turn would have started in about 5.5 s. 4 tests.
+

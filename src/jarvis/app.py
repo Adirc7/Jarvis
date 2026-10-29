@@ -129,7 +129,7 @@ class App:
             configured_providers(settings.providers(), settings.get("llm.timeout_s", 20),
                                  float(settings.get("llm.keepalive_s", 120))),
             telemetry,
-            routes=settings.routes(),
+            routes=settings.routes(), first_chunk_s=settings.first_chunk_deadlines(),
         )
         # Which kind of request, so which models (agent/router.py). Adhi's
         # intent classifier replaces the keyword rules later (IntentRouter).

@@ -185,6 +185,14 @@ dir = "logs"
 # before OpenRouter in Sinhala, which it writes best.
 order = ["groq_oss", "groq", "openrouter", "gemini", "ollama"]
 timeout_s = 20
+# If a model hasn't sent anything this many seconds after the question, Jarvis
+# asks the next model on the route instead (and leaves the slow one alone for
+# 30 s). Laptop logs, 21-28 Oct: gpt-oss-120b's first chunk p50 0.9 s, p95
+# 2.0 s, slowest 3.8 s; but gpt-oss-20b twice took 8.7 s and 13.3 s, which
+# made those replies start 9-15 s late. Never applied to the last model left,
+# so a slow answer still beats none. 0: no deadline. Kinds of request that may
+# wait longer are in [llm.first_chunk_s_by_route] below.
+first_chunk_s = 4.5
 # Keep the connection to the provider open between turns (the default closes
 # it after 5 s idle, so every spoken question first had to reconnect), and
 # open it while you're still holding the push-to-talk key.
@@ -196,6 +204,13 @@ prewarm = true
 # answers per day, and each kind gets a model that suits it. Each route lists
 # providers to try in order; "general" is `order` above. false: always `order`.
 routing = true
+
+# Long documents go to Gemini (7-19 s to the first chunk); thinking routes
+# stream their reasoning early, but get more time too.
+[llm.first_chunk_s_by_route]
+long = 30
+maths = 8
+code = 8
 
 [llm.routes]
 command = ["groq", "groq_oss", "gemini_lite", "ollama"]   # open apps, volume...: until Jarvis does these itself
