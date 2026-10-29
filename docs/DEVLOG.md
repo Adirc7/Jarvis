@@ -1178,3 +1178,17 @@ spoken Sinhala (as Friday talks) and Tamil for every one, English stays the
 tool's own words. Timers ring in all three. A test checks every reply a tool
 can give has both phrases.
 
+One evaluation script for the report: `scripts/evaluate_all.py` writes
+docs/RESULTS.md from what the other checks and Jarvis itself saved
+(hardware check, first spoken word, speech recognition, each model's first
+words, voices, fallbacks, language detection, both command sets, the gate's
+22 risky calls (run fresh every time), the model-level safety check, PC
+tools in use; `--tests` and `--intent` add the unit tests and the intent
+models). Totals and percentiles only, never what was said. The first
+RESULTS.md comes from the laptop's logs (21-28 Oct): first spoken word p50
+1.8 s, p95 8.9 s by voice (before the first-reply deadline); Whisper 506 ms
+p50; commands 59/60 and 48/48; gate 0 of 22 risky calls acted. Tool replies
+now record when they were ready (marks.reply_ready), so the next run can
+time them too. Still to measure on the laptop: safety_check.py, the confirm
+box, intent level 2.
+

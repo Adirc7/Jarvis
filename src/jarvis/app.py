@@ -469,6 +469,7 @@ class App:
         """Say what a tool did, and keep it in the conversation so the model knows."""
         lang = self.lang.current
         self.telemetry.log("tool", name=tool.tool, language=lang.code)
+        turn.mark("reply_ready")             # how long the request took to be understood and done
         await self.sink.say(tool.text, lang, token)
         if self.state.mode not in (Mode.PAUSED, Mode.LISTENING):
             self.state.mode = Mode.IDLE
