@@ -1,20 +1,28 @@
-"""The window's server: a small read-only web server on 127.0.0.1, pushing live events to the page.
+"""The window's server: a small web server on 127.0.0.1, pushing live events to the page.
 
-    view = LiveView(snapshot=app_snapshot)      # snapshot() -> dict: mode, language, timers, news...
+    view = LiveView(snapshot=app_snapshot, on_text=typed)   # snapshot() -> dict: mode, language, timers...
     view.start()                                # http://127.0.0.1:8765
     view.publish("you", text="open notepad")    # the page shows it at once (Server-Sent Events)
 
-Only this computer can reach it (127.0.0.1), it only answers GET, and it
-checks the Host header so a web page elsewhere can't read it through a DNS
-trick. The page shows what you said and what Jarvis answered, so it stays on
-the laptop. The latest news map is served at /map.
+Only this computer can reach it (127.0.0.1), and it checks the Host header so
+a web page elsewhere can't read it through a DNS trick. The page shows what
+you said and what Jarvis answered, so it stays on the laptop. The latest map
+(news or weather) is served at /map.
+
+One thing can be sent to it: a line typed in the window (POST /say), which
+Jarvis handles like a line typed in his console. A web page elsewhere can't
+send one: the request must come from the window's own address (Origin), carry
+the window's secret (a random token in the page, which other sites can't
+read), and be JSON (so a plain form can't fake it).
 """
 
 from __future__ import annotations
 
+import hmac
 import json
 import os
 import queue
+import secrets
 import sys
 import threading
 import time
@@ -26,6 +34,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 PAGE = Path(__file__).with_name("index.html")
+ICON = Path(__file__).with_name("jarvis.ico")
 
 
 def open_page(url: str, browser: str = "edge") -> None:
@@ -45,10 +54,27 @@ def open_page(url: str, browser: str = "edge") -> None:
     webbrowser.open(url)
 
 
+def running_jarvis(port: int = 8765, timeout_s: float = 1.0) -> bool:
+    """True if a Jarvis is already running on this computer (its window server answers)."""
+    import http.client
+    try:
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=timeout_s)
+        conn.request("GET", "/state", headers={"Host": f"127.0.0.1:{port}"})
+        reply = conn.getresponse()
+        ok = reply.status == 200 and "state" in json.loads(reply.read(200_000) or b"{}")
+        conn.close()
+        return ok
+    except (OSError, ValueError):
+        return False
+
+
 class LiveView:
     def __init__(self, snapshot: Callable[[], dict[str, Any]] = dict, port: int = 8765,
-                 map_file: Callable[[], Path | None] = lambda: None, poll_s: float = 0.25):
+                 map_file: Callable[[], Path | None] = lambda: None, poll_s: float = 0.25,
+                 on_text: Callable[[str], None] | None = None):
         self.snapshot, self.port, self.map_file, self.poll_s = snapshot, port, map_file, poll_s
+        self.on_text = on_text
+        self.token = secrets.token_urlsafe(24)           # in the page; proves a POST came from it
         self.history: deque[dict] = deque(maxlen=60)     # a page opened later still sees recent turns
         self._clients: list[queue.Queue] = []
         self._lock = threading.Lock()
@@ -79,6 +105,12 @@ class LiveView:
 
     # ---- server -----------------------------------------------------------------------------
     @property
+    def viewers(self) -> int:
+        """How many pages are open on the window right now."""
+        with self._lock:
+            return len(self._clients)
+
+    @property
     def url(self) -> str:
         return f"http://127.0.0.1:{self.port}/"
 
@@ -99,6 +131,7 @@ class LiveView:
                 self.send_header("Content-Length", str(len(body)))
                 self.send_header("Cache-Control", "no-store")
                 self.send_header("X-Content-Type-Options", "nosniff")
+                self.send_header("Content-Security-Policy", "frame-ancestors 'self'")
                 self.end_headers()
                 self.wfile.write(body)
 
@@ -108,7 +141,10 @@ class LiveView:
                     return
                 path = self.path.split("?", 1)[0]
                 if path == "/":
-                    self._send(200, PAGE.read_bytes(), "text/html; charset=utf-8")
+                    page = PAGE.read_text(encoding="utf-8").replace("__JARVIS_TOKEN__", view.token)
+                    self._send(200, page.encode("utf-8"), "text/html; charset=utf-8")
+                elif path == "/favicon.ico" and ICON.exists():
+                    self._send(200, ICON.read_bytes(), "image/x-icon")
                 elif path == "/state":
                     body = {"state": view.snapshot(), "history": list(view.history)}
                     self._send(200, json.dumps(body, default=str).encode(), "application/json")
@@ -117,7 +153,8 @@ class LiveView:
                     if found and found.exists():
                         self._send(200, found.read_bytes(), "text/html; charset=utf-8")
                     else:
-                        self._send(404, b"No news map yet: ask Jarvis to show the news map.", "text/plain")
+                        self._send(404, b"No map yet: ask Jarvis for the news map or the weather map.",
+                                   "text/plain")
                 elif path == "/events":
                     self._events()
                 else:
@@ -149,9 +186,31 @@ class LiveView:
                             view._clients.remove(q)
 
             def do_POST(self) -> None:
+                if self.path.split("?", 1)[0] != "/say" or view.on_text is None:
+                    self._send(405, b"read only", "text/plain")
+                    return
+                origin = self.headers.get("Origin") or ""
+                token = self.headers.get("X-Jarvis-Token") or ""
+                kind = (self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+                if (not self._host_ok() or origin not in (f"http://127.0.0.1:{view.port}", f"http://localhost:{view.port}")
+                        or not hmac.compare_digest(token, view.token) or kind != "application/json"):
+                    self._send(403, b"forbidden", "text/plain")
+                    return
+                try:
+                    size = int(self.headers.get("Content-Length") or 0)
+                    text = json.loads(self.rfile.read(min(size, 8000)) if 0 < size <= 8000 else b"")["text"]
+                except (ValueError, KeyError, TypeError):
+                    self._send(400, b"send {\"text\": ...}", "text/plain")
+                    return
+                text = str(text).strip()[:2000]
+                if text:
+                    view.on_text(text)
+                self._send(202, b"ok", "text/plain")
+
+            def do_PUT(self) -> None:
                 self._send(405, b"read only", "text/plain")
 
-            do_PUT = do_DELETE = do_PATCH = do_POST
+            do_DELETE = do_PATCH = do_PUT
 
         self._server = ThreadingHTTPServer(("127.0.0.1", self.port), Handler)
         self._server.daemon_threads = True

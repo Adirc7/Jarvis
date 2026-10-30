@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 
 from .fetch import FetchError, Get, get_text, url_with
-from .places import countries_in
+from .places import countries_in, where
 
 GEOCODE = "https://geocoding-api.open-meteo.com/v1/search"
 FORECAST = "https://api.open-meteo.com/v1/forecast"
@@ -137,6 +137,7 @@ class Alert:
     severity: str
     url: str
     km_away: float | None = None
+    inside: bool = False                 # in the country asked about (else only near it)
 
     def rank(self) -> int:
         return LEVELS.get(self.level.lower(), 0)
@@ -306,21 +307,32 @@ class Weather:
         return result
 
     # ---- alerts ----------------------------------------------------------------------
-    def alerts(self, country: str = "", near: Place | None = None, radius_km: float = 1200) -> list[Alert]:
-        """Current GDACS events: in a country, near a place, or everywhere (worst first)."""
+    def alerts(self, country: str = "", near: Place | None = None, radius_km: float | None = None) -> list[Alert]:
+        """Current GDACS events: in or near a country, near a place, or everywhere (worst first).
+
+        "Near" matters: on 30 Oct a Red-alert cyclone filed under India was in the Bay
+        of Bengal, and "any cyclones near Sri Lanka?" was answered "none".
+        """
         try:
             found = parse_gdacs(self.get(GDACS_RSS))
         except FetchError as exc:
             raise WeatherError(str(exc)[:160]) from None
         wanted = countries_in(country)[0] if country and countries_in(country) else country
+        if wanted and near is None and where(wanted):
+            lat, lon = where(wanted)
+            near = Place(wanted, lat, lon, wanted, kind="PCLI")
+        radius = radius_km if radius_km is not None else (1500 if wanted else 1200)
         keep = []
         for a in found:
             if near is not None and a.lat is not None:
                 a.km_away = round(_km((near.lat, near.lon), (a.lat, a.lon)))
-            if wanted and not (wanted in countries_in(a.country) or wanted.lower() in a.country.lower()):
+            inside = bool(wanted) and (wanted in countries_in(a.country) or wanted.lower() in a.country.lower())
+            close = a.km_away is not None and a.km_away <= radius
+            if wanted and not (inside or close):
                 continue
-            if near is not None and not wanted and (a.km_away is None or a.km_away > radius_km):
+            if near is not None and not wanted and not close:
                 continue
+            a.inside = inside
             keep.append(a)
         return sorted(keep, key=lambda a: (-a.rank(), a.km_away or 0))
 
@@ -370,16 +382,24 @@ def forecast_for_the_model(fc: Forecast, usual: Usual | None, alerts: list[Alert
     return "\n".join(lines)
 
 
-def alerts_for_the_model(alerts: list[Alert], where: str, header: bool = True) -> list[str]:
-    lines = [f"GDACS alerts {where} (current events):"] if header else []
+CURRENT_ONLY = ("GDACS lists events happening now; it doesn't forecast new ones, so never say none are "
+                "expected or coming.")
+
+
+def alerts_for_the_model(alerts: list[Alert], area: str, header: bool = True) -> list[str]:
+    lines = [f"GDACS alerts {area} (current events):"] if header else []
     if not alerts:
-        lines.append(f"No current GDACS alerts {where} (cyclones, floods, earthquakes, volcanoes, droughts, "
-                     "wildfires; GDACS doesn't track tornadoes or local thunderstorms).")
+        lines.append(f"No current GDACS alerts {area} (cyclones, floods, earthquakes, volcanoes, droughts, "
+                     f"wildfires; GDACS doesn't track tornadoes or local thunderstorms). {CURRENT_ONLY}")
         return lines
     if not header:
-        lines.append(f"GDACS alerts {where}:")
+        lines.append(f"GDACS alerts {area}:")
     for a in alerts[:6]:
         away = f", {a.km_away:,.0f} km away" if a.km_away is not None else ""
         lines.append(f"- {a.level or '?'} alert: {a.kind} {a.name} ({a.country or 'at sea'}{away}; since "
                      f"{a.since or '?'}){': ' + a.severity if a.severity else ''}")
+    if any(a.level.lower() in ("orange", "red") for a in alerts):
+        lines.append("An Orange or Red alert is serious: say it first, with where it is, and give the official "
+                     "sources for warnings.")
+    lines.append(CURRENT_ONLY)
     return lines

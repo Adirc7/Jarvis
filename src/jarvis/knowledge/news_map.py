@@ -16,6 +16,7 @@ from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
 
+from . import map_tiles
 from .news import Story
 from .places import where
 
@@ -52,6 +53,7 @@ def page(stories: list[Story], title: str, now: datetime | None = None) -> str:
     data = json.dumps({"markers": markers, "loose": loose, "colours": THEME_COLOURS},
                       ensure_ascii=False).replace("</", "<\\/")
     heading = html.escape(title)
+    tiles_js, tiles_css = map_tiles.JS, map_tiles.CSS
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{heading}</title>
@@ -72,16 +74,15 @@ h1 {{ font-size:18px; font-weight:500; margin:0 0 4px; color:var(--cyan); }}
 .meta {{ color:var(--muted); font-size:11px; }}
 .leaflet-popup-content-wrapper, .leaflet-popup-tip {{ background:var(--panel); color:var(--text); }}
 .leaflet-popup-content a {{ color:var(--cyan); }}
-@media (max-width: 800px) {{ main {{ grid-template-columns:1fr; grid-template-rows:60vh auto; }} }}
+{tiles_css}@media (max-width: 800px) {{ main {{ grid-template-columns:1fr; grid-template-rows:60vh auto; }} }}
 </style></head>
 <body><main><div id="map"></div>
 <aside><h1>{heading}</h1><div class="when">Jarvis, {now:%Y-%m-%d %H:%M} UTC. Headlines link to their sources.</div>
 <div class="legend" id="legend"></div><div id="list"></div></aside></main>
-<script>
+<script>{tiles_js}
 const DATA = {data};
 const map = L.map('map', {{ worldCopyJump: true }}).setView([20, 30], 2);
-L.tileLayer('https://{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{
-  attribution: '&copy; OpenStreetMap contributors &copy; CARTO', maxZoom: 8 }}).addTo(map);
+addBaseLayers(map);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}})[c]);
 const storyHtml = s => `<div class="story"><span class="dot" style="background:${{DATA.colours[s.theme] || '#eaf5ff'}}"></span>
   <a href="${{esc(s.url)}}" target="_blank" rel="noopener">${{esc(s.title)}}</a>

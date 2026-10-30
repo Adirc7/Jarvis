@@ -29,6 +29,9 @@ from ..knowledge.weather_map import save_weather_map
 from .gate import ActionLog, Gate
 from .registry import Args, Registry, Result, Tier, Tool
 
+MAP_OPEN = ("The map is open on the user's screen now (Jarvis opened it in his window): say so, and point "
+            "out what stands out on it")
+
 
 def _obj(props: dict, required: list[str]) -> dict:
     return {"type": "object", "properties": props, "required": required}
@@ -85,7 +88,7 @@ class InfoTools:
         return Result(True, f"Opened the news map: {len(stories)} stories in {len(places)} countries.",
                       data={"path": str(path), "kind": "news",
                             "say": ("map_opened", {"n": len(stories), "countries": len(places)}),
-                            "for_model": for_the_model(stories[:20], self.now(), title)})
+                            "for_model": f"{MAP_OPEN}\n" + for_the_model(stories[:20], self.now(), title)})
 
     def _map_saved(self, args: Args, result: Result) -> bool:
         return Path(result.data["path"]).exists()
@@ -120,13 +123,15 @@ class InfoTools:
                       data={"kind": "weather", "for_model": "\n\n".join(parts)})
 
     def _weather_alerts(self, args: Args) -> Result:
-        country = args.get("country", "")
+        country, place_name = args.get("country", ""), args.get("place", "")
         try:
-            alerts = self.weather.alerts(country=country)
+            place = self.weather.find(place_name, country) if place_name else None
+            alerts = self.weather.alerts(country="" if place else country, near=place)
         except WeatherError as exc:
             return Result(False, "I couldn't reach GDACS.", data={"kind": "weather", "for_model": (
                 f"GDACS didn't answer ({exc}). Say so; don't guess.")})
-        where = f"for {country}" if country else "worldwide"
+        where = (f"within 1,200 km of {place.label()}" if place else
+                 f"in or within 1,500 km of {country}" if country else "worldwide")
         return Result(True, f"Found {len(alerts)} alerts.", data={"kind": "weather", "for_model": "\n".join(
             alerts_for_the_model(alerts, where))})
 
@@ -157,7 +162,7 @@ class InfoTools:
         summary = "; ".join(f"{name} {mm:.1f} mm today" for mm, name in wettest)
         return Result(True, f"Opened the weather map: {len(forecasts)} places, {len(alerts)} alerts.",
                       data={"path": str(path), "kind": "weather", "say": ("weather_map", {"n": len(forecasts)}),
-                            "for_model": (f"Opened the weather map ({title}). Wettest today: {summary or 'n/a'}.\n"
+                            "for_model": (f"{MAP_OPEN} ({title}). Wettest today: {summary or 'n/a'}.\n"
                                           + "\n".join(alerts_for_the_model(alerts, "on the map")))})
 
     # ---- research ------------------------------------------------------------------------
@@ -209,8 +214,9 @@ class InfoTools:
                        "days": {"type": "integer", "minimum": 1, "maximum": 16}}, ["places"]),
                  Tier.JUST_DO, self._get_weather),
             Tool("weather_alerts", "Current storm and disaster alerts from GDACS (tropical cyclones, floods, "
-                 "earthquakes, volcanoes, droughts, wildfires) worldwide or for a country. Not tornadoes.",
-                 _obj({"country": {**text, "maxLength": 40}}, []), Tier.JUST_DO, self._weather_alerts),
+                 "earthquakes, volcanoes, droughts, wildfires): worldwide, in or near a country, or near a place. "
+                 "Not tornadoes.", _obj({"country": {**text, "maxLength": 40}, "place": {**text, "maxLength": 60}},
+                                        []), Tier.JUST_DO, self._weather_alerts),
             Tool("show_weather_map", "Open a weather map in the browser: rain and temperature day by day for "
                  "Sri Lanka's towns (the default), a place, or 'world', with storm alerts and rain radar.",
                  _obj({"area": {**text, "maxLength": 60}}, []), Tier.JUST_DO, self._show_weather_map,

@@ -292,3 +292,18 @@ async def test_some_kinds_of_request_may_wait_longer():
 def test_the_deadlines_come_from_settings(settings):
     table = settings.first_chunk_deadlines()
     assert table["default"] == 4.5 and table["long"] == 30
+
+
+def test_the_history_sent_to_the_model_stays_within_a_budget(settings):
+    # 30 Oct: Groq allows 8,000 tokens a minute; a news question with the full history used ~10,000.
+    app = App(settings, Telemetry.disabled(), out=lambda *a, **k: None)
+    for i in range(12):
+        app.history += [{"role": "user", "content": f"question {i}"},
+                        {"role": "assistant", "content": f"briefing {i} " + "word " * 400}]
+    sent = app._history_for_model()
+    assert sum(len(m["content"]) for m in sent) <= 6000 and sent[0]["role"] == "user"
+    assert sent[-1]["content"] == app.history[-1]["content"]             # the last reply stays whole
+    assert all(len(m["content"]) <= 610 for m in sent[:-2])              # older ones cut to their start
+    assert sent[-2]["content"] == "question 11" and len(app.history) == 24   # the real history is untouched
+    app.history = [{"role": "user", "content": "x " * 5000}, {"role": "assistant", "content": "ok"}]
+    assert len(app._history_for_model()) == 2                            # a long paste is kept for follow-ups

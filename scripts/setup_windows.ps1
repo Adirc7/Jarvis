@@ -33,7 +33,7 @@ $OnWindows = $env:OS -eq "Windows_NT"
 $FirstRun = -not (Test-Path -LiteralPath (Join-Path $Root ".venv"))
 $Warnings = New-Object System.Collections.Generic.List[string]
 $script:StepNumber = 0
-$TotalSteps = 8
+$TotalSteps = 9
 
 function Write-Step([string]$Text) {
     $script:StepNumber++
@@ -103,15 +103,22 @@ function Get-ConfiguredKeys([string]$Path) {
     return $found
 }
 
-function New-Shortcut([string]$Path, [string]$Target, [string]$Arguments, [string]$Icon, [string]$Description) {
-    $shell = New-Object -ComObject WScript.Shell
-    $link = $shell.CreateShortcut($Path)
-    $link.TargetPath = $Target
-    $link.Arguments = $Arguments
-    $link.WorkingDirectory = $Root
-    $link.Description = $Description
-    if (Test-Path -LiteralPath $Icon) { $link.IconLocation = "$Icon,0" }
-    $link.Save()
+# The newest "Jarvis-carry-*.zip" (made on the old PC with --carry-out) in the
+# Jarvis folder, on the Desktop or in Downloads, if it hasn't been brought in yet.
+function Find-CarryFile {
+    $places = @($Root, [Environment]::GetFolderPath("Desktop"), (Join-Path $env:USERPROFILE "Downloads"))
+    $found = foreach ($place in $places) {
+        if ($place -and (Test-Path -LiteralPath $place)) {
+            Get-ChildItem -LiteralPath $place -Filter "Jarvis-carry-*.zip" -File -ErrorAction SilentlyContinue
+        }
+    }
+    $newest = $found | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    if (-not $newest) { return $null }
+    $done = Join-Path $Root "state\carried-in.txt"
+    if ((Test-Path -LiteralPath $done) -and (Select-String -LiteralPath $done -SimpleMatch $newest.Name -Quiet)) {
+        return $null
+    }
+    return $newest
 }
 
 # Where the big downloads go when Jarvis lives on another drive than Windows:
@@ -284,6 +291,20 @@ try {
         }
     }
 
+    # 3b --------------------------------------------------------------------
+    Write-Step "Your Jarvis from another PC"
+    $carry = Find-CarryFile
+    if (-not $carry) {
+        Write-Note "No carry file found. To move from another PC: there, run  uv run jarvis --carry-out"
+        Write-Note "then put the file on this PC's Desktop or in Downloads, and run setup again."
+    } elseif (Read-YesNo "Bring in $($carry.Name) (memory, notes, your trained model)?" $true) {
+        & $Uv run --no-sync jarvis --carry-in $carry.FullName
+        if ($LASTEXITCODE -ne 0) { Add-Warning "Couldn't bring in $($carry.Name); the message above says why." }
+        else { Write-Ok "brought in from $($carry.Name)" }
+    } else {
+        Write-Note "skipped"
+    }
+
     # 4 ---------------------------------------------------------------------
     Write-Step "Free LLM access (.env)"
     $envFile = Join-Path $Root ".env"
@@ -360,14 +381,7 @@ try {
     if ($NoShortcut -or -not $OnWindows) {
         Write-Note "skipped"
     } else {
-        $runner = Join-Path $Root "scripts\run_jarvis.cmd"
-        $icon = Join-Path $Root "assets\jarvis.ico"
-        $desktop = [Environment]::GetFolderPath("Desktop")
-        $programs = [Environment]::GetFolderPath("Programs")
-        New-Shortcut (Join-Path $desktop "Jarvis.lnk") $runner "voice" $icon "Talk to Jarvis"
-        New-Shortcut (Join-Path $programs "Jarvis.lnk") $runner "voice" $icon "Talk to Jarvis"
-        New-Shortcut (Join-Path $programs "Jarvis (text chat).lnk") $runner "text" $icon "Chat with Jarvis by typing"
-        Write-Ok "Jarvis on the desktop; Jarvis and Jarvis (text chat) in the Start menu"
+        & (Join-Path $PSScriptRoot "make_shortcuts.ps1")
     }
 
     # 8 ---------------------------------------------------------------------

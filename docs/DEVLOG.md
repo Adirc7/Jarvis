@@ -1313,3 +1313,59 @@ Kaduwela and Colombo in the coming days", Jarvis's own view, and a map):
 - The window's button opens the latest map, news or weather.
 - 9 tests (598 in all). As with the news, the sites aren't reachable from
   the cloud workspace; the first real forecast comes on the laptop.
+
+Second laptop run with news and weather (30 Oct, 03:09; Adhi's screenshots
+and log), and Jarvis as an app:
+- The orb said "thinking" while Jarvis spoke: nothing ever set "speaking".
+  The window now asks the player: while audio plays the orb speaks; while
+  the key is held it listens; between the two it thinks. The conversation
+  panel stayed "Nothing yet" in voice mode: spoken turns weren't sent to the
+  window (only typed ones). Both fixed; checked in headless Chromium.
+- The weather map opened with "API KEY REQUIRED" over it: CARTO's dark
+  tiles now need a key. `knowledge/map_tiles.py`: OpenStreetMap's tiles,
+  darkened in the browser; if they don't load, Esri's street map darkened the
+  same way (checked by refusing OpenStreetMap in the test browser: it
+  switched); streets and satellite a click away.
+- "Any cyclones near Sri Lanka?" got "no current alerts ... none expected
+  in the next few days" while the map listed a Red-alert tropical cyclone
+  (ARNAB-26) filed under India. The alerts tool matched only the country
+  name. Now a country's alerts include events within 1,500 km of it (or of
+  a named place), Orange and Red ones are said first with the official
+  sources, and both the data and the answer note say GDACS lists only events
+  happening now: never "none expected". A regression test has that cyclone.
+- "Can you show the news map?" got "I'm not able to display a news map":
+  the map had opened, but Groq's free tier (8,000 tokens a minute per model)
+  ran out and gpt-oss-20b answered without being told. The data now starts
+  "The map is open on the user's screen now". And prompts are smaller: the
+  history sent is cut to 6,000 characters ([llm] history_chars), older long
+  replies to their first 600 (one news question with the full history was
+  about 10,000 tokens: tool call plus answer).
+- "Kaduwela" was heard as "Cardwell": Whisper's English prompt now lists
+  Sri Lankan towns ([stt.prompts] en); Sinhala keeps the plain prompt.
+- Jarvis as an app (Adhi: open from the desktop icon, not a browser tab):
+  `ui/app_window.py` opens the window in Edge's (or Chrome's) app mode with a
+  profile of its own: no tabs or address bar, Jarvis's icon, its own size.
+  The desktop icon runs Jarvis with the console minimized
+  (`scripts/run_jarvis.cmd`; older shortcuts that pass "voice" get the same).
+  A second start finds the running Jarvis and only brings up his window
+  (two would fight over the microphone). Maps open inside the window (a map
+  panel with "Back to Jarvis"), or in a window of their own when it's
+  closed. You can type to Jarvis in the window: POST /say, accepted only
+  from the window's own address, with the page's secret token, as JSON (a
+  page elsewhere can't send it). Closing the window stops Jarvis ([window]
+  quit_when_closed), after 8 s so a reload doesn't. The console is read in
+  a thread of its own, so the window can stop Jarvis while the console
+  waits. Shortcuts come from `scripts/make_shortcuts.ps1` (setup and update).
+- Moving to a new PC (Adhi: run on any PC, know it's a new one, carry on):
+  `machines.py` notes each computer Jarvis runs on (name, graphics card,
+  memory; known by a hash of name and network card) in state/machines.json;
+  on a new one he says "New computer, sir: ..., moved from ...", and the
+  window shows the PC. `carry.py`: `jarvis --carry-out` packs his memory,
+  presence, the PCs, your notes, your sentences and intent model, and your
+  hotkeys into one zip (keys only with --with-keys); `--carry-in` brings it
+  in, merging memory and keeping anything replaced as *.before-carry; it
+  writes only to the places it carries to (no "..", only model files in the
+  model folder). Setup has a new step that finds the newest carry file in
+  the Jarvis folder, Desktop or Downloads and offers to bring it in once.
+  Both PowerShell scripts parse (checked with PowerShell 7 here).
+- 30 tests (615 in all).

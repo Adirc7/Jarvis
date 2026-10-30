@@ -62,6 +62,12 @@ unclear_max_compression = 2.4       # Whisper's own repetition limit
 unclear_min_logprob = -1.0          # Whisper's own "guessing" limit
 unclear_max_foreign_script = 0.2    # share of letters from other alphabets
 
+# Per language (falls back to initial_prompt): the places and names Whisper
+# should expect. On 30 Oct "Kaduwela" was heard as "Cardwell". Keep each short
+# (Whisper reads at most about 220 tokens of it).
+[stt.prompts]
+en = "Jarvis, Friday. Kaduwela, Malabe, Kelaniya, Kadawatha, Maharagama, Nugegoda, Colombo, Kandy, Galle, Jaffna, Trincomalee, Batticaloa, Anuradhapura, Kurunegala, Ratnapura, Nuwara Eliya, Badulla, Hambantota, SLIIT, Sri Lanka. Sinhala, English, Tamil."
+
 [tts]
 kokoro_model = "models/kokoro-v1.0.onnx"
 kokoro_voices = "models/voices-v1.0.bin"
@@ -122,13 +128,19 @@ min_confidence = 0.6
 
 [window]
 # Jarvis's window (src/jarvis/ui/): a live page at http://127.0.0.1:8765 that
-# only this computer can open, read-only. The orb shows what Jarvis is doing
-# (gold for Jarvis, teal for Friday); beside it what you said and what Jarvis
-# answered, its actions, timers, the latest news and the news map. Opens in
-# the browser when Jarvis starts.
+# only this computer can open. The orb shows what Jarvis is doing (listening,
+# thinking, speaking; gold for Jarvis, teal for Friday); beside it what you
+# said and what Jarvis answered, its actions, timers, the latest news, and the
+# news and weather maps. You can type to Jarvis in it.
 enabled = true
 port = 8765
 open_on_start = true
+# "app": a window of its own (Edge or Chrome in app mode: no tabs or address
+# bar, Jarvis's icon); "browser": a tab in the default browser.
+style = "app"
+size = [1280, 820]
+# Closing the window stops Jarvis, like any app (only with style = "app").
+quit_when_closed = true
 
 [gestures]
 # Palm to pause (decision D29; docs/IMPLEMENTATION_PLAN.md, M8): a palm held
@@ -208,6 +220,9 @@ timeout_s = 20
 # so a slow answer still beats none. 0: no deadline. Kinds of request that may
 # wait longer are in [llm.first_chunk_s_by_route] below.
 first_chunk_s = 4.5
+# How much of the conversation goes to the model (characters). Groq's free tier
+# allows 8,000 tokens a minute per model; older long replies are cut to their start.
+history_chars = 6000
 # Keep the connection to the provider open between turns (the default closes
 # it after 5 s idle, so every spoken question first had to reconnect), and
 # open it while you're still holding the push-to-talk key.

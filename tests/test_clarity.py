@@ -88,3 +88,16 @@ def test_misheard_sinhala_request_still_switches(settings):
     lm = LanguageManager(settings.languages, "en")
     assert lm.detect_switch("I prefer to now in Singhala") == "si"     # Whisper's version of "talk in Sinhala"
     assert lm.detect_switch("I prefer tea") is None
+
+
+def test_whisper_expects_local_place_names_in_english_only(settings):
+    # 30 Oct: "Kaduwela" was heard as "Cardwell". English gets Sri Lankan place names;
+    # Sinhala keeps the plain prompt (Latin words could pull it into Latin letters).
+    whisper = FakeWhisper(detected=("en", 0.99), texts={"en": "will it rain in Kaduwela"})
+    Transcriber(settings, LanguageManager(settings.languages, "en"), loader=lambda n: whisper
+                ).transcribe(np.zeros(16000, np.float32))
+    assert "Kaduwela" in whisper.transcribe_options[-1]["initial_prompt"]
+    sinhala = FakeWhisper(detected=("si", 0.99), texts={"si": "හෙලෝ"})
+    Transcriber(settings, LanguageManager(settings.languages, "si"), loader=lambda n: sinhala
+                ).transcribe(np.zeros(16000, np.float32))
+    assert "Kaduwela" not in (sinhala.transcribe_options[-1]["initial_prompt"] or "")

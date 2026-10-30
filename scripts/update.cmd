@@ -42,7 +42,10 @@ uv run python -c "import onnxruntime as o; print('onnxruntime', o.__version__, '
 uv run pytest -q
 if errorlevel 1 goto :fail
 echo.
-echo Updated. Start Jarvis as usual.
+echo === Shortcuts
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\make_shortcuts.ps1
+echo.
+echo Updated. Start Jarvis as usual (the desktop icon).
 exit /b 0
 
 :fail

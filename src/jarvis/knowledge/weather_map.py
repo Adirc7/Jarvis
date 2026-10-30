@@ -17,6 +17,7 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+from . import map_tiles
 from .weather import Alert, Forecast
 
 RAIN_COLOURS = ((1, "#516476", "under 1 mm"), (5, "#4de1ff", "1-5 mm"), (20, "#3a8bff", "5-20 mm"),
@@ -43,6 +44,7 @@ def page(forecasts: list[Forecast], alerts: list[Alert], title: str, now: dateti
     now = now or datetime.now(UTC)
     data = json.dumps(map_data(forecasts, alerts), ensure_ascii=False).replace("</", "<\\/")
     heading = html.escape(title)
+    tiles_js, tiles_css = map_tiles.JS, map_tiles.CSS
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{heading}</title>
@@ -69,7 +71,7 @@ button {{ background:#12314a; color:var(--text); border:1px solid #1c4766; borde
                          font-size:11px; text-shadow:0 0 3px #000, 0 0 2px #000; }}
 .leaflet-tooltip.temp:before {{ display:none; }}
 .alert {{ cursor:pointer; }}
-@media (max-width: 800px) {{ main {{ grid-template-columns:1fr; grid-template-rows:60vh auto; }} }}
+{tiles_css}@media (max-width: 800px) {{ main {{ grid-template-columns:1fr; grid-template-rows:60vh auto; }} }}
 </style></head>
 <body><main><div id="map"></div>
 <aside><h1>{heading}</h1><div class="when">Jarvis, {now:%Y-%m-%d %H:%M} UTC. Open-Meteo forecast; alerts from GDACS.</div>
@@ -80,11 +82,10 @@ button {{ background:#12314a; color:var(--text); border:1px solid #1c4766; borde
 <h2>Storm and disaster alerts</h2><div id="alerts"></div>
 <p class="meta">Official warnings: Department of Meteorology (meteo.gov.lk) and the Disaster Management Centre (117).</p>
 </aside></main>
-<script>
+<script>{tiles_js}
 const DATA = {data};
 const map = L.map('map').setView([{centre[0]}, {centre[1]}], {zoom});
-L.tileLayer('https://{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{
-  attribution: '&copy; OpenStreetMap contributors &copy; CARTO', maxZoom: 12 }}).addTo(map);
+addBaseLayers(map);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}})[c]);
 const num = (v, u, d = 0) => v === null || v === undefined ? '?' : Number(v).toFixed(d) + u;
 const rainColour = mm => (DATA.rain.find(([limit]) => (mm ?? 0) < limit) || DATA.rain[DATA.rain.length - 1])[1];
@@ -114,6 +115,7 @@ function show(i) {{
 }}
 slider.addEventListener('input', () => show(Number(slider.value)));
 show(0);
+if (DATA.places.length > 1) map.fitBounds(DATA.places.map(p => [p.lat, p.lon]), {{ padding: [40, 40] }});
 for (const a of DATA.alerts) {{
   const c = DATA.levels[String(a.level).toLowerCase()] || '#eaf5ff';
   L.circleMarker([a.lat, a.lon], {{ radius: 11, color: c, fillColor: c, fillOpacity: 0.25, weight: 3, dashArray: '4 3' }})

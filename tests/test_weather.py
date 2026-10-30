@@ -189,3 +189,19 @@ async def test_jarvis_answers_from_the_forecast_with_its_view(settings, tmp_path
     system = model.requests[1]["messages"][0]["content"]
     assert "Weather for Malabe" in system and "Never invent a number" in system and "hotline 117" in system
     assert "tools" not in model.requests[1]
+
+
+def test_a_storm_near_the_country_counts_not_only_one_filed_under_it(tmp_path):
+    # 30 Oct, on the laptop: a Red-alert cyclone filed under India was in the Bay of Bengal,
+    # and "any cyclones near Sri Lanka?" got "no current alerts ... none expected".
+    arnab = GDACS.replace("</channel>", """<item><title>Red alert for tropical cyclone ARNAB</title>
+<link>https://www.gdacs.org/report.aspx?eventid=1003</link><gdacs:eventtype>TC</gdacs:eventtype>
+<gdacs:alertlevel>Red</gdacs:alertlevel><gdacs:eventname>ARNAB-26</gdacs:eventname><gdacs:country>India</gdacs:country>
+<gdacs:iscurrent>true</gdacs:iscurrent><geo:Point><geo:lat>14.5</geo:lat><geo:long>84.5</geo:long></geo:Point></item>
+</channel>""")
+    info = InfoTools(tmp_path / "Jarvis", weather=weather(web(**{"gdacs.org": arnab})), now=lambda: NOW)
+    text = info.call("weather_alerts", '{"country": "Sri Lanka"}').result.data["for_model"]
+    assert text.index("Red alert: tropical cyclone ARNAB-26 (India") < text.index("Orange alert: tropical cyclone MONTHA")
+    assert "say it first" in text and "never say none are expected" in text and "Japan" not in text
+    near = info.call("weather_alerts", '{"place": "Malabe"}').result.data["for_model"]
+    assert "ARNAB-26" in near and "within 1,200 km of Malabe" in near

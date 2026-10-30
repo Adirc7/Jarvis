@@ -91,8 +91,15 @@ emotion model. Measurements: [docs/RESULTS.md](docs/RESULTS.md).
 - **Research and study**: Wikipedia and research papers with real references
   ("find papers on Sinhala speech recognition"); maths worked out and checked
   by SymPy, hints first ("help me integrate x squared sin x").
-- **A window**: http://127.0.0.1:8765 opens with Jarvis: the orb (gold for
-  Jarvis, teal for Friday), captions, actions, timers and the latest news.
+- **Jarvis as an app**: the desktop icon opens Jarvis in a window of his own
+  (no tabs or address bar; the console stays minimized): the orb listening,
+  thinking and speaking (gold for Jarvis, teal for Friday), captions, the
+  conversation, actions, timers, the latest news, the news and weather maps
+  inside the window, and a box to type to him. Clicking the icon again brings
+  the window back; closing it stops Jarvis.
+- **Moves with you to a new PC**: `uv run jarvis --carry-out` packs his
+  memory, your notes and your trained model into one file; setup on the new
+  PC offers to bring it in, and Jarvis greets you on the new computer.
 - **Palm to pause**: hold your right palm up to stop Jarvis talking or pause
   its video (`/camera on`).
 
@@ -132,14 +139,31 @@ private by default, and planned in the [roadmap](docs/ROADMAP.md).
    The first run downloads a few GB. If a step fails, fix what it says and run
    it again; finished steps are skipped. Options: `"Setup Jarvis.cmd" -NoTamil`
    skips the Tamil voice (about 1 GB of torch), `-NoGpu` skips CUDA.
-3. **Double-click Jarvis** on the desktop (or `Start Jarvis.cmd`). Hold the
-   push-to-talk key, speak, let go. "Jarvis (text chat)" in the Start menu is
-   the typing version.
+3. **Double-click Jarvis** on the desktop (or `Start Jarvis.cmd`). His window
+   opens; hold the push-to-talk key, speak, let go, or type in the window.
+   "Jarvis (console)" in the Start menu shows the console too; "Jarvis (text
+   chat)" is the typing-only version.
 
 Optional, for answers without internet: install Ollama from
 https://ollama.com and run setup again; it offers to download `qwen3:4b`.
 
-**Update:** `git pull`, then double-click `Setup Jarvis.cmd` again.
+**Update:** `scripts\update.cmd` (or `git pull`, then `Setup Jarvis.cmd` again).
+
+**Moving to a new PC:**
+1. On the old PC: `uv run jarvis --carry-out`. It puts one file on the
+   Desktop, `Jarvis-carry-<PC>-<date>.zip`: his memory (your name, the facts
+   you asked him to keep, the recent conversation, the PCs he has run on),
+   your notes, your own training sentences and the intent model, and your
+   push-to-talk key. Not your API keys (add `--with-keys` for those; then keep
+   the file private and delete it once it's moved), not your voice
+   recordings, not the other PC's microphone and speaker choices.
+2. On the new PC: clone Jarvis and put the file on its Desktop or in
+   Downloads, then double-click `Setup Jarvis.cmd`. It installs what that
+   PC's hardware needs (CUDA only with an NVIDIA card) and offers to bring the
+   file in (or run `uv run jarvis --carry-in <file>` yourself). Nothing is
+   overwritten quietly: what was there is kept as `*.before-carry`, and the
+   memory of both is merged.
+3. Start Jarvis: he notices the new computer and says so.
 
 **Settings for this computer** (push-to-talk key, audio devices, Whisper
 model) go in `config/settings.local.toml`: same format as
@@ -164,6 +188,8 @@ notepad .env
 ```powershell
 uv run jarvis --voice                           # talk to Jarvis (hold the push-to-talk key)
 uv run jarvis                                   # text chat
+uv run jarvis --window                          # bring up the window of the Jarvis already running
+uv run jarvis --carry-out                       # pack him up for a new PC (see Setup)
 uv run python scripts/smoke_test.py --show      # check mic, camera, GPU, models, voices
 uv run python scripts/voice_preview.py --play   # hear the candidate voices
 uv run pytest                                   # unit tests (no hardware needed)

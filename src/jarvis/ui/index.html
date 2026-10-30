@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Jarvis</title>
+<link rel="icon" href="/favicon.ico">
 <style>
 :root { --bg:#03070d; --panel:#091522; --line:#12314a; --text:#eaf5ff; --muted:#8fa7ba; --cyan:#4de1ff;
         --amber:#ffb43b; --teal:#4ce2c4; --green:#64efb7; --red:#ff766f; --accent:var(--amber); }
@@ -17,13 +18,28 @@ header h1 { margin:0; font-size:18px; font-weight:500; letter-spacing:6px; color
 .pill b { color:var(--text); font-weight:500; }
 #link { margin-left:auto; }
 main { display:grid; grid-template-columns:minmax(0,1fr) 360px; height:calc(100% - 53px); }
-.stage { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; min-width:0; }
+.stage { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; min-width:0;
+         position:relative; }
+#mapView { position:absolute; inset:0; display:flex; flex-direction:column; background:var(--bg); z-index:5; }
+#mapView[hidden] { display:none; }
+#mapView .bar { display:flex; align-items:center; gap:10px; padding:8px 12px; border-bottom:1px solid var(--line); }
+#mapView .bar b { font-weight:500; letter-spacing:2px; color:var(--cyan); font-size:12px; text-transform:uppercase; }
+#mapView .bar a, #mapView .bar button { margin-left:auto; font-size:12px; color:var(--text); background:#12314a;
+  border:1px solid #1c4766; border-radius:6px; padding:4px 10px; cursor:pointer; text-decoration:none; }
+#mapView .bar button { margin-left:0; }
+#mapFrame { flex:1; border:0; width:100%; }
 canvas { width:min(52vh, 90%); aspect-ratio:1; }
 #status { margin-top:6px; font-size:14px; letter-spacing:3px; color:var(--accent); text-transform:uppercase; }
 .captions { width:min(760px, 100%); margin-top:18px; }
 .cap { margin:8px 0; font-size:17px; line-height:1.5; }
 .cap .who { display:block; font-size:11px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; }
 #capJarvis { color:var(--text); } #capYou { color:var(--muted); }
+#typeBox { display:flex; gap:8px; width:min(760px, 100%); margin-top:14px; }
+#typeBox input { flex:1; background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:8px;
+  padding:9px 12px; font:inherit; font-size:15px; outline:none; }
+#typeBox input:focus { border-color:var(--accent); }
+#typeBox button { background:var(--accent); color:var(--bg); border:0; border-radius:8px; padding:0 16px; font:inherit;
+  cursor:pointer; }
 aside { background:var(--panel); border-left:1px solid var(--line); overflow:auto; padding:14px 16px; }
 aside h2 { font-size:12px; font-weight:500; letter-spacing:2px; color:var(--cyan); text-transform:uppercase; margin:14px 0 8px; }
 .item { font-size:13px; line-height:1.4; margin:6px 0; padding-bottom:6px; border-bottom:1px solid #0e2235; }
@@ -43,6 +59,7 @@ aside h2 { font-size:12px; font-weight:500; letter-spacing:2px; color:var(--cyan
   <h1 id="name">JARVIS</h1>
   <span class="pill">language <b id="lang">-</b></span>
   <span class="pill">model <b id="model">-</b></span>
+  <span class="pill" id="pcPill" hidden>pc <b id="pc">-</b></span>
   <span class="pill" id="link">live</span>
 </header>
 <main>
@@ -52,6 +69,15 @@ aside h2 { font-size:12px; font-weight:500; letter-spacing:2px; color:var(--cyan
     <div class="captions">
       <div class="cap"><span class="who">You</span><span id="capYou">-</span></div>
       <div class="cap"><span class="who" id="capWho">Jarvis</span><span id="capJarvis">-</span></div>
+    </div>
+    <form id="typeBox" autocomplete="off">
+      <input id="typed" maxlength="2000" placeholder="Type to Jarvis, or hold the push-to-talk key and speak"
+             aria-label="Type to Jarvis"><button type="submit">Send</button>
+    </form>
+    <div id="mapView" hidden>
+      <div class="bar"><b>Map</b><a id="mapOwn" href="/map" target="_blank" rel="noopener">Own window</a>
+        <button id="mapClose" type="button">Back to Jarvis</button></div>
+      <iframe id="mapFrame" title="Map"></iframe>
     </div>
   </section>
   <aside>
@@ -65,6 +91,7 @@ aside h2 { font-size:12px; font-weight:500; letter-spacing:2px; color:var(--cyan
 <div id="offline" hidden>Jarvis isn't running.</div>
 <script>
 const $ = id => document.getElementById(id);
+const TOKEN = "__JARVIS_TOKEN__";
 const LABELS = { idle: "idle", listening: "listening...", thinking: "thinking...", speaking: "speaking",
                  paused: "paused", gesture: "gesture mode" };
 const safeUrl = u => /^https?:\/\//i.test(String(u || "")) ? u : null;
@@ -94,6 +121,7 @@ function showState(s) {
   $("status").textContent = LABELS[s.mode] || s.mode || "";
   $("lang").textContent = s.language || "-";
   $("model").textContent = s.provider || "-";
+  $("pc").textContent = s.pc || "-"; $("pcPill").hidden = !s.pc;
   const timers = $("timers"); timers.textContent = "";
   for (const t of s.timers || []) {
     const m = Math.floor(t.ends_in_s / 60), sec = String(Math.floor(t.ends_in_s % 60)).padStart(2, "0");
@@ -112,8 +140,25 @@ function showState(s) {
   }
   $("mapBtn").hidden = !s.map;
 }
+$("typeBox").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const text = $("typed").value.trim(); if (!text) return;
+  $("typed").value = "";
+  try {
+    const r = await fetch("/say", { method: "POST", body: JSON.stringify({ text }),
+      headers: { "Content-Type": "application/json", "X-Jarvis-Token": TOKEN } });
+    if (!r.ok) throw new Error(r.status);
+  } catch (err) { $("typed").value = text; $("offline").hidden = false; }
+});
+function showMap(url) {
+  if (!/^\/map(\?|$)/.test(String(url || ""))) return;          // only Jarvis's own map page
+  $("mapFrame").src = url; $("mapView").hidden = false;
+}
+$("mapBtn").addEventListener("click", ev => { ev.preventDefault(); showMap("/map?v=" + Date.now()); });
+$("mapClose").addEventListener("click", () => { $("mapView").hidden = true; $("mapFrame").src = "about:blank"; });
 function onEvent(e) {
-  if (e.kind === "state") showState(e.state);
+  if (e.kind === "map") showMap(e.url);
+  else if (e.kind === "state") showState(e.state);
   else if (e.kind === "you") { $("capYou").textContent = e.text; addTalk("You", e.text); }
   else if (e.kind === "jarvis") { $("capJarvis").textContent = e.text; addTalk(e.speaker || "Jarvis", e.text); }
   else if (e.kind === "action") addAction(e);
