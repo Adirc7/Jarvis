@@ -13,9 +13,10 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
-from ..knowledge.mathcheck import TASKS, MathError, check
+from ..knowledge.mathcheck import TASKS, MathError, check, sample
 from ..knowledge.news import THEMES, NewsDesk, Story, for_the_model
 from ..knowledge.news_map import save_map
+from ..knowledge.places import countries_in, where
 from ..knowledge.research import Research, page_for_the_model, papers_for_the_model
 from ..knowledge.weather import (
     SRI_LANKA_TOWNS,
@@ -40,13 +41,18 @@ def _obj(props: dict, required: list[str]) -> dict:
 class InfoTools:
     def __init__(self, jarvis_folder: Path | str, log: ActionLog | None = None, *, news: NewsDesk | None = None,
                  research: Research | None = None, weather: Weather | None = None,
-                 opener: Callable[[str], None] | None = None, now: Callable[[], datetime] = lambda: datetime.now(UTC)):
+                 opener: Callable[[str], None] | None = None, now: Callable[[], datetime] = lambda: datetime.now(UTC),
+                 screen: Callable[[str, dict], bool] | None = None):
         self.home = Path(jarvis_folder).expanduser()
         self.news = news or NewsDesk()
         self.research = research or Research()
         self.weather = weather or Weather()
         self.opener = opener or _open_in_browser
         self.now = now
+        # The window (app.py): screen(kind, data) shows a map move or the board; True if a window shows it.
+        self.screen = screen or (lambda kind, data: False)
+        self.screen_given = screen is not None
+        self.board: dict | None = None             # what the board shows now (the window asks for it)
         self.last_stories: list[Story] = []
         self.registry = Registry(self._tools())
         self.gate = Gate(self.registry, [self.home], log)
@@ -185,7 +191,65 @@ class InfoTools:
             return Result(True, "SymPy couldn't check that.", data={"kind": "maths", "for_model": (
                 f"SymPy couldn't check {args['task']} of {args['expression']}: {exc}. Don't state an unchecked "
                 "result as checked; say what you can and that it's unchecked.")})
+        if done.latex:                                   # the checked result goes on the board too
+            card = {"text": f"Checked by SymPy ({done.task})", "math": done.latex}
+            board = self.board if self.board and self.board.get("from") == "check_maths" else {
+                "title": "Worked and checked", "steps": [], "plots": [], "from": "check_maths"}
+            board["steps"] = [*board["steps"], card][-8:]
+            self._show_board(board)
         return Result(True, done.result, data={"for_model": done.for_the_model(), "kind": "maths"})
+
+    # ---- the window: moving the map, the board ------------------------------------------------
+    def _show_board(self, board: dict) -> bool:
+        board["made"] = self.now().isoformat(timespec="seconds")
+        self.board = board
+        return self.screen("board", board)
+
+    def _show_on_board(self, args: Args) -> Result:
+        steps = [{"text": str(st.get("text", ""))[:400], "math": str(st.get("math", ""))[:400]}
+                 for st in args.get("steps", []) if isinstance(st, dict)][:12]
+        plots, problems = [], []
+        for g in args.get("graphs", [])[:3]:
+            try:
+                points = sample(g["expression"], g.get("variable", "x"), float(g.get("from", -5)),
+                                float(g.get("to", 5)))
+                plots.append({"label": str(g.get("label") or g["expression"])[:60], "points": points})
+            except (MathError, KeyError, ValueError) as exc:
+                problems.append(f"couldn't draw {g.get('expression', '?')}: {exc}")
+        shown = self._show_board({"title": str(args["title"])[:120], "steps": steps, "plots": plots,
+                                  "from": "show_on_board"})
+        where = "on the board in Jarvis's window" if shown else "on the board (the window isn't open; it shows when opened)"
+        text = (f"Jarvis put this {where}: {args['title']} ({len(steps)} steps, {len(plots)} graphs). "
+                + (" ".join(problems) + " " if problems else "")
+                + "Now explain it in words, step by step, referring to what's on the board; don't read the "
+                  "formulas out symbol by symbol.")
+        return Result(True, f"Put {args['title'][:60]} on the board.", data={"kind": "maths", "for_model": text,
+                      "say": ("board_shown", {})})
+
+    def _map_view(self, args: Args) -> Result:
+        action, place_name = args["action"], (args.get("place") or "").strip()
+        data: dict = {"action": action}
+        if action == "focus":
+            if not place_name:
+                return Result(False, "Which place should I show?")
+            spot = where(countries_in(place_name)[0]) if countries_in(place_name) else None
+            if spot is not None:
+                data.update(lat=spot[0], lon=spot[1], zoom=7 if countries_in(place_name)[0] == "Sri Lanka" else 5,
+                            label=countries_in(place_name)[0])
+            else:
+                try:
+                    found = self.weather.find(place_name)
+                except WeatherError:
+                    found = None
+                if found is None:
+                    return Result(False, f"I couldn't find {place_name} to show it on the map.")
+                data.update(lat=found.lat, lon=found.lon, zoom=5 if found.kind.startswith("PCL") else 11,
+                            label=found.label())
+        if not self.screen("map_cmd", data):
+            return Result(False, "The map isn't open in my window; ask me for the news map or the weather map first.")
+        said = {"focus": f"Showing {data.get('label', place_name)}.", "zoom_in": "Zooming in.",
+                "zoom_out": "Zooming out.", "close": "Closed the map."}[action]
+        return Result(True, said, data={"say": (f"map_{action}", {"place": data.get("label", place_name)})})
 
     def _tools(self) -> list[Tool]:
         text = {"type": "string", "maxLength": 120}
@@ -221,6 +285,26 @@ class InfoTools:
                  "Sri Lanka's towns (the default), a place, or 'world', with storm alerts and rain radar.",
                  _obj({"area": {**text, "maxLength": 60}}, []), Tier.JUST_DO, self._show_weather_map,
                  verify=self._map_saved),
+            Tool("map_view", "Move the map open in Jarvis's window: focus on a place (it zooms there), zoom in or "
+                 "out, or close it.", _obj({"action": {"type": "string", "enum": ["focus", "zoom_in", "zoom_out",
+                                                                                 "close"]},
+                                             "place": {**text, "maxLength": 60}}, ["action"]),
+                 Tier.JUST_DO, self._map_view),
+            Tool("show_on_board", "Put working on the board in Jarvis's window, so the user can see it while you "
+                 "explain: a title, steps (each a line of text and/or a formula in LaTeX) and up to 3 graphs of "
+                 "y = f(x) (maths like check_maths writes it, e.g. exp(-x^2/2)/sqrt(2 pi)). Use it whenever "
+                 "formulas, derivations or graphs help.",
+                 _obj({"title": {**text, "maxLength": 120},
+                       "steps": {"type": "array", "maxItems": 12, "items": _obj(
+                           {"text": {"type": "string", "maxLength": 400}, "math": {"type": "string", "maxLength": 400}},
+                           [])},
+                       "graphs": {"type": "array", "maxItems": 3, "items": _obj(
+                           {"expression": {**text, "maxLength": 200}, "variable": {"type": "string",
+                                                                                  "pattern": "^[A-Za-z]$"},
+                            "from": {"type": "number", "minimum": -1e6, "maximum": 1e6},
+                            "to": {"type": "number", "minimum": -1e6, "maximum": 1e6},
+                            "label": {**text, "maxLength": 60}}, ["expression"])}},
+                      ["title"]), Tier.JUST_DO, self._show_on_board),
             Tool("look_up", "Look something up on Wikipedia (background on a person, place, idea or event).",
                  _obj({"query": text, "language": {"type": "string", "enum": ["en", "si", "ta"]}}, ["query"]),
                  Tier.JUST_DO, self._look_up),

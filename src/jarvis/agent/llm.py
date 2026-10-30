@@ -356,17 +356,23 @@ class FallbackLLM:
         token: CancelToken | None = None,
         route: str | None = None,
         lang: str | None = None,
+        avoid: str | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[str | ToolCall]:
         """Yield reply text as it arrives, from the first provider on the route that answers.
 
         With `tools=[...]` in kwargs the model may act instead: then ToolCall
         items come (at the end of the stream) instead of, or after, text.
+        `avoid`: a provider to try last this time (the one that just answered the
+        same question, so two requests in a row don't use up one model's minute).
         """
         failures: list[tuple[str, str]] = []
         prompt_chars = sum(len(str(m.get("content") or "")) for m in messages)
         self.last_route = route or "general"
         chain = self.chain(route, lang)
+        if avoid:
+            quota = next((p.quota_key for p in chain if p.name == avoid), None)
+            chain = [p for p in chain if p.quota_key != quota] + [p for p in chain if p.quota_key == quota]
         for index, p in enumerate(chain):
             wait = self._resting_for(p)
             if wait > 0:

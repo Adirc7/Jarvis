@@ -42,6 +42,7 @@ class Checked:
     result: str
     numeric: str = ""
     note: str = ""
+    latex: str = ""                      # the question and its answer, for the board (KaTeX)
 
     def for_the_model(self) -> str:
         text = f"SymPy checked ({self.task}): {self.expression} -> {self.result}"
@@ -140,7 +141,66 @@ def _work(task: str, expression: str, variable: str, lower: str, upper: str, poi
     numeric = ""
     if isinstance(result, sympy.Basic) and result.is_number and result.is_finite and not result.is_Integer:
         numeric = _show(sympy.N(result, 8))
-    return Checked(task, expression, _show(result), numeric, note)
+    return Checked(task, expression, _show(result), numeric, note,
+                   _latex(task, target, result, var, lower, upper, point, order))
+
+
+def _latex(task, target, result, var, lower, upper, point, order) -> str:
+    """"\\int x^2 \\sin x\\,dx = ..." for the board; "" if SymPy can't write it."""
+    import sympy
+    try:
+        tex = sympy.latex
+        if task == "integrate":
+            limits = (var, _parse(lower, "lower limit"), _parse(upper, "upper limit")) if lower and upper else var
+            return f"{tex(sympy.Integral(target, limits))} = {tex(result)}" + ("" if lower else " + C")
+        if task == "differentiate":
+            return f"{tex(sympy.Derivative(target, (var, max(1, min(order or 1, 10)))))} = {tex(result)}"
+        if task == "limit":
+            return f"{tex(sympy.Limit(target, var, _parse(point or '0', 'point')))} = {tex(result)}"
+        if task == "solve":
+            answers = ", \\; ".join(tex(r) for r in result) if isinstance(result, list) else tex(result)
+            empty = "\\varnothing"
+            return f"{tex(target)} \\;\\Rightarrow\\; {tex(var)} = {answers or empty}"
+        if task in ("series", "evaluate"):
+            return f"{tex(target)} \\approx {tex(result)}"
+        return f"{tex(target)} = {tex(result)}"
+    except Exception:  # noqa: BLE001 - the board shows the plain answer instead
+        return ""
+
+
+def _sample(expression: str, variable: str, lower: float, upper: float, points: int) -> list[list[float | None]]:
+    import numpy as np
+    import sympy
+    var = sympy.Symbol(_vet(variable or "x", "variable"))
+    expr = _parse(expression)
+    if expr.free_symbols - {var}:
+        raise MathError(f"the graph needs one variable ({var}); it also has "
+                        f"{', '.join(sorted(map(str, expr.free_symbols - {var})))}")
+    f = sympy.lambdify(var, expr, modules="numpy")
+    xs = np.linspace(lower, upper, points)
+    with np.errstate(all="ignore"):
+        ys = np.broadcast_to(np.asarray(f(xs), dtype=complex), xs.shape)
+    out: list[list[float | None]] = []
+    for x, y in zip(xs, ys, strict=True):
+        ok = abs(y.imag) < 1e-9 and np.isfinite(y.real) and abs(y.real) < 1e8
+        out.append([round(float(x), 6), round(float(y.real), 6) if ok else None])
+    return out
+
+
+def sample(expression: str, variable: str = "x", lower: float = -5, upper: float = 5, points: int = 240,
+           timeout_s: float = 8.0) -> list[list[float | None]]:
+    """Points of y = f(x) for the board's graph; None where it isn't defined (gaps, asymptotes)."""
+    if not (-1e6 < lower < upper < 1e6):
+        raise MathError("the graph's range must go from a smaller to a larger number")
+    job = _pool.submit(_sample, expression, variable, float(lower), float(upper), max(20, min(points, 600)))
+    try:
+        return job.result(timeout=timeout_s)
+    except Slow:
+        raise MathError(f"drawing it took longer than {timeout_s:g} s") from None
+    except MathError:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise MathError(f"couldn't draw it: {type(exc).__name__}") from None
 
 
 _pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="sympy")

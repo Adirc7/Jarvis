@@ -265,3 +265,25 @@ async def test_console_lines_still_work(settings):
     app._input = lambda prompt: next(lines)
     await asyncio.wait_for(app._keyboard_loop(asyncio.get_running_loop()), 3)
     assert app.history[-1]["content"] == "Hi."
+
+
+def test_the_page_tells_which_panel_and_gets_the_board():
+    panels = []
+    v = LiveView(port=0, on_ui=panels.append, board=lambda: {"title": "Gaussian", "steps": []})
+    v.start()
+    try:
+        conn = http.client.HTTPConnection("127.0.0.1", v.port, timeout=5)
+        conn.request("POST", "/ui", body=json.dumps({"panel": "map"}), headers={
+            "Host": f"127.0.0.1:{v.port}", "Origin": f"http://127.0.0.1:{v.port}", "X-Jarvis-Token": v.token,
+            "Content-Type": "application/json"})
+        assert conn.getresponse().status == 202 and panels == [{"panel": "map"}]
+        conn.close()
+        assert json.loads(get(v, "/board")[1]) == {"title": "Gaussian", "steps": []}
+        conn = http.client.HTTPConnection("127.0.0.1", v.port, timeout=5)
+        conn.request("POST", "/ui", body=json.dumps({"panel": ""}), headers={
+            "Host": f"127.0.0.1:{v.port}", "Origin": "https://evil.example", "X-Jarvis-Token": v.token,
+            "Content-Type": "application/json"})
+        assert conn.getresponse().status == 403 and panels == [{"panel": "map"}]
+        conn.close()
+    finally:
+        v.stop()

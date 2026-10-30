@@ -32,4 +32,21 @@ function addBaseLayers(map) {
   L.control.layers(layers, null, { position: 'topright' }).addTo(map);
   return layers;
 }
+// Jarvis moves the map when asked ("show Sri Lanka and zoom in"): his window passes the
+// move on. Only from the window's own address, and only numbers are used.
+function followJarvis(map) {
+  let mark = null;
+  window.addEventListener('message', e => {
+    if (e.origin !== window.location.origin || !e.data || typeof e.data !== 'object') return;
+    const m = e.data;
+    if (m.action === 'zoom_in') map.zoomIn(2);
+    else if (m.action === 'zoom_out') map.zoomOut(2);
+    else if (m.action === 'focus' && Number.isFinite(m.lat) && Number.isFinite(m.lon)) {
+      map.flyTo([m.lat, m.lon], Number.isFinite(m.zoom) ? m.zoom : 7, { duration: 1.5 });
+      if (mark) map.removeLayer(mark);
+      mark = L.circleMarker([m.lat, m.lon], { radius: 9, color: '#ffb43b', weight: 3, fillOpacity: 0 }).addTo(map);
+      if (typeof m.label === 'string') mark.bindTooltip(m.label.slice(0, 80), { permanent: true, direction: 'top' });
+    }
+  });
+}
 """

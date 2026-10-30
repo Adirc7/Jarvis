@@ -90,7 +90,12 @@ emotion model. Measurements: [docs/RESULTS.md](docs/RESULTS.md).
   and rain radar.
 - **Research and study**: Wikipedia and research papers with real references
   ("find papers on Sinhala speech recognition"); maths worked out and checked
-  by SymPy, hints first ("help me integrate x squared sin x").
+  by SymPy, hints first ("help me integrate x squared sin x"). **The board**:
+  while Jarvis explains, the working shows in his window: formulas (KaTeX),
+  each SymPy-checked result, and graphs of y = f(x) ("explain the Gaussian
+  distribution on the board").
+- **Maps you can talk to**: "show Sri Lanka and zoom in", "zoom out",
+  "leave the map": the news or weather map in his window moves when asked.
 - **Jarvis as an app**: the desktop icon opens Jarvis in a window of his own
   (no tabs or address bar; the console stays minimized): the orb listening,
   thinking and speaking (gold for Jarvis, teal for Friday), captions, the

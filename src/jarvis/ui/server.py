@@ -9,8 +9,9 @@ a web page elsewhere can't read it through a DNS trick. The page shows what
 you said and what Jarvis answered, so it stays on the laptop. The latest map
 (news or weather) is served at /map.
 
-One thing can be sent to it: a line typed in the window (POST /say), which
-Jarvis handles like a line typed in his console. A web page elsewhere can't
+Two things can be sent to it: a line typed in the window (POST /say), which
+Jarvis handles like a line typed in his console, and which panel the page
+shows (POST /ui: the map, the board, or none). A web page elsewhere can't
 send one: the request must come from the window's own address (Origin), carry
 the window's secret (a random token in the page, which other sites can't
 read), and be JSON (so a plain form can't fake it).
@@ -71,9 +72,10 @@ def running_jarvis(port: int = 8765, timeout_s: float = 1.0) -> bool:
 class LiveView:
     def __init__(self, snapshot: Callable[[], dict[str, Any]] = dict, port: int = 8765,
                  map_file: Callable[[], Path | None] = lambda: None, poll_s: float = 0.25,
-                 on_text: Callable[[str], None] | None = None):
+                 on_text: Callable[[str], None] | None = None, on_ui: Callable[[dict], None] | None = None,
+                 board: Callable[[], dict | None] = lambda: None):
         self.snapshot, self.port, self.map_file, self.poll_s = snapshot, port, map_file, poll_s
-        self.on_text = on_text
+        self.on_text, self.on_ui, self.board = on_text, on_ui, board
         self.token = secrets.token_urlsafe(24)           # in the page; proves a POST came from it
         self.history: deque[dict] = deque(maxlen=60)     # a page opened later still sees recent turns
         self._clients: list[queue.Queue] = []
@@ -155,6 +157,8 @@ class LiveView:
                     else:
                         self._send(404, b"No map yet: ask Jarvis for the news map or the weather map.",
                                    "text/plain")
+                elif path == "/board":
+                    self._send(200, json.dumps(view.board() or {}, default=str).encode(), "application/json")
                 elif path == "/events":
                     self._events()
                 else:
@@ -186,7 +190,9 @@ class LiveView:
                             view._clients.remove(q)
 
             def do_POST(self) -> None:
-                if self.path.split("?", 1)[0] != "/say" or view.on_text is None:
+                path = self.path.split("?", 1)[0]
+                handler = {"/say": view.on_text, "/ui": view.on_ui}.get(path)
+                if handler is None:
                     self._send(405, b"read only", "text/plain")
                     return
                 origin = self.headers.get("Origin") or ""
@@ -198,13 +204,18 @@ class LiveView:
                     return
                 try:
                     size = int(self.headers.get("Content-Length") or 0)
-                    text = json.loads(self.rfile.read(min(size, 8000)) if 0 < size <= 8000 else b"")["text"]
+                    body = json.loads(self.rfile.read(min(size, 8000)) if 0 < size <= 8000 else b"")
+                    if path == "/ui":
+                        event = {"panel": str(body["panel"])[:10]}      # which panel the page shows
+                    else:
+                        text = str(body["text"]).strip()[:2000]
                 except (ValueError, KeyError, TypeError):
-                    self._send(400, b"send {\"text\": ...}", "text/plain")
+                    self._send(400, b"send JSON", "text/plain")
                     return
-                text = str(text).strip()[:2000]
-                if text:
-                    view.on_text(text)
+                if path == "/ui":
+                    handler(event)
+                elif text:
+                    handler(text)
                 self._send(202, b"ok", "text/plain")
 
             def do_PUT(self) -> None:

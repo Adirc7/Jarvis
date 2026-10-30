@@ -1369,3 +1369,35 @@ and log), and Jarvis as an app:
   the Jarvis folder, Desktop or Downloads and offers to bring it in once.
   Both PowerShell scripts parse (checked with PowerShell 7 here).
 - 30 tests (615 in all).
+
+Third laptop run (30 Oct, 11:00): "show Sri Lanka on this map and zoom"
+got no answer, "leave the map" got "There's no page to go back to", and Adhi
+asked for maths on a page he can see, "like the map", not only spoken.
+- Most of it was Groq's free limit: every request carried all 20 tools'
+  descriptions (~2,100 tokens, ~4,700 a request in all), so the second
+  question in a minute got "rate limit", then gpt-oss-20b failed ("Tool
+  choice is none, but model called a tool") and OpenRouter's free model took
+  10-16 s, and Adhi spoke again before it answered. Now ([tools]
+  model_tools = "smart"): the web and PC tools as before, the knowledge
+  tools in groups (news, weather, research, maths, map) only when the request
+  is about them, or follows up on what was just fetched, or the map is open.
+  "Hello Jarvis" now carries no knowledge tools at all. And the answer from
+  fetched data goes to another model than the one that called the tool
+  (English; Sinhala keeps gpt-oss-120b first), so one question uses two
+  models' minute.
+- The map moves when asked: map_view (focus on a place: a country from
+  places.py, a town from Open-Meteo's search; zoom in or out; close). The
+  window passes the move to the map page (postMessage, its own address only,
+  numbers only), which flies there and marks the place. If the map isn't
+  open, the window opens the latest one first.
+- "Leave the map", "back to Jarvis", "close it" while a map or the board is
+  open close it, without asking the model; the model's go_back does too.
+  The page tells Jarvis which panel it shows (POST /ui, same checks as /say).
+- The board: show_on_board puts a title, steps (text and LaTeX) and up to 3
+  graphs on a panel in the window; KaTeX draws the formulas (trust off, so
+  \href and HTML do nothing; text is plain text), and the graphs are drawn
+  from points SymPy works out (gaps where the function isn't defined, so
+  1/x has no spike). Every check_maths result is added to the board too, as
+  "\int x^2\,dx = x^3/3 + C". The answer note says to refer to the board
+  instead of reading formulas out. Checked in headless Chromium.
+- 10 tests (625 in all).
