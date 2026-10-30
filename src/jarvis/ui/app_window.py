@@ -78,11 +78,15 @@ def window_command(browser: str, url: str, size: tuple[int, int] = (1280, 820),
             f"--user-data-dir={profile or profile_folder()}", "--no-first-run", "--no-default-browser-check"]
 
 
+_popen = subprocess.Popen       # the tests swap this out, so they never open a real window
+
+
 def open_app_window(url: str, size: tuple[int, int] = (1280, 820), *, browser: str | None = None,
-                    popen: Callable[..., object] = subprocess.Popen) -> bool:
+                    popen: Callable[..., object] | None = None) -> bool:
     browser = browser or find_browser()
     if not browser:
         return False
+    popen = popen or _popen
     command = window_command(browser, url, size)
     flags = 0
     if sys.platform == "win32":                      # not tied to Jarvis's console

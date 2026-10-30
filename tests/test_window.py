@@ -119,13 +119,18 @@ def test_jarvis_opens_only_its_own_pages(monkeypatch):
 
 
 def test_the_news_map_opens_from_the_window_when_it_runs(settings, monkeypatch):
+    # On the laptop, Edge was found and opened for real (30 Oct): the app window is a stand-in here.
     opened = []
     monkeypatch.setattr("jarvis.ui.server.open_page", lambda url, browser="edge": opened.append(url))
+    monkeypatch.setattr("jarvis.ui.app_window.open_app_window", lambda url, size=None: opened.append(("app", url)) or True)
     app = App(settings, Telemetry.disabled(), out=lambda *a, **k: None)
     app._open_map("file:///tmp/news-map.html")                    # no window: the file itself
     app.view = LiveView(port=0)
-    app._open_map("file:///tmp/news-map.html")                    # the window's /map is the newest map
-    assert opened == ["file:///tmp/news-map.html", app.view.url + "map"]
+    app._open_map("file:///tmp/news-map.html")                    # the window isn't open: a window of its own
+    app.view = SimpleNamespace(viewers=1, url="http://127.0.0.1:8765/")
+    app.view.publish = lambda kind, **data: opened.append((kind, data["url"][:5]))
+    app._open_map("file:///tmp/news-map.html")                    # the window is open: inside it
+    assert opened == ["file:///tmp/news-map.html", ("app", "http://127.0.0.1:0/map"), ("map", "/map?")]
 
 
 async def test_a_spoken_turn_reaches_the_window(settings):

@@ -61,3 +61,16 @@ def settings(tmp_path):
     s.raw.setdefault("window", {})["enabled"] = False # nor open the window
     s.raw.setdefault("general", {})["log_dir"] = str(tmp_path / "logs")
     return s
+
+
+@pytest.fixture(autouse=True)
+def no_real_windows(monkeypatch):
+    """No test opens a real browser or app window (on 30 Oct one opened Edge on the laptop)."""
+    import webbrowser
+
+    import jarvis.ui.app_window
+    opened = []
+    monkeypatch.setattr(webbrowser, "open", lambda url, *a, **k: opened.append(url) or True)
+    monkeypatch.setattr(jarvis.ui.app_window, "_popen", lambda command, **k: opened.append(command))
+    monkeypatch.setattr("os.startfile", lambda target, *a, **k: opened.append(target), raising=False)
+    return opened
