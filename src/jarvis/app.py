@@ -169,6 +169,26 @@ LLM_UNAVAILABLE = "I can't reach any language model right now. Check the interne
 REPLY_BROKE_OFF = "Sorry, the connection dropped in the middle of my answer. Please ask again."
 
 
+_TABLE_RULE = re.compile(r"^\s*\|?\s*:?-{2,}:?\s*(?:\|\s*:?-{2,}:?\s*)+\|?\s*$")
+
+
+def markdown_tables(text: str) -> list[list[list[str]]]:
+    """The tables in a reply (rows of cells), header row first; the |---| rule left out."""
+    lines, tables, i = text.splitlines(), [], 0
+    while i < len(lines) - 1:
+        if "|" in lines[i] and _TABLE_RULE.match(lines[i + 1]):
+            rows, j = [lines[i]], i + 2
+            while j < len(lines) and "|" in lines[j] and lines[j].strip():
+                rows.append(lines[j])
+                j += 1
+            cells = [[c.strip().strip("*") for c in r.strip().strip("|").split("|")] for r in rows]
+            tables.append([row[:8] for row in cells[:30]])
+            i = j
+        else:
+            i += 1
+    return tables
+
+
 def _script_slips(reply: str) -> dict:
     """For the turn log: letters of another Indic script inside Sinhala or Tamil text ("खेළ"), if any."""
     for code, (low, high) in (("si", (0x0D80, 0x0DFF)), ("ta", (0x0B80, 0x0BFF))):
@@ -419,7 +439,21 @@ class App:
             reply = await self._handle_text(text, source, turn, token)
             if reply and not token.cancelled:
                 self._show("jarvis", text=reply, speaker=self._speaker())
+                self._tables_to_board(reply)
             return reply
+
+    def _tables_to_board(self, reply: str) -> None:
+        """A table in a spoken reply goes on the board too, where it can be read (the voice
+        reads it cell by cell)."""
+        tables = markdown_tables(reply)
+        if not tables or self.view is None or not self.view.viewers:
+            return
+        board = {"title": "From Jarvis's answer", "plots": [], "from": "reply",
+                 "steps": [{"text": "", "math": "", "table": t} for t in tables[:3]]}
+        if self.info is not None:
+            self.info._show_board(board)
+        else:
+            self._show("board", **board)
 
     def _cancelled(self, turn: Turn, where: str) -> None:
         """A turn stopped by the kill switch or a new push-to-talk: nothing more happens."""
@@ -925,6 +959,7 @@ class App:
         reply = await self._handle_text(result.text, "voice", turn, token)
         if reply and not token.cancelled:
             self._show("jarvis", text=reply, speaker=self._speaker())
+            self._tables_to_board(reply)
         return reply
 
     def _start_push_to_talk(self) -> None:

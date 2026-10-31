@@ -1401,3 +1401,17 @@ asked for maths on a page he can see, "like the map", not only spoken.
   "\int x^2\,dx = x^3/3 + C". The answer note says to refer to the board
   instead of reading formulas out. Checked in headless Chromium.
 - 10 tests (625 in all).
+
+From the laptop log of 30 Oct, 11:18-16:18 (map moves, closing and YouTube
+all worked):
+- A long answer with a table lost its voice after the first lines: the
+  table's |----|----| line reached Kokoro ("produced no phonemes"), and any
+  voice error stopped the rest of the reply. Tables are now read cell by
+  cell without the rule line; a piece with nothing to say is skipped; and a
+  "no phonemes" error skips that piece instead of silencing the reply. A
+  table in a reply also goes on the board, where it can be read.
+- "Show the weather map for New York" said "I couldn't find New York" a
+  minute after the forecast found it. Places found are now remembered for
+  the session, and an error answer from the place search is reported as the
+  service failing, not as "no such place".
+- 4 tests (629 in all).

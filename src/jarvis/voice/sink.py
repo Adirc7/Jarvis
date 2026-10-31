@@ -231,6 +231,8 @@ class VoiceSink(TextSink):
                 return
             if self.muted:                  # muted mid-reply: the rest is text only
                 continue
+            if not any(ch.isalnum() for ch in chunk):
+                continue                    # nothing to say ("|---|---|", "..."): the voice would fail on it
             # A Sinhala sentence is spoken by Friday even in English mode
             # (Jarvis's English voice can't read Sinhala letters).
             by_script = language_by_script(chunk, self._languages)
@@ -240,6 +242,9 @@ class VoiceSink(TextSink):
                     audio, sr = await loop.run_in_executor(
                         self._executor, self.tts.render, chunk, voice, self.speed_factor)
             except Exception as exc:
+                if "phoneme" in str(exc).lower() or "nothing to synthesize" in str(exc).lower():
+                    self._tel.log("tts_skipped", language=voice.code, chars=len(chunk))
+                    continue                # one piece it can't say isn't a broken voice: say the rest
                 self._report_broken(voice, exc)
                 return
             self._note_cpu_fallback(voice)

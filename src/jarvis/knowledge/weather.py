@@ -216,6 +216,7 @@ class Weather:
     def __init__(self, get: Get = get_text, home_country: str = "Sri Lanka", today=lambda: datetime.now(UTC).date()):
         self.get, self.home, self.today = get, home_country, today
         self._usual: dict[tuple, Usual | None] = {}
+        self._places: dict[tuple[str, str], Place] = {}
 
     def _json(self, url: str):
         try:
@@ -225,7 +226,18 @@ class Weather:
 
     # ---- places ----------------------------------------------------------------------
     def find(self, name: str, country: str = "") -> Place | None:
-        """The place the user means: in `country` if given; else a same-named place at home first."""
+        """The place the user means: in `country` if given; else a same-named place at home first.
+        Remembered for the session: on 30 Oct "New York" was found for the forecast and, a
+        minute later, not for the map."""
+        key = (" ".join((name or "").lower().split()), (country or "").lower())
+        if key in self._places:
+            return self._places[key]
+        found = self._find(name, country)
+        if found is not None:
+            self._places[key] = found
+        return found
+
+    def _find(self, name: str, country: str = "") -> Place | None:
         name = re.sub(r"[^\w\s\-'.,]", " ", name or "").strip()[:60]
         if not name:
             return None
@@ -234,6 +246,8 @@ class Weather:
             return Place(town, *SRI_LANKA_TOWNS[town], "Sri Lanka", kind="PPL")
         data = self._json(url_with(GEOCODE, {"name": name.split(",")[0].strip(), "count": 10, "language": "en",
                                              "format": "json"}))
+        if isinstance(data, dict) and data.get("error"):          # the service said no, it didn't say "nowhere"
+            raise WeatherError(str(data.get("reason", "the place search failed"))[:160])
         results = (data.get("results") or []) if isinstance(data, dict) else []
         if not results:
             return None

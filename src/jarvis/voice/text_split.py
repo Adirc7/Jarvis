@@ -15,6 +15,12 @@ _ABBREVIATIONS = {"mr.", "mrs.", "ms.", "dr.", "e.g.", "i.e.", "etc.", "vs.", "s
 
 _MARKDOWN = [
     (re.compile(r"```.*?```", re.S), " "),          # code blocks aren't speakable
+    # Tables: the |---|---| line goes (30 Oct it reached the voice: "no phonemes"),
+    # and the cells are read with a pause between them.
+    (re.compile(r"^\s*\|?\s*:?-{2,}:?\s*(?:\|\s*:?-{2,}:?\s*)*\|?\s*$", re.M), " "),
+    (re.compile(r"^\s*\|\s*", re.M), ""),
+    (re.compile(r"\s*\|\s*$", re.M), ". "),
+    (re.compile(r"\s*\|\s*"), ", "),
     (re.compile(r"`([^`]*)`"), r"\1"),
     (re.compile(r"!\[[^\]]*\]\([^)]*\)"), " "),     # images
     (re.compile(r"\[([^\]]+)\]\([^)]*\)"), r"\1"),  # links: keep the text

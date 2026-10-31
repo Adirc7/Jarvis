@@ -224,3 +224,11 @@ def test_every_nvidia_library_folder_is_found(tmp_path, monkeypatch):
     monkeypatch.setattr(sys, "path", [str(tmp_path)])
     names = sorted(d.parent.name for d in nvidia_dll_dirs())
     assert names == ["cublas", "cudnn", "cufft", "curand"]     # cufft and curand matter for onnxruntime
+
+
+def test_a_table_is_read_by_cells_and_its_rule_line_is_not_spoken():
+    # 30 Oct: "|----------|---|" reached the voice ("produced no phonemes") and the rest of the reply was lost.
+    table = "| Model | Speed |\n|----------|-------:|\n| gpt-oss | fast |"
+    assert clean_for_speech(table) == "Model, Speed. gpt-oss, fast."
+    assert clean_for_speech("|----------|----------------|------------|") == ""
+    assert clean_for_speech("x | y") == "x, y"

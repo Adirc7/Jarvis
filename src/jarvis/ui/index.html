@@ -42,6 +42,9 @@ main { display:grid; grid-template-columns:minmax(0,1fr) 360px; height:calc(100%
 #board .step .m.raw { font-family:Consolas, monospace; font-size:15px; color:var(--cyan); }
 #board svg.plot { width:100%; max-width:760px; height:auto; background:var(--panel); border:1px solid var(--line);
   border-radius:10px; margin-top:14px; }
+#board table.tbl { border-collapse:collapse; margin-top:6px; font-size:14px; }
+#board table.tbl th, #board table.tbl td { border:1px solid var(--line); padding:6px 10px; text-align:left; }
+#board table.tbl th { color:var(--cyan); font-weight:500; }
 #board .legend span { display:inline-flex; align-items:center; gap:6px; margin-right:14px; font-size:13px; color:var(--muted); }
 #board .legend i { width:14px; height:3px; display:inline-block; }
 canvas { width:min(52vh, 90%); aspect-ratio:1; }
@@ -257,6 +260,12 @@ function showBoard(b) {
     const card = el("div", "step"); card.append(el("div", "n", "STEP " + (i + 1)));
     if (st.text) card.append(el("div", "t", st.text));
     if (st.math) { const m = el("div", "m"); maths(m, st.math); card.append(m); }
+    if (Array.isArray(st.table) && st.table.length) {
+      const t = el("table", "tbl");
+      st.table.forEach((row, r) => { const tr = el("tr");
+        (row || []).forEach(c => tr.append(el(r ? "td" : "th", "", String(c)))); t.append(tr); });
+      card.append(t);
+    }
     box.append(card);
   });
   if ((b.plots || []).length) {

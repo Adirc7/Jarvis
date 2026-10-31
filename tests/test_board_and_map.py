@@ -164,3 +164,36 @@ async def test_the_answer_tries_another_model_first():
     assert text == "from b" and a.calls == 0
     text = "".join([x async for x in llm.stream_text([{"role": "user", "content": "hi"}])])
     assert text == "from a"
+
+
+def test_a_table_in_a_reply_goes_on_the_board(settings, tmp_path):
+    from jarvis.app import markdown_tables
+    reply = ("Here's the comparison, sir.\n\n| Model | Speed | Notes |\n|---|:---:|---|\n| **gpt-oss** | fast | good |\n"
+             "| qwen | faster | ok |\n\nAnything else?")
+    assert markdown_tables(reply) == [[["Model", "Speed", "Notes"], ["gpt-oss", "fast", "good"],
+                                       ["qwen", "faster", "ok"]]]
+    assert markdown_tables("a | b, no table here") == []
+    info, screen = info_with_screen(tmp_path)
+    app = App(settings, Telemetry.disabled(), out=lambda *a, **k: None, info=info)
+    app.view = NS(viewers=1, publish=lambda *a, **k: None)
+    app._tables_to_board(reply)
+    kind, board = screen.shown[-1]
+    assert kind == "board" and board["steps"][0]["table"][1] == ["gpt-oss", "fast", "good"]
+    app.view.viewers = 0
+    screen.shown.clear()
+    app._tables_to_board(reply)                                      # no window open: nothing to show
+    assert screen.shown == []
+
+
+def test_a_place_found_once_is_remembered_and_a_service_error_isnt_nowhere():
+    from test_weather import Web, web
+
+    from jarvis.knowledge.weather import Weather, WeatherError
+    w = web()
+    finder = Weather(get=w)
+    assert finder.find("Malabe").name == "Malabe"
+    asked = len(w.asked)
+    assert finder.find("malabe ").name == "Malabe" and len(w.asked) == asked     # not asked again
+    failing = Weather(get=Web({"geocoding-api": json.dumps({"error": True, "reason": "busy"})}))
+    with pytest.raises(WeatherError):
+        failing.find("New York")

@@ -150,7 +150,7 @@ class InfoTools:
             elif area.lower() in ("world", "the world", "everywhere"):
                 places, centre, zoom, alerts = [], (15.0, 30.0), 2, self.weather.alerts()
             else:
-                place = self.weather.find(area)
+                place = self.weather.find(area)            # WeatherError (service down) is said as such below
                 if place is None:
                     return Result(False, f"I couldn't find {area}.", data={"kind": "weather", "for_model": (
                         f"No place found called {area}. Say so and ask which place they mean.")})

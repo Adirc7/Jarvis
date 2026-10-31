@@ -318,3 +318,25 @@ def test_asking_for_friday_switches_to_sinhala(settings):
     assert lm.detect_switch("Can I talk to Friday?") == "si"
     assert lm.detect_switch("Jarvis please") == "en"
     assert lm.detect_switch("Can you change my meeting to Friday?") is None   # just a weekday
+
+
+async def test_a_piece_the_voice_cant_say_doesnt_silence_the_rest(settings):
+    from jarvis.voice.tts import TTSRouter
+
+    class Picky(FakeEngine):
+        def synthesize(self, text, speed_factor=1.0):
+            if "Phonemeless" in text:
+                raise ValueError("Nothing to synthesize, 'Phonemeless' produced no phonemes")
+            return super().synthesize(text, speed_factor)
+
+    spoken = []
+    router = TTSRouter(settings, style=VoiceStyle(enabled=False), factory=lambda lang, s: Picky(lang.code, spoken))
+    sink = VoiceSink(settings, router, AudioPlayer(RecordingBackend()), out=lambda *a, **k: None)
+    llm = FallbackLLM([Provider("fake", "m", FakeClient([
+        "The first sentence is fine here. ",
+        "Phonemeless piece goes here now, long enough to be a piece of its own. ",
+        "And the last sentence is fine too, and long enough to be spoken alone."]))])
+    app = App(settings, Telemetry.disabled(), llm=llm, sink=sink, out=sink.out)
+    await app.handle_text("tell me three things")
+    said = " ".join(t for _, t in spoken)
+    assert "first sentence" in said and "last sentence" in said
