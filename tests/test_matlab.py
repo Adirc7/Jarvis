@@ -49,6 +49,11 @@ def test_matlab_or_octave_is_found_newest_first(tmp_path):
     found = find_engine("auto", platform="win32", which=none, roots=[c])
     assert found.kind == "matlab" and found.name == "MATLAB R2024a" and "R2024a" in str(found.exe)
     assert find_engine("octave", platform="win32", which=none, roots=[c]).name == "Octave 10.1.0"   # not "9" > "1"
+    unzipped = (tmp_path / "D" / "Program Files" / "GNU Octave" / "octave-11.1.0-w64" / "octave-11.1.0-w64" / "mingw64"
+                / "bin" / "octave-cli.exe")
+    unzipped.parent.mkdir(parents=True)
+    unzipped.write_text("")
+    assert find_engine("octave", platform="win32", which=none, roots=[c, tmp_path / "D"]).name == "Octave 11.1.0"
     assert find_engine("auto", platform="win32", which=none, roots=[tmp_path / "empty"]) is None
     assert find_engine("auto", platform="linux", which=lambda n: "/usr/bin/octave-cli" if n == "octave-cli" else None,
                        roots=[]).kind == "octave"

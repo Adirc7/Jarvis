@@ -145,12 +145,14 @@ def _find(kind: str, platform: str, which, roots: list[Path] | None) -> Path | N
         drives = roots or [Path(f"{d}:/") for d in "CD"]
         patterns = (["Program Files/MATLAB/R20*/bin/matlab.exe", "MATLAB/R20*/bin/matlab.exe"] if kind == "matlab"
                     # mingw64\bin or ucrt64\bin, depending on the Octave release's Windows build
-                    else ["Program Files/GNU Octave/Octave-*/*/bin/octave-cli.exe",
-                          "Program Files/GNU Octave/Octave-*/bin/octave-cli.exe",
-                          "Octave/Octave-*/*/bin/octave-cli.exe", "GNU Octave/Octave-*/*/bin/octave-cli.exe"])
+                    # installed (Octave-9.2.0\mingw64\bin) or unzipped (octave-9.2.0-w64\[octave-9.2.0-w64\]...)
+                    else ["Program Files/GNU Octave/*/*/bin/octave-cli.exe",
+                          "Program Files/GNU Octave/*/*/*/bin/octave-cli.exe",
+                          "GNU Octave/*/*/bin/octave-cli.exe", "GNU Octave/*/*/*/bin/octave-cli.exe",
+                          "Octave*/*/bin/octave-cli.exe", "Octave*/*/*/bin/octave-cli.exe"])
         found = [p for d in drives for pat in patterns for p in d.glob(pat)]
         if found:
-            return max(found, key=lambda p: _release(next(x for x in p.parts if re.match(r"R20|Octave-", x))))
+            return max(found, key=_release)                                   # the newest release
     for name in (["matlab"] if kind == "matlab" else ["octave-cli", "octave"]):
         hit = which(name)
         if hit:
@@ -158,9 +160,14 @@ def _find(kind: str, platform: str, which, roots: list[Path] | None) -> Path | N
     return None
 
 
-def _release(folder: str) -> tuple:
-    """R2024a -> (2024, 'a'); Octave-10.1.0 -> (10, 1, 0): comparable, so the newest wins."""
-    return tuple(int(n) if n.isdigit() else n for n in re.findall(r"\d+|[ab]$", folder))
+def _release(path: Path) -> tuple:
+    """...R2024a\bin -> (2024, 'a'); ...octave-10.1.0-w64\... -> (10, 1, 0): comparable, so the newest wins."""
+    for part in path.parts:
+        if found := re.fullmatch(r"R(20\d\d)([ab])", part):
+            return int(found.group(1)), found.group(2)
+        if found := re.search(r"octave[-_ ]?(\d+(?:\.\d+)*)", part, re.IGNORECASE):
+            return tuple(int(x) for x in found.group(1).split("."))
+    return ()
 
 
 def blocked(code: str) -> list[str]:
