@@ -1,0 +1,188 @@
+{"text": "machan mata me integral eka solve karala denna", "lang": "si-Latn", "intent": "solve_problem"}
+{"text": "අද මට හරිම මහන්සියි", "lang": "si", "intent": "feeling_low"}
+{"text": "Jarvis, open up VS Code and load my last workspace", "lang": "en", "intent": "open_app"}
+{"text": "machan chrome eka open karala aluth tab ekak ganna", "lang": "si-Latn", "intent": "open_app"}
+{"text": "වට්ස්ඇප් එක පොඩ්ඩක් ඕපන් කරන්න", "lang": "si", "intent": "open_app"}
+{"text": "launch spotify and play my coding playlist", "lang": "en", "intent": "open_app"}
+{"text": "terminal eka open karala deepan machan", "lang": "si-Latn", "intent": "open_app"}
+{"text": "සූම් ඇප් එක ඕපන් කරලා දෙන්න", "lang": "si", "intent": "open_app"}
+{"text": "fire up blender for me, I need to render a scene", "lang": "en", "intent": "open_app"}
+{"text": "discord eka poddak danna balanna", "lang": "si-Latn", "intent": "open_app"}
+{"text": "කැල්කියුලේටර් එක ඕපන් කරන්න", "lang": "si", "intent": "open_app"}
+{"text": "pull up task manager, my PC is lagging a bit", "lang": "en", "intent": "open_app"}
+{"text": "file explorer eka open karala downloads folder ekata yanna", "lang": "si-Latn", "intent": "open_folder"}
+{"text": "ෆොටෝෂොප් එක ඕපන් කරලා දෙන්න මචං", "lang": "si", "intent": "open_app"}
+{"text": "can you open postman? I need to test some API endpoints", "lang": "en", "intent": "open_app"}
+{"text": "docker desktop eka start karanna", "lang": "si-Latn", "intent": "open_app"}
+{"text": "නෝට්පෑඩ් එක ඕපන් කරන්න", "lang": "si", "intent": "open_app"}
+{"text": "open obsidian so I can jot down some research notes", "lang": "en", "intent": "open_app"}
+{"text": "machan telegram eka open karapan", "lang": "si-Latn", "intent": "open_app"}
+{"text": "සෙටින්ග්ස් ඕපන් කරලා පෙන්නන්න", "lang": "si", "intent": "open_app"}
+{"text": "turn down the screen brightness to 40 percent", "lang": "en", "intent": "brightness_down"}
+{"text": "machan volume eka poddak wadi karapan", "lang": "si-Latn", "intent": "volume_up"}
+{"text": "වයිෆයි එක ඕෆ් කරලා ආයේ ඔන් කරන්න", "lang": "si", "intent": "toggle_setting"}
+{"text": "mute the system audio right now", "lang": "en", "intent": "volume_down"}
+{"text": "bluetooth eka on karala mage headphones deka connect karanna", "lang": "si-Latn", "intent": "toggle_setting"}
+{"text": "ස්ක්‍රීන් එකේ බ්‍රයිට්නස් එක අඩු කරන්න ඇස් දෙකට අමාරුයි", "lang": "si", "intent": "brightness_down"}
+{"text": "put the computer to sleep in 15 minutes", "lang": "en", "intent": "system_power"}
+{"text": "pc eka restart karamu neda machan, tikak slow wage", "lang": "si-Latn", "intent": "system_power"}
+{"text": "සද්දෙ පොඩ්ඩක් අඩු කරන්න", "lang": "si", "intent": "volume_down"}
+{"text": "take a screenshot of my current window and save it to desktop", "lang": "en", "intent": "take_screenshot"}
+{"text": "night light mode eka on karanna machan", "lang": "si-Latn", "intent": "toggle_setting"}
+{"text": "switch audio output to my external speakers", "lang": "en", "intent": "toggle_setting"}
+{"text": "do not disturb mode eka danna පැය දෙකකට", "lang": "si-Latn", "intent": "toggle_setting"}
+{"text": "මේ වින්ඩෝ එක ක්ලෝස් කරලා දාන්න", "lang": "si", "intent": "close_app"}
+{"text": "lock the screen, I'm stepping out for a coffee", "lang": "en", "intent": "system_power"}
+{"text": "කම්පියුටර් එක ෂට්ඩවුන් කරන්න", "lang": "si", "intent": "system_power"}
+{"text": "dark mode ekata switch karanna machan", "lang": "si-Latn", "intent": "toggle_setting"}
+{"text": "මයික් එක මියුට් කරන්න", "lang": "si", "intent": "toggle_setting"}
+{"text": "find me the latest research papers on transformer architectures and attention mechanisms", "lang": "en", "intent": "search_research"}
+{"text": "machan mata quantum computing gana aluthma research paper tikak hoyala deepan", "lang": "si-Latn", "intent": "search_research"}
+{"text": "කෘතිම බුද්ධිය ගැන අලුතින්ම පළවුණු පර්යේෂණ පත්‍රිකා මොනවද තියෙන්නේ?", "lang": "si", "intent": "search_research"}
+{"text": "summarize this abstract and tell me their main methodology", "lang": "en", "intent": "summarize_document"}
+{"text": "me research paper eke literature review ekata hariyana points tikak ganna puluwanda", "lang": "si-Latn", "intent": "summarize_document"}
+{"text": "මේ පර්යේෂණයට පාවිච්චි කරලා තියෙන ඩේටා සෙට් එක මොකක්ද කියලා හොයලා කියන්න", "lang": "si", "intent": "summarize_document"}
+{"text": "what is the current state-of-the-art model for low-resource speech recognition?", "lang": "en", "intent": "search_research"}
+{"text": "sinhala NLP walata karapu research papers monawada tiyenne kiyala poddak search karapan", "lang": "si-Latn", "intent": "search_research"}
+{"text": "මේ තීසිස් එකේ මෙතඩොලොජි කොටස ලියන්න මට පොඩි උදව්වක් දෙන්න", "lang": "si", "intent": "chat"}
+{"text": "can you cross-reference these findings with recent IEEE publications?", "lang": "en", "intent": "search_research"}
+{"text": "machan p-value eka 0.05 ta wada adu nam ape hypothesis eka accept කරන්න පුළුවන්ද?", "lang": "si-Latn", "intent": "explain_concept"}
+{"text": "මේ පර්යේෂණයේ තියෙන අඩුපාඩු සහ සීමාවන් මොනවද කියලා පැහැදිලි කරන්න", "lang": "si", "intent": "summarize_document"}
+{"text": "pull up the citation count and impact factor for this journal", "lang": "en", "intent": "search_research"}
+{"text": "arxiv eke giya sathiye dapu LLM papers tika filter karala ganna", "lang": "si-Latn", "intent": "search_research"}
+{"text": "මේකට ගැලපෙන උපන්‍යාසයක් හදාගන්නේ කොහොමද?", "lang": "si", "intent": "explain_concept"}
+{"text": "help me draft a solid problem statement for my final year research project", "lang": "en", "intent": "chat"}
+{"text": "qualitative research ekakata wada quantitative ekakata yana eka mekata hoda weida?", "lang": "si-Latn", "intent": "chat"}
+{"text": "මේ ලිපියේ ප්‍රධාන නිගමනය මොකක්ද කියලා කෙටියෙන් කියන්න", "lang": "si", "intent": "summarize_document"}
+{"text": "format this reference list into APA 7th edition style", "lang": "en", "intent": "chat"}
+{"text": "machan overfitting wena eka nawaththanna me paper eke monawada karala tiyenne?", "lang": "si-Latn", "intent": "summarize_document"}
+{"text": "නියැදි ප්‍රමාණය තීරණය කරන්නේ කොහොමද කියලා පොඩ්ඩක් බලමුද?", "lang": "si", "intent": "explain_concept"}
+{"text": "find the eigenvalues and eigenvectors of this 3 by 3 matrix", "lang": "en", "intent": "solve_problem"}
+{"text": "machan me differential equation eka step by step solve karala pennapan", "lang": "si-Latn", "intent": "solve_problem"}
+{"text": "මේ සමීකරණයේ ව්‍යුත්පන්නය හොයලා දෙන්න", "lang": "si", "intent": "solve_problem"}
+{"text": "calculate the probability of getting at least two heads in five coin flips", "lang": "en", "intent": "solve_problem"}
+{"text": "me python script eke આવන index out of range bug eka hadala deepan", "lang": "si-Latn", "intent": "debug_code"}
+{"text": "මේ න්‍යාස දෙක ගුණ කරලා උත්තරේ ගන්නේ කොහොමද?", "lang": "si", "intent": "solve_problem"}
+{"text": "how do I optimize this SQL query? It's taking way too long to execute", "lang": "en", "intent": "debug_code"}
+{"text": "bayes theorem eka pawichchi karala me gana hadanne kohomada kiyala kiyala denna", "lang": "si-Latn", "intent": "solve_problem"}
+{"text": "මේ ත්‍රිකෝණමිතික ගැටලුව විසඳන හැටි පියවරෙන් පියවර කියලා දෙන්න", "lang": "si", "intent": "solve_problem"}
+{"text": "solve this system of linear equations using Gaussian elimination", "lang": "en", "intent": "solve_problem"}
+{"text": "machan fourier transform eka me signal ekata apply kalama ena output eka mokakda?", "lang": "si-Latn", "intent": "solve_problem"}
+{"text": "මේ ප්‍රස්තාරයේ අනුක්‍රමණය හොයන්නේ කොහොමද?", "lang": "si", "intent": "solve_problem"}
+{"text": "help me debug this segmentation fault in my C++ code", "lang": "en", "intent": "debug_code"}
+{"text": "standard deviation eka saha variance eka me data tika dila calculate karanna", "lang": "si-Latn", "intent": "solve_problem"}
+{"text": "මේ කේතයේ තියෙන වරද මොකක්ද කියලා හොයලා දෙන්න", "lang": "si", "intent": "debug_code"}
+{"text": "compute the Laplace transform of sine 2t multiplied by e to the power minus t", "lang": "en", "intent": "solve_problem"}
+{"text": "gradient descent algorithm eke learning rate eka wadi unama mokada wenne?", "lang": "si-Latn", "intent": "explain_concept"}
+{"text": "මේ ශ්‍රිතයේ සීමාව හොයලා දෙන්න", "lang": "si", "intent": "solve_problem"}
+{"text": "what is the time complexity of this recursive function in Big O notation?", "lang": "en", "intent": "solve_problem"}
+{"text": "machan me circuit eke total resistance eka keeyada kiyala hadala kiyapan", "lang": "si-Latn", "intent": "solve_problem"}
+{"text": "සම්භාවිතාව හොයන සූත්‍රය මේ ගාණට දාලා උත්තරේ ගමු", "lang": "si", "intent": "solve_problem"}
+{"text": "how does quantum entanglement work without violating the speed of light?", "lang": "en", "intent": "explain_concept"}
+{"text": "machan black hole ekak athulata giyama time dilation wenne kohomada kiyala explain karapan", "lang": "si-Latn", "intent": "explain_concept"}
+{"text": "සාපේක්ෂතාවාදය කියන්නේ මොකක්ද කියලා සරලව පැහැදිලි කරන්න පුළුවන්ද?", "lang": "si", "intent": "explain_concept"}
+{"text": "explain CRISPR-Cas9 gene editing like I'm a first-year biology student", "lang": "en", "intent": "explain_concept"}
+{"text": "thermodynamics wala second law eka entropy ekath ekka sambanda wenne kohomada?", "lang": "si-Latn", "intent": "explain_concept"}
+{"text": "ඩීඑන්ඒ වලින් ප්‍රෝටීන් හැදෙන විදිය පොඩ්ඩක් කියලා දෙන්න", "lang": "si", "intent": "explain_concept"}
+{"text": "why does light behave as both a particle and a wave in the double-slit experiment?", "lang": "en", "intent": "explain_concept"}
+{"text": "dark matter saha dark energy athara tiyena wenasa mokakda machan?", "lang": "si-Latn", "intent": "explain_concept"}
+{"text": "න්‍යෂ්ටික විලයනය සහ න්‍යෂ්ටික විඛණ්ඩනය අතර වෙනස මොකක්ද?", "lang": "si", "intent": "explain_concept"}
+{"text": "walk me through the mechanism of action of mRNA vaccines", "lang": "en", "intent": "explain_concept"}
+{"text": "superconductors room temperature eke hadanna bari ai තාම?", "lang": "si-Latn", "intent": "explain_concept"}
+{"text": "ගුරුත්වාකර්ෂණ තරංග ඇතිවෙන්නේ කොහොමද?", "lang": "si", "intent": "explain_concept"}
+{"text": "what happens at the cellular level during autophagy?", "lang": "en", "intent": "explain_concept"}
+{"text": "doppler effect eka sound waves walata saha light waves walata wada karanne eka widiyatada?", "lang": "si-Latn", "intent": "explain_concept"}
+{"text": "ප්‍රභාසංශ්ලේෂණ ක්‍රියාවලියේ අඳුරු ප්‍රතික්‍රියාව ගැන විස්තර කරන්න", "lang": "si", "intent": "explain_concept"}
+{"text": "explain how Hawking radiation causes black holes to evaporate over time", "lang": "en", "intent": "explain_concept"}
+{"text": "heisenberg uncertainty principle eka සරල උදාහරණයකින් කියලා දෙන්න", "lang": "si-Latn", "intent": "explain_concept"}
+{"text": "මොළයේ නියුරෝන අතර පණිවිඩ හුවමාරු වෙන්නේ කොහොමද?", "lang": "si", "intent": "explain_concept"}
+{"text": "how do neural networks in deep learning compare to biological neurons in the brain?", "lang": "en", "intent": "explain_concept"}
+{"text": "fusion reactor ekaka plasma eka control karanne magnetic fields walinda?", "lang": "si-Latn", "intent": "explain_concept"}
+{"text": "ආලෝකයේ වේගය ඉක්මවා යන්න බැරි ඇයි?", "lang": "si", "intent": "explain_concept"}
+{"text": "why do people experience cognitive dissonance when their beliefs are challenged?", "lang": "en", "intent": "explain_concept"}
+{"text": "machan dunning-kruger effect eka gana poddak katha karamuda?", "lang": "si-Latn", "intent": "chat"}
+{"text": "මිනිස්සුන්ට සමාජ බිය ඇතිවෙන්න බලපාන මනෝවිද්‍යාත්මක හේතු මොනවද?", "lang": "si", "intent": "explain_concept"}
+{"text": "explain the difference between classical conditioning and operant conditioning", "lang": "en", "intent": "explain_concept"}
+{"text": "imposter syndrome eka godak welawata high achievers lata enne ai?", "lang": "si-Latn", "intent": "explain_concept"}
+{"text": "යටි සිත වැඩ කරන විදිය ගැන ෆ්‍රොයිඩ් කියලා තියෙන්නේ මොනවද?", "lang": "si", "intent": "explain_concept"}
+{"text": "how does dopamine actually drive motivation and reward prediction error?", "lang": "en", "intent": "explain_concept"}
+{"text": "procrastination eka nawaththaganna cognitive behavioral therapy wala tiyena techniques monawada?", "lang": "si-Latn", "intent": "explain_concept"}
+{"text": "කෙනෙක්ගේ පෞරුෂත්වය හැදෙන්න කුඩා කාලයේ අත්දැකීම් කොච්චර බලපානවද?", "lang": "si", "intent": "explain_concept"}
+{"text": "what is Carl Jung's concept of the shadow self and how does integration work?", "lang": "en", "intent": "explain_concept"}
+{"text": "confirmation bias eka nisa api ganna decisions waradinna puluwan widiya explain karanna", "lang": "si-Latn", "intent": "explain_concept"}
+{"text": "මානසික ආතතිය අඩු කරගන්න මනෝවිද්‍යාවේ තියෙන ක්‍රම මොනවද?", "lang": "si", "intent": "explain_concept"}
+{"text": "how does sleep deprivation affect the prefrontal cortex and emotional regulation?", "lang": "en", "intent": "explain_concept"}
+{"text": "machan attachment styles hathara gana podi pahadili kirimak karapan", "lang": "si-Latn", "intent": "explain_concept"}
+{"text": "මතකය ගබඩා වෙන විදිය සහ අමතක වීම සිදුවෙන හැටි පැහැදිලි කරන්න", "lang": "si", "intent": "explain_concept"}
+{"text": "what are the psychological mechanisms behind habit formation and the cue-routine-reward loop?", "lang": "en", "intent": "explain_concept"}
+{"text": "placebo effect eka ඇත්තටම අපේ ඇඟට වැඩ කරන්නේ කොහොමද?", "lang": "si-Latn", "intent": "explain_concept"}
+{"text": "සංවේදනය සහ අනුකම්පාව අතර තියෙන මනෝවිද්‍යාත්මක වෙනස මොකක්ද?", "lang": "si", "intent": "explain_concept"}
+{"text": "explain Daniel Kahneman's System 1 and System 2 thinking", "lang": "en", "intent": "explain_concept"}
+{"text": "burnout eka saha normal mahansiya athara wenasa අඳුරගන්නේ කොහොමද?", "lang": "si-Latn", "intent": "explain_concept"}
+{"text": "හීන පේන්නේ ඇයි කියලා මනෝවිද්‍යාවෙන් පැහැදිලි කරන්නේ කොහොමද?", "lang": "si", "intent": "explain_concept"}
+{"text": "what are the biggest tech and AI news stories from today?", "lang": "en", "intent": "news"}
+{"text": "machan ada lankawe saha loke aluthma news monawada tiyenne?", "lang": "si-Latn", "intent": "news"}
+{"text": "අද දවසේ විශේෂ ප්‍රවෘත්ති මොනවද කියලා පොඩ්ඩක් කියන්න", "lang": "si", "intent": "news"}
+{"text": "give me a quick briefing on the global financial markets this morning", "lang": "en", "intent": "news"}
+{"text": "silicon valley පැත්තේ අලුතින්ම ආපු AI startups හරි models හරි මොනවද?", "lang": "si-Latn", "intent": "news"}
+{"text": "ලංකාවේ ආර්ථිකය ගැන අද තියෙන අලුත්ම තොරතුරු මොනවද?", "lang": "si", "intent": "news"}
+{"text": "any major breakthroughs announced in space exploration this week?", "lang": "en", "intent": "news"}
+{"text": "cricket match eke score eka keeyada දැන්?", "lang": "si-Latn", "intent": "news"}
+{"text": "විද්‍යා හා තාක්ෂණ ලෝකයේ අලුත්ම ආරංචි මොනවද?", "lang": "si", "intent": "news"}
+{"text": "summarize the latest geopolitical developments in the Middle East and Europe", "lang": "en", "intent": "news"}
+{"text": "machan openai හරි google හරි අලුත් update එකක් දාලද බලපන්", "lang": "si-Latn", "intent": "news"}
+{"text": "අද කාලගුණ වාර්තාව කොහොමද? හවසට වහීද?", "lang": "si", "intent": "ask_weather"}
+{"text": "what's trending on Hacker News and tech Twitter right now?", "lang": "en", "intent": "news"}
+{"text": "cybersecurity පැත්තෙන් අද ලොකු data breach එකක් හරි vulnerability එකක් හරි report වෙලාද?", "lang": "si-Latn", "intent": "news"}
+{"text": "ලෝක දේශපාලනයේ අද සිදුවුණු වැදගත් සිදුවීම් මොනවද?", "lang": "si", "intent": "news"}
+{"text": "if an autonomous vehicle has to choose between two unavoidable harms, how should it be programmed?", "lang": "en", "intent": "chat"}
+{"text": "machan AI walata consciousness ekak enna puluwanda? Eka ethical prashnayak weida?", "lang": "si-Latn", "intent": "chat"}
+{"text": "කෘතිම බුද්ධිය නිසා මිනිස්සුන්ගේ රැකියා නැතිවෙන එක සදාචාරාත්මකව කොහොමද දකින්නේ?", "lang": "si", "intent": "chat"}
+{"text": "compare utilitarianism and deontological ethics using the classic trolley problem", "lang": "en", "intent": "explain_concept"}
+{"text": "genetic engineering walin designer babies හදන එක හරිද වැරදිද?", "lang": "si-Latn", "intent": "chat"}
+{"text": "නීතිය සහ සාධාරණත්වය කියන්නේ හැමවෙලේම එකක්ද නැත්නම් දෙකක්ද?", "lang": "si", "intent": "chat"}
+{"text": "do we actually have free will, or is everything determined by prior physical states?", "lang": "en", "intent": "chat"}
+{"text": "data privacy saha national security athara balance eka තියාගන්නේ කොහොමද?", "lang": "si-Latn", "intent": "chat"}
+{"text": "සත්‍යය කියන දේ සාපේක්ෂද නැත්නම් නිරපේක්ෂ දෙයක්ද?", "lang": "si", "intent": "chat"}
+{"text": "what are the ethical implications of brain-computer interfaces like Neuralink?", "lang": "en", "intent": "chat"}
+{"text": "machan copyright data walin AI train karana eka gana reethi prashna monawada tiyenne?", "lang": "si-Latn", "intent": "chat"}
+{"text": "මිනිස් ජීවිතයේ අර්ථය ගැන භවසත්තාවාදයෙන් කියන්නේ මොකක්ද?", "lang": "si", "intent": "chat"}
+{"text": "is it ever morally justifiable to lie in order to protect someone from emotional pain?", "lang": "en", "intent": "chat"}
+{"text": "deepfakes saha misinformation control karanna laws hadanakota freedom of speech ekata badawak wenawada?", "lang": "si-Latn", "intent": "chat"}
+{"text": "තාක්ෂණික දියුණුවත් එක්ක මිනිසාගේ සදාචාරය පිරිහෙනවද?", "lang": "si", "intent": "chat"}
+{"text": "I'm completely drained today, been staring at code for ten hours straight", "lang": "en", "intent": "feeling_low"}
+{"text": "machan ada nam oluwa ridenawa, kisima wadak karanna mood ekak na", "lang": "si-Latn", "intent": "feeling_low"}
+{"text": "මට අද හරිම එපා වෙලා තියෙන්නේ, කිසිම දෙයක් හරියන්නේ නෑ වගේ දැනෙනවා", "lang": "si", "intent": "feeling_low"}
+{"text": "feeling a bit overwhelmed with all these deadlines piling up", "lang": "en", "intent": "feeling_low"}
+{"text": "ada dawasama mahansi wela wada kala, dan nam patta tired machan", "lang": "si-Latn", "intent": "feeling_low"}
+{"text": "හිතට ලොකු බරක් දැනෙනවා මචං, පොඩ්ඩක් කතා කරමුද?", "lang": "si", "intent": "feeling_low"}
+{"text": "my experiment failed again and I'm honestly losing motivation", "lang": "en", "intent": "feeling_low"}
+{"text": "ninda giyeth na hariyata ඊයේ, දැන් නම් ඇඟට පණ නෑ වගේ", "lang": "si-Latn", "intent": "feeling_low"}
+{"text": "වැඩ ගොඩගැහිලා නිසා ලොකු ආතතියකින් ඉන්නේ", "lang": "si", "intent": "feeling_low"}
+{"text": "just need a breather, everything feels way too stressful right now", "lang": "en", "intent": "feeling_low"}
+{"text": "machan mata podi motivational talk ekak deepan, ada nam down wage", "lang": "si-Latn", "intent": "feeling_low"}
+{"text": "ඔලුව හරිම අවුල් වෙලා තියෙන්නේ, මොනවා කරන්නද කියලා හිතාගන්න බෑ", "lang": "si", "intent": "feeling_low"}
+{"text": "yo Jarvis, you awake? Let's brainstorm some cool project ideas", "lang": "en", "intent": "chat"}
+{"text": "machan monawada ithin wenne, ada monawada api karanne?", "lang": "si-Latn", "intent": "greeting"}
+{"text": "කොහොමද ඉතින් ජාවිස්, අද දවසේ වැඩ ටික පටන් ගමුද?", "lang": "si", "intent": "greeting"}
+{"text": "if you had a physical robot body, what's the first thing you would do?", "lang": "en", "intent": "chat"}
+{"text": "ubata hithenne monawada api hadana me aluth AI system eka gana?", "lang": "si-Latn", "intent": "chat"}
+{"text": "තේ එකක් බොන ගමන් පොඩි කතාවක් දාමුද?", "lang": "si", "intent": "chat"}
+{"text": "good morning Jarvis, walk me through my schedule and priorities for today", "lang": "en", "intent": "ask_schedule"}
+{"text": "machan mata hoda sci-fi movie ekak recommend karapan ada රෑට බලන්න", "lang": "si-Latn", "intent": "chat"}
+{"text": "ඔයා නම් නියම යාළුවෙක් මචං, හැමවෙලේම උදව්වට ඉන්නවා", "lang": "si", "intent": "chat"}
+{"text": "thanks buddy, that saved me a ton of time", "lang": "en", "intent": "thanks"}
+{"text": "ela machan, e wade supiriyatama una, thanks a lot", "lang": "si-Latn", "intent": "thanks"}
+{"text": "අද රෑට කන්න මොනවද හොඳ කියලා අදහසක් දෙන්නකෝ", "lang": "si", "intent": "chat"}
+{"text": "what caused the collapse of the Bronze Age civilizations?", "lang": "en", "intent": "explain_concept"}
+{"text": "machan internet eka ඇත්තටම වැඩ කරන්නේ කොහොමද undersea cables හරහා?", "lang": "si-Latn", "intent": "explain_concept"}
+{"text": "ලෝකයේ ගැඹුරුම තැන මරියානා ආගාධය ගැන විස්තර ටිකක් කියන්න", "lang": "si", "intent": "explain_concept"}
+{"text": "how do central banks control inflation using interest rates?", "lang": "en", "intent": "explain_concept"}
+{"text": "sri lankawe purana warimarga thakshanaya වැඩ කළේ කොහොමද?", "lang": "si-Latn", "intent": "explain_concept"}
+{"text": "පිරමීඩ හදන්න පාවිච්චි කරපු තාක්ෂණය ගැන අලුත්ම මතය මොකක්ද?", "lang": "si", "intent": "explain_concept"}
+{"text": "explain the difference between microchip lithography at 3nm versus 7nm", "lang": "en", "intent": "explain_concept"}
+{"text": "stock market eke bull market saha bear market kiyanne monawatada?", "lang": "si-Latn", "intent": "explain_concept"}
+{"text": "සීගිරියේ ජල මල් අදටත් වැඩ කරන්නේ මොන මූලධර්මය උඩද?", "lang": "si", "intent": "explain_concept"}
+{"text": "how does GPS trilateration work and why does it need relativistic corrections?", "lang": "en", "intent": "explain_concept"}
+{"text": "machan blockchain ekak hack karanna bari ai kiyala saralawa kiyapan", "lang": "si-Latn", "intent": "explain_concept"}
+{"text": "ගුවන් යානයක් අහසේ රැඳිලා තියෙන්නේ කොහොමද කියලා පැහැදිලි කරන්න", "lang": "si", "intent": "explain_concept"}
