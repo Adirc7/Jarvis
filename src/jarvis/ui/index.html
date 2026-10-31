@@ -7,6 +7,7 @@
 <link rel="icon" href="/favicon.ico">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="/lesson.js"></script>
 <style>
 :root { --bg:#03070d; --panel:#091522; --line:#12314a; --text:#eaf5ff; --muted:#8fa7ba; --cyan:#4de1ff;
         --amber:#ffb43b; --teal:#4ce2c4; --green:#64efb7; --red:#ff766f; --accent:var(--amber); }
@@ -31,7 +32,39 @@ main { display:grid; grid-template-columns:minmax(0,1fr) 360px; height:calc(100%
 #panel .bar .push { margin-left:auto; }
 #panel .bar [hidden] { display:none; }
 #mapFrame { flex:1; border:0; width:100%; }
-#mapFrame[hidden], #board[hidden] { display:none; }
+#mapFrame[hidden], #board[hidden], #lesson[hidden] { display:none; }
+#panel .bar #lessonTitle { color:var(--text); font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  max-width:40%; }
+#panel .bar .mode { color:var(--accent); font-size:11px; letter-spacing:2px; text-transform:uppercase; }
+#lesson { flex:1; display:flex; flex-direction:column; min-height:0; }
+#lessonStage { flex:1; position:relative; min-height:240px; margin:12px 14px 0; background:var(--panel);
+  border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+#lessonStage .scenebox { position:absolute; inset:0; }
+#lessonStage .readout { position:absolute; left:10px; right:10px; bottom:8px; font-size:13px; line-height:1.4;
+  color:var(--muted); background:#03070dcc; padding:5px 9px; border-radius:6px; pointer-events:none; }
+#lessonStage .legend { position:absolute; top:8px; left:58px; }
+#lessonStage .legend span { display:inline-flex; align-items:center; gap:6px; margin-right:14px; font-size:13px; color:var(--muted); }
+#lessonStage .legend i { width:14px; height:3px; display:inline-block; }
+#lessonStage .diagram { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  padding:16px; overflow:auto; }
+#lessonStage .diagram svg { width:100%; max-width:860px !important; max-height:100%; height:auto; }
+#lessonStage .raw { color:var(--cyan); font-family:Consolas, monospace; white-space:pre-wrap; }
+#lessonStage .picture { position:absolute; inset:0; margin:0; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:6px; padding:12px; }
+#lessonStage .picture img { max-width:100%; max-height:calc(100% - 30px); object-fit:contain; border-radius:8px; }
+#lessonStage .picture figcaption a { color:var(--muted); font-size:12px; }
+#lessonStage .formula.big { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-size:30px; padding:20px; overflow:auto; }
+#lessonStage .sketchnote { font-size:11px; color:var(--amber); padding:4px 10px; height:24px; }
+#lessonStage .empty { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+#lessonFormula { padding:6px 14px 0; font-size:19px; overflow-x:auto; }
+#lessonFormula:empty { display:none; }
+#lessonSay { padding:10px 18px 2px; font-size:17px; line-height:1.5; min-height:3.2em; }
+#lessonDots { display:flex; gap:6px; padding:6px 18px 12px; flex-wrap:wrap; }
+#lessonDots button { width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--panel);
+  color:var(--muted); font-size:12px; cursor:pointer; padding:0; }
+#lessonDots button.seen { color:var(--text); border-color:#1c4766; }
+#lessonDots button.now { background:var(--accent); color:var(--bg); border-color:var(--accent); }
 #board { flex:1; overflow:auto; padding:22px 30px; }
 #board h2 { margin:0 0 4px; font-size:22px; font-weight:500; color:var(--accent); }
 #board .made { color:var(--muted); font-size:12px; margin-bottom:14px; }
@@ -47,7 +80,7 @@ main { display:grid; grid-template-columns:minmax(0,1fr) 360px; height:calc(100%
 #board table.tbl th { color:var(--cyan); font-weight:500; }
 #board .legend span { display:inline-flex; align-items:center; gap:6px; margin-right:14px; font-size:13px; color:var(--muted); }
 #board .legend i { width:14px; height:3px; display:inline-block; }
-canvas { width:min(52vh, 90%); aspect-ratio:1; }
+#orb { width:min(52vh, 90%); aspect-ratio:1; }
 #status { margin-top:6px; font-size:14px; letter-spacing:3px; color:var(--accent); text-transform:uppercase; }
 .captions { width:min(760px, 100%); margin-top:18px; }
 .cap { margin:8px 0; font-size:17px; line-height:1.5; }
@@ -66,9 +99,9 @@ aside h2 { font-size:12px; font-weight:500; letter-spacing:2px; color:var(--cyan
 .item a { color:var(--text); text-decoration:none; } .item a:hover { color:var(--cyan); }
 .ok { color:var(--green); } .ask { color:var(--amber); } .no { color:var(--red); }
 .empty { color:var(--muted); font-size:12px; }
-#mapBtn, #boardBtn { display:inline-block; margin-top:6px; font-size:12px; color:var(--bg); background:var(--cyan);
+#mapBtn, #boardBtn, #lessonBtn { display:inline-block; margin-top:6px; font-size:12px; color:var(--bg); background:var(--cyan);
           border-radius:6px; padding:5px 10px; text-decoration:none; }
-#mapBtn[hidden], #boardBtn[hidden] { display:none; }
+#mapBtn[hidden], #boardBtn[hidden], #lessonBtn[hidden] { display:none; }
 #offline { position:fixed; bottom:12px; left:12px; font-size:12px; color:var(--red); }
 @media (max-width: 900px) { main { grid-template-columns:1fr; height:auto; } aside { border-left:0; } }
 </style>
@@ -95,11 +128,22 @@ aside h2 { font-size:12px; font-weight:500; letter-spacing:2px; color:var(--cyan
              aria-label="Type to Jarvis"><button type="submit">Send</button>
     </form>
     <div id="panel" hidden>
-      <div class="bar"><b id="panelName">Map</b>
+      <div class="bar"><b id="panelName">Map</b><span id="lessonTitle"></span><span id="lessonMode" class="mode"></span>
+        <span id="lessonCtl" class="push" hidden>
+          <button type="button" data-act="prev" title="The step before">Back</button>
+          <button type="button" id="lessonPlay" data-act="pause">Pause</button>
+          <button type="button" data-act="next" title="The next step">Next</button>
+          <button type="button" data-act="again" title="Say this step again">Again</button></span>
         <a id="mapOwn" class="push" href="/map" target="_blank" rel="noopener">Own window</a>
         <button id="panelClose" type="button">Back to Jarvis</button></div>
       <iframe id="mapFrame" title="Map" hidden></iframe>
       <div id="board" hidden></div>
+      <div id="lesson" hidden>
+        <div id="lessonStage"></div>
+        <div id="lessonFormula"></div>
+        <div id="lessonSay"></div>
+        <div id="lessonDots"></div>
+      </div>
     </div>
   </section>
   <aside>
@@ -109,6 +153,7 @@ aside h2 { font-size:12px; font-weight:500; letter-spacing:2px; color:var(--cyan
     <h2>Latest news</h2><div id="news"><div class="empty">Ask "what's the news today?"</div></div>
     <a id="mapBtn" href="/map" target="_blank" rel="noopener" hidden>Open the latest map</a>
     <a id="boardBtn" href="#" hidden>Open the board</a>
+    <a id="lessonBtn" href="#" hidden>Open the lesson</a>
   </aside>
 </main>
 <div id="offline" hidden>Jarvis isn't running.</div>
@@ -164,6 +209,9 @@ function showState(s) {
   }
   $("mapBtn").hidden = !s.map;
   $("boardBtn").hidden = !s.board;
+  $("lessonBtn").hidden = !s.lesson;
+  lastMode = s.mode || "idle";
+  $("lessonMode").textContent = panel === "lesson" && lastMode !== "idle" ? (LABELS[lastMode] || "") : "";
 }
 $("typeBox").addEventListener("submit", async ev => {
   ev.preventDefault();
@@ -175,18 +223,24 @@ $("typeBox").addEventListener("submit", async ev => {
     if (!r.ok) throw new Error(r.status);
   } catch (err) { $("typed").value = text; $("offline").hidden = false; }
 });
-// ---- the panel over the orb: a map (news, weather) or the board (working, formulas, graphs) ----
-let panel = "", pendingMapCmds = [];
-function tellJarvis(kind) {                            // which panel shows: Jarvis offers map tools then
-  fetch("/ui", { method: "POST", body: JSON.stringify({ panel: kind }),
+// ---- the panel over the orb: a map (news, weather), the board (working, formulas, graphs) or a lesson ----
+let panel = "", pendingMapCmds = [], lastMode = "idle";
+function post(body) {
+  return fetch("/ui", { method: "POST", body: JSON.stringify(body),
     headers: { "Content-Type": "application/json", "X-Jarvis-Token": TOKEN } }).catch(() => {});
 }
+function tellJarvis(kind) { post({ panel: kind }); }   // which panel shows: Jarvis offers map tools then
+const PANEL_NAMES = { map: "Map", board: "Board", lesson: "Lesson" };
 function openPanel(kind) {
-  panel = kind; $("panel").hidden = false; $("panelName").textContent = kind === "map" ? "Map" : "Board";
+  if (panel === "lesson" && kind !== "lesson") leaveLesson();
+  panel = kind; $("panel").hidden = false; $("panelName").textContent = PANEL_NAMES[kind] || "";
   $("mapFrame").hidden = kind !== "map"; $("board").hidden = kind !== "board"; $("mapOwn").hidden = kind !== "map";
+  $("lesson").hidden = kind !== "lesson"; $("lessonCtl").hidden = kind !== "lesson";
+  if (kind !== "lesson") { $("lessonTitle").textContent = ""; $("lessonMode").textContent = ""; }
   tellJarvis(kind);
 }
 function closePanel() {
+  if (panel === "lesson") leaveLesson();
   panel = ""; $("panel").hidden = true; $("mapFrame").src = "about:blank"; tellJarvis("");
 }
 function showMap(url) {
@@ -212,6 +266,39 @@ $("boardBtn").addEventListener("click", ev => {
   ev.preventDefault(); fetch("/board").then(r => r.json()).then(showBoard).catch(() => {});
 });
 $("panelClose").addEventListener("click", closePanel);
+
+// ---- lessons: Jarvis speaks each step while the stage shows it (lesson.js draws the scenes) ----
+let lessonData = null, lessonId = -1;
+function startLesson(d, at, playing) {
+  if (!d || !d.title || !Array.isArray(d.steps) || !d.steps.length || !window.JarvisLesson) return;
+  if (lessonData && d.id === lessonId && panel === "lesson") return;      // already showing this one
+  lessonData = d; lessonId = d.id;
+  openPanel("lesson");
+  $("lessonTitle").textContent = d.title;
+  $("lessonMode").textContent = lastMode !== "idle" ? (LABELS[lastMode] || "") : "";
+  const dots = $("lessonDots"); dots.textContent = "";
+  d.steps.forEach((st, i) => { const b = el("button", "", String(i + 1)); b.type = "button";
+    b.title = st.say.slice(0, 120); b.addEventListener("click", () => post({ lesson: "goto", step: i })); dots.append(b); });
+  JarvisLesson.start(d, { stage: $("lessonStage"), formula: $("lessonFormula"),
+    onSketchError: (step, msg) => post({ sketch_error: msg, step }) });
+  lessonStep({ id: d.id, i: at || 0, playing: !!playing });
+}
+function lessonStep(e) {
+  if (!lessonData || e.id !== lessonId || panel !== "lesson") return;   // the user went to the map: stay there
+  const n = lessonData.steps.length, i = Math.max(0, Math.min(n - 1, e.i | 0));
+  if (JarvisLesson.index !== i) JarvisLesson.show(i);
+  $("lessonSay").textContent = lessonData.steps[i].say;
+  [...$("lessonDots").children].forEach((b, k) => { b.className = k === i ? "now" : k < i ? "seen" : ""; });
+  const play = $("lessonPlay");
+  play.dataset.act = e.playing ? "pause" : e.done ? "restart" : "play";
+  play.textContent = e.playing ? "Pause" : e.done ? "From the start" : "Play";
+}
+function leaveLesson() { if (window.JarvisLesson) JarvisLesson.stop(); lessonData = null; lessonId = -1; }
+function openLesson() { fetch("/lesson").then(r => r.json()).then(d => startLesson(d, d.step, d.playing)).catch(() => {}); }
+$("lessonCtl").addEventListener("click", ev => {
+  const act = ev.target && ev.target.dataset ? ev.target.dataset.act : ""; if (act) post({ lesson: act });
+});
+$("lessonBtn").addEventListener("click", ev => { ev.preventDefault(); lessonId = -1; openLesson(); });
 
 const COLOURS = ["#4de1ff", "#ffb43b", "#b48cff"];
 function maths(el, tex) {
@@ -284,6 +371,9 @@ function onEvent(e) {
   else if (e.kind === "map_cmd") mapCmd(e);
   else if (e.kind === "board") showBoard(e);
   else if (e.kind === "panel" && e.action === "close") closePanel();
+  else if (e.kind === "lesson") startLesson(e, 0, true);
+  else if (e.kind === "lesson_step") lessonStep(e);
+  else if (e.kind === "lesson_patch" && e.id === lessonId && window.JarvisLesson) JarvisLesson.patch(e.step, e.code);
   else if (e.kind === "state") showState(e.state);
   else if (e.kind === "you") { $("capYou").textContent = e.text; addTalk("You", e.text); }
   else if (e.kind === "jarvis") { $("capJarvis").textContent = e.text; addTalk(e.speaker || "Jarvis", e.text); }
@@ -293,6 +383,11 @@ function onEvent(e) {
 fetch("/state").then(r => r.json()).then(d => {
   showState(d.state);
   for (const e of d.history || []) onEvent(e);
+  // Opened while a lesson plays (the window was closed when it started): show it.
+  if (d.state && d.state.lesson && d.state.lesson.playing && !lessonData) {
+    const go = () => openLesson();
+    window.JarvisLesson ? go() : window.addEventListener("load", go, { once: true });
+  }
 }).catch(() => {});
 let source;
 function connect() {

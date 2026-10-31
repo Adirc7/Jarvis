@@ -1456,3 +1456,35 @@ his (docs/TRAINING_EMPATHY.md, docs/TRAINING_EMOTION.md):
   on a tiny random wav2vec2 built in the test.
 - The spoken-reply rule no longer says the window doesn't exist yet.
 - 22 tests (651 in all), 1 skipped until his learner exists.
+
+## 2026-11-01: Visual lessons
+
+- Jarvis teaches with pictures: after an explanation he offers ("Want me to
+  show it?"); "yes", "show me", "visualise it", or any request to see
+  something starts a lesson. One model call plans it as JSON (3 to 6 steps,
+  each a few spoken sentences and one visual chosen for what that step
+  needs, not by subject); then he speaks each step while his window shows it,
+  with a row of step dots and Back, Pause, Next and Again buttons. "next",
+  "back", "again", "pause", "continue", "from the start" work by voice in
+  English and Sinhala; a question in the middle pauses the lesson, he
+  answers, and "continue" carries on.
+- The visuals (`knowledge/lessons.py`, `ui/lesson.js`): a library of ten
+  tested simulations (gas in a box with a wall for entropy, ripples
+  interfering in 3D, standing waves, a pendulum with its energy bars, a
+  projectile, an RC circuit, a Fourier series building up, the electric field
+  of charges in 3D, a Kepler orbit sweeping equal areas, a lens ray diagram);
+  the model only picks a scene and its numbers, which are clamped to
+  sensible ranges, and naming the same scene again with new numbers changes
+  it in place (the wall comes out). Graphs and 3D surfaces from SymPy
+  (three.js, drag to turn), Mermaid diagrams (strict mode), Wikipedia
+  pictures (upload.wikimedia.org only, credited), KaTeX formulas. When
+  nothing fits, the model writes a sketch, which runs in a sandboxed frame
+  (no network, no access to Jarvis, can't be sent to another site), labelled
+  as the model's; if it fails, the error goes back for one repair.
+- Checked headless in Chromium with every visual: no errors other than the
+  two planted in the check (the sketch's blocked network call, and a broken
+  sketch, which reported itself). The pictures showed two physics slips,
+  fixed: the orbit's Sun was at the wrong focus (the "equal areas" weren't
+  equal) and molecules could slip through the wall in one frame.
+- 13 tests.
+

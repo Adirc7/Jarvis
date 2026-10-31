@@ -26,6 +26,7 @@ class Page:
     title: str
     summary: str
     url: str
+    image: str = ""                  # the article's lead picture (upload.wikimedia.org), if it has one
 
 
 @dataclass
@@ -79,7 +80,11 @@ class Research:
         if not isinstance(page, dict) or not page.get("extract"):
             return None
         url = ((page.get("content_urls") or {}).get("desktop") or {}).get("page") or f"{base}/wiki/{quote(title)}"
-        return Page(page.get("title", title), page["extract"][:1500], url)
+        picture = ((page.get("originalimage") or {}).get("source") or (page.get("thumbnail") or {}).get("source")
+                   or "")
+        if not picture.startswith("https://upload.wikimedia.org/"):
+            picture = ""                             # only Wikimedia's own picture server
+        return Page(page.get("title", title), page["extract"][:1500], url, picture)
 
     def papers(self, query: str, since: int | None = None, limit: int = 5) -> list[Paper]:
         params = {"search": query[:160], "per-page": max(1, min(limit, 8)),

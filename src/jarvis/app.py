@@ -25,10 +25,11 @@ import asyncio
 import re
 import threading
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Callable
+from typing import Any
 
 from .agent.llm import FallbackLLM, LLMUnavailable, ToolCall, configured_providers
 from .agent.router import KeywordRouter, Router
@@ -45,6 +46,8 @@ from .events import (
 from .greeting import FULL, Greeter, Presence, fill, greeting_kind
 from .killswitch import HotkeyListener, Once
 from .language import LanguageManager, normalize, stray_letters
+from .lesson_mode import GROUP_NOTE as LESSON_NOTE
+from .lesson_mode import LESSON_SPEC, OFFER_NOTE, LessonMode
 from .memory import Memory, detect_fact, detect_name
 from .persona import Persona
 from .state import CancelToken, Mode, SharedState
@@ -206,7 +209,7 @@ class ToolSaid:
     text: str
 
 
-class App:
+class App(LessonMode):
     def __init__(
         self,
         settings: Settings,
@@ -262,7 +265,8 @@ class App:
         self._loop: asyncio.AbstractEventLoop | None = None
         self._quit = asyncio.Event()             # /quit typed in the window, or the window closed
         self.pc = None                           # this computer (machines.py), noted when Jarvis starts
-        self.panel = ""                          # what the window shows over the orb: "map", "board" or nothing
+        self.panel = ""                          # what the window shows over the orb: map, board, lesson or nothing
+        self._init_lessons()                     # visual lessons (lesson_mode.py)
         self.recent_kinds: list[str] = []        # what the last fetch was about (news, weather, ...)
         self._input = input                      # the console (tests give lines instead)
         if desk is not None:
@@ -487,6 +491,7 @@ class App:
     def _after_reply(self, question: str, reply: str) -> None:
         self._show("jarvis", text=reply, speaker=self._speaker())
         self._tables_to_board(reply)
+        self._lesson_noted(question, reply)          # offered to show it? (lesson_mode.py)
         if self.coach is not None:
             self.coach.replied(question, self.state.empathy)
 
@@ -525,6 +530,7 @@ class App:
         if token.cancelled:
             self._cancelled(turn, "before_start")
             return ""
+        self._last_route = ""
         self.presence.touch()
         self.presence.save()
         if self.state.mode == Mode.PAUSED:
@@ -564,6 +570,12 @@ class App:
             self.out(f"Jarvis: {confirm}")
             turn.mark("language_switch")   # longer request: switch AND answer it
 
+        # A lesson's "next" or "pause", a yes to "Want me to show it?", or "show me": before the
+        # web tools' rules, which would take "pause" and "go back" for YouTube.
+        lesson_reply = await self._lesson_turn(text, turn, token)
+        if lesson_reply is not None:
+            return lesson_reply
+
         if self.web is not None:
             # Bing and YouTube by voice: decided by fixed rules, before the model.
             # Off the loop: a YouTube search waits on the network.
@@ -584,6 +596,7 @@ class App:
         # "Long" is about the conversation (a pasted essay, a long chat), not Jarvis's own
         # instructions and fetched news: those once sent a 25-character question to the slow model.
         decision = self.router.route(text, lang.code, sum(len(m["content"]) for m in history) + len(text))
+        self._last_route = decision.route
         system = self.system_prompt()
         extra: dict[str, Any] = {}
         notes, specs, groups = self._tools_for(text, decision.route)
@@ -599,6 +612,8 @@ class App:
         messages = [{"role": "system", "content": system}] + history + [{"role": "user", "content": text}]
         if decision.route in ("maths", "teach") and "maths" in groups:
             messages[0]["content"] += "\n\n" + STUDY_NOTE
+        if decision.route in ("maths", "teach") and "visual" in groups:
+            messages[0]["content"] += "\n\n" + OFFER_NOTE
         self.telemetry.log("route", route=decision.route, reason=decision.reason, intent=decision.intent,
                            tools=bool(extra))
         self.state.mode = Mode.THINKING
@@ -697,12 +712,18 @@ class App:
             if groups:
                 names = {n for g in groups for n in TOOL_GROUPS[g]}
                 specs += [sp for sp in self.info.registry.specs() if sp["function"]["name"] in names]
-                notes += ("\n\nKnowledge tools this turn: " + "; ".join(GROUP_NOTES[g] for g in sorted(groups))
-                          + ". Several at once is fine.")
+        if self.view is not None and (every or self._visual_offered(text, route)):
+            groups.add("visual")                              # a lesson in the window (lesson_mode.py)
+            specs.append(LESSON_SPEC)
+        if groups:
+            notes += ("\n\nKnowledge tools this turn: "
+                      + "; ".join(LESSON_NOTE if g == "visual" else GROUP_NOTES[g] for g in sorted(groups))
+                      + ". Several at once is fine.")
         return notes, specs, groups
 
     async def _close_panel(self, text: str, turn: Turn, token: CancelToken) -> str:
-        what = "map" if self.panel == "map" else "board"
+        what = self.panel if self.panel in ("map", "lesson") else "board"
+        self._pause_lesson("closed")
         self._show("panel", action="close")
         self.panel = ""
         return await self._tool_reply(text, ToolSaid(f"panel_close_{what}", f"Closed the {what}."), turn, token)
@@ -720,10 +741,21 @@ class App:
         return bool(self.view.viewers)
 
     def _window_ui(self, event: dict) -> None:
-        """From the window's page: which panel it shows (the map, the board, or none)."""
+        """From the window's page (on its server's thread): which panel it shows (the map, the board,
+        a lesson, or none), a lesson button, or a lesson's sketch that failed to run."""
         panel = event.get("panel")
-        if panel in ("map", "board", ""):
+        if panel in ("map", "board", "lesson", ""):
             self.panel = panel
+            if panel != "lesson":
+                self._on_loop(self._pause_lesson, "panel")      # the lesson went out of sight: it waits
+        elif "lesson" in event or "sketch_error" in event:
+            self._on_loop(self._lesson_button, event)
+
+    def _on_loop(self, fn: Callable[..., Any], *args: Any) -> None:
+        if self._loop is not None and not self._loop.is_closed():
+            self._loop.call_soon_threadsafe(fn, *args)
+        else:
+            fn(*args)
 
     def _offer_tools(self, text: str) -> bool:
         """Give the model the web tools this turn?"""
@@ -746,9 +778,13 @@ class App:
         lang = self.lang.current
         done = None
         fetched: list[tuple[str, str]] = []                 # (kind, data for the model)
+        lesson_call = None
         for call in calls:
             if token.cancelled:
                 break
+            if call.name == "show_lesson":                  # done after the others (lesson_mode.py)
+                lesson_call = call
+                continue
             if self.info is not None and call.name in self.info.names():
                 outcome = await loop.run_in_executor(None, lambda c=call: self.info.call(c.name, c.arguments))
                 self.telemetry.log("model_tool", name=call.name, ok=outcome.acted, status=outcome.status,
@@ -779,6 +815,9 @@ class App:
             else:
                 result = None
             done = result or done
+        if lesson_call is not None and not token.cancelled:
+            self.telemetry.log("model_tool", name="show_lesson", ok=True, arguments=lesson_call.arguments[:200])
+            return await self._lesson_from_tool(lesson_call.arguments, text, turn, token)
         if fetched and not token.cancelled:
             return await self._answer_from(text, fetched, turn, token, route)
         if done is None:                     # arguments that didn't check out: nothing was done
@@ -810,7 +849,7 @@ class App:
                 "speaker": self._speaker(), "provider": self.llm.last_provider or "", "timers": timers,
                 "news": news, "map": bool(self._latest_map()),
                 "board": bool(self.info is not None and self.info.board),
-                "mood": self._mood_for_window()}
+                "lesson": self._lesson_snapshot(), "mood": self._mood_for_window()}
 
     def _mood_for_window(self) -> str:
         if self.heard is None or time.monotonic() - self._heard_at > 60:
@@ -842,7 +881,8 @@ class App:
         try:
             self.view = LiveView(self._snapshot, int(self.settings.get("window.port", 8765)), self._latest_map,
                                  on_text=self._typed_in_window, on_ui=self._window_ui,
-                                 board=lambda: self.info.board if self.info is not None else None)
+                                 board=lambda: self.info.board if self.info is not None else None,
+                                 lesson=self._lesson_data)
             url = self.view.start()
         except OSError as exc:                       # the port is taken (another Jarvis running?)
             self.view = None
@@ -963,6 +1003,7 @@ class App:
         while True:
             ev = await q.get()
             if isinstance(ev, PushToTalkPressed):
+                self._pause_lesson("push_to_talk")      # between two steps the voice is quiet: stop it too
                 if (current is not None and not current.done()) or self.sink.busy:
                     self.state.cancel_all()          # barge-in: stop the current reply
                     self.sink.stop()

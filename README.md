@@ -42,7 +42,7 @@ guide) · [decisions](docs/DECISIONS.md) · [dev log](docs/DEVLOG.md) ·
 English, Sinhala and Tamil; the character and empathy modes; the greeting;
 YouTube and Bing by voice in any wording; palm to pause; PC tools behind a
 safety gate; news, weather, research and checked maths; the app window with
-maps and the board; moving to a new PC. **The ML parts (Adhi's):** the
+maps, the board and visual lessons; moving to a new PC. **The ML parts (Adhi's):** the
 intent model (level 1 trained, level 2 next), the empathy learner and the
 emotion model (frames built and tested; the learner, labels and classifier
 are his: [empathy](docs/TRAINING_EMPATHY.md), [emotion](docs/TRAINING_EMOTION.md)).
@@ -102,6 +102,12 @@ Measurements: [docs/RESULTS.md](docs/RESULTS.md).
   while Jarvis explains, the working shows in his window: formulas (KaTeX),
   each SymPy-checked result, and graphs of y = f(x) ("explain the Gaussian
   distribution on the board").
+- **Visual lessons**: after explaining, Jarvis offers "Want me to show it?";
+  say yes (or "show me", "visualise it") and he teaches it step by step while
+  his window shows each step: tested simulations (entropy in a gas, waves,
+  a pendulum, projectiles, circuits, Fourier series, fields, orbits, lenses),
+  3D graphs, diagrams and Wikipedia pictures, picked for what each step
+  needs. "next", "again", "pause", "continue", or the buttons.
 - **Maps you can talk to**: "show Sri Lanka and zoom in", "zoom out",
   "leave the map": the news or weather map in his window moves when asked.
 - **Jarvis as an app**: the desktop icon opens Jarvis in a window of his own

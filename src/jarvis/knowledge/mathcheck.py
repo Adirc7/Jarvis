@@ -187,6 +187,39 @@ def _sample(expression: str, variable: str, lower: float, upper: float, points: 
     return out
 
 
+def _surface(expression: str, xr: tuple[float, float], yr: tuple[float, float], n: int) -> list[list[float | None]]:
+    import numpy as np
+    import sympy
+    x, y = sympy.Symbol("x"), sympy.Symbol("y")
+    expr = _parse(expression)
+    if expr.free_symbols - {x, y}:
+        raise MathError(f"a surface is z = f(x, y); it also has {', '.join(sorted(map(str, expr.free_symbols - {x, y})))}")
+    f = sympy.lambdify((x, y), expr, modules="numpy")
+    gx, gy = np.meshgrid(np.linspace(*xr, n), np.linspace(*yr, n))
+    with np.errstate(all="ignore"):
+        z = np.broadcast_to(np.asarray(f(gx, gy), dtype=complex), gx.shape)
+    ok = (np.abs(z.imag) < 1e-9) & np.isfinite(z.real) & (np.abs(z.real) < 1e8)
+    return [[round(float(v.real), 5) if good else None for v, good in zip(row, oks, strict=True)]
+            for row, oks in zip(z, ok, strict=True)]
+
+
+def sample_surface(expression: str, x_range=(-3.0, 3.0), y_range=(-3.0, 3.0), points: int = 48,
+                   timeout_s: float = 8.0) -> list[list[float | None]]:
+    """z = f(x, y) on a points x points grid (rows go with y), for the 3D surface; None where undefined."""
+    xr, yr = (float(x_range[0]), float(x_range[1])), (float(y_range[0]), float(y_range[1]))
+    if not (xr[0] < xr[1] and yr[0] < yr[1]):
+        raise MathError("each range must go from a smaller to a larger number")
+    job = _pool.submit(_surface, expression, xr, yr, max(8, min(points, 100)))
+    try:
+        return job.result(timeout=timeout_s)
+    except Slow:
+        raise MathError(f"working out the surface took longer than {timeout_s:g} s") from None
+    except MathError:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise MathError(f"couldn't work out the surface: {type(exc).__name__}") from None
+
+
 def sample(expression: str, variable: str = "x", lower: float = -5, upper: float = 5, points: int = 240,
            timeout_s: float = 8.0) -> list[list[float | None]]:
     """Points of y = f(x) for the board's graph; None where it isn't defined (gaps, asymptotes)."""

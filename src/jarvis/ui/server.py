@@ -11,7 +11,9 @@ you said and what Jarvis answered, so it stays on the laptop. The latest map
 
 Two things can be sent to it: a line typed in the window (POST /say), which
 Jarvis handles like a line typed in his console, and which panel the page
-shows (POST /ui: the map, the board, or none). A web page elsewhere can't
+shows (POST /ui: the map, the board, a lesson, or none; or a lesson button:
+next, prev, again, play, pause, restart, goto a step; or a sketch that failed to run, so the
+model can fix it). A web page elsewhere can't
 send one: the request must come from the window's own address (Origin), carry
 the window's secret (a random token in the page, which other sites can't
 read), and be JSON (so a plain form can't fake it).
@@ -36,6 +38,8 @@ from urllib.parse import urlsplit
 
 PAGE = Path(__file__).with_name("index.html")
 ICON = Path(__file__).with_name("jarvis.ico")
+LESSON_JS = Path(__file__).with_name("lesson.js")
+LESSON_ACTIONS = ("next", "prev", "again", "play", "pause", "restart", "goto")
 
 
 def open_page(url: str, browser: str = "edge") -> None:
@@ -69,13 +73,32 @@ def running_jarvis(port: int = 8765, timeout_s: float = 1.0) -> bool:
         return False
 
 
+def _ui_event(body: Any) -> dict:
+    """What the page reported: the panel it shows, a lesson button, or a sketch that failed."""
+    if not isinstance(body, dict):
+        raise TypeError("not an object")
+    if "panel" in body:
+        return {"panel": str(body["panel"])[:10]}
+    if "lesson" in body:
+        action = str(body["lesson"])
+        if action not in LESSON_ACTIONS:
+            raise ValueError("unknown lesson button")
+        if action == "goto":
+            return {"lesson": action, "step": int(body.get("step", 0))}
+        return {"lesson": action}
+    if "sketch_error" in body:
+        return {"sketch_error": str(body["sketch_error"])[:300], "step": int(body.get("step", 0))}
+    raise KeyError("panel")
+
+
 class LiveView:
     def __init__(self, snapshot: Callable[[], dict[str, Any]] = dict, port: int = 8765,
                  map_file: Callable[[], Path | None] = lambda: None, poll_s: float = 0.25,
                  on_text: Callable[[str], None] | None = None, on_ui: Callable[[dict], None] | None = None,
-                 board: Callable[[], dict | None] = lambda: None):
+                 board: Callable[[], dict | None] = lambda: None,
+                 lesson: Callable[[], dict | None] = lambda: None):
         self.snapshot, self.port, self.map_file, self.poll_s = snapshot, port, map_file, poll_s
-        self.on_text, self.on_ui, self.board = on_text, on_ui, board
+        self.on_text, self.on_ui, self.board, self.lesson = on_text, on_ui, board, lesson
         self.token = secrets.token_urlsafe(24)           # in the page; proves a POST came from it
         self.history: deque[dict] = deque(maxlen=60)     # a page opened later still sees recent turns
         self._clients: list[queue.Queue] = []
@@ -133,7 +156,8 @@ class LiveView:
                 self.send_header("Content-Length", str(len(body)))
                 self.send_header("Cache-Control", "no-store")
                 self.send_header("X-Content-Type-Options", "nosniff")
-                self.send_header("Content-Security-Policy", "frame-ancestors 'self'")
+                # frame-src: a frame in the window (the map, a lesson's sketch) can't be sent to another site
+                self.send_header("Content-Security-Policy", "frame-ancestors 'self'; frame-src 'self'")
                 self.end_headers()
                 self.wfile.write(body)
 
@@ -159,6 +183,10 @@ class LiveView:
                                    "text/plain")
                 elif path == "/board":
                     self._send(200, json.dumps(view.board() or {}, default=str).encode(), "application/json")
+                elif path == "/lesson":
+                    self._send(200, json.dumps(view.lesson() or {}, default=str).encode(), "application/json")
+                elif path == "/lesson.js":
+                    self._send(200, LESSON_JS.read_bytes(), "text/javascript; charset=utf-8")
                 elif path == "/events":
                     self._events()
                 else:
@@ -206,7 +234,7 @@ class LiveView:
                     size = int(self.headers.get("Content-Length") or 0)
                     body = json.loads(self.rfile.read(min(size, 8000)) if 0 < size <= 8000 else b"")
                     if path == "/ui":
-                        event = {"panel": str(body["panel"])[:10]}      # which panel the page shows
+                        event = _ui_event(body)
                     else:
                         text = str(body["text"]).strip()[:2000]
                 except (ValueError, KeyError, TypeError):
