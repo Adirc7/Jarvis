@@ -192,6 +192,37 @@ browser = "edge"            # "edge" (Microsoft Edge on Windows) or "default"
 # "always": every tool on every request; "off".
 model_tools = "smart"
 
+[empathy]
+# The empathy learner (src/jarvis/empathy/, docs/TRAINING_EMPATHY.md). What you
+# say right after a reply ("thanks", "too long", "be more direct", interrupting
+# him, asking the same thing again) counts for that reply's mode, in
+# state/empathy.json (counts only, never your words). The learner picks the
+# mode from those counts: "fixed" (always the default mode in persona.toml)
+# until yours exists, then "thompson" (src/jarvis/empathy/thompson.py).
+learning = true
+learner = "fixed"
+# The modes the learner may use; say "be more direct" or /empathy <mode> any
+# time (that one stays for the session). Distress always gets "supportive".
+allowed = ["logical", "balanced", "supportive"]
+# Choose again after feedback, or after this many replies, so the style
+# doesn't change every turn.
+rechoose_every = 5
+
+[emotion]
+# How you sound (src/jarvis/perception/emotion.py, docs/TRAINING_EMOTION.md):
+# a speech emotion model hears the same push-to-talk audio as Whisper, at the
+# same time. Its guess reaches the LLM only as a hedged hint, only above
+# min_confidence, and never "calm". Off until you turn it on: the first start
+# downloads the model (about 380 MB) and it uses about 400 MB of the GPU.
+enabled = false
+model = "superb/wav2vec2-base-superb-er"   # the ready-made baseline (Apache-2.0, IEMOCAP)
+device = "cuda"                           # "cpu" if the GPU is short of memory
+min_confidence = 0.6
+wait_s = 0.5                              # after Whisper; a later guess is dropped, never waited for
+# Yours (level 2), when trained: a classifier on the model's features, from your /mood labels.
+classifier = "models/emotion/emotion.joblib"
+labels_dir = "data/emotion"               # /mood labels: features and labels only, no audio (gitignored)
+
 [memory]
 # What Jarvis remembers between sessions, in state/memory.json on this
 # computer only (src/jarvis/memory.py): your name, facts you ask it to keep

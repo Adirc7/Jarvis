@@ -1415,3 +1415,44 @@ all worked):
   the session, and an error answer from the place search is reported as the
   service failing, not as "no such place".
 - 4 tests (629 in all).
+
+The ML parts' frames (31 Oct, after Adhi's exam). As with the intent model,
+everything around the learning is built and tested; the learning cores are
+his (docs/TRAINING_EMPATHY.md, docs/TRAINING_EMOTION.md):
+- Empathy learner (M2), `src/jarvis/empathy/`: `signals.py` turns what you
+  say right after a reply into feedback on that reply's mode ("thanks",
+  "ස්තූතියි", "niyamai" good; "too long", "that's not what I asked" bad; a
+  mode command bad for the old mode; asking the same again within 2
+  minutes 0.8; an interruption 0.5); long messages aren't feedback.
+  `store.py` keeps fractional good/bad counts per mode and context
+  (state/empathy.json) and a log of every signal, never the words.
+  `learner.py`: the interface, a fixed learner (the baseline), and
+  `load_learner("thompson")` for his `thompson.py`. `coach.py`: Jarvis
+  chooses again only after feedback or every 5 replies, within [empathy]
+  allowed; a mode you ask for stays for the session; distress words always
+  get "supportive". `/empathy stats`. `scripts/simulate_empathy.py`: five
+  simulated users (a clear preference each way, a close call, one who
+  changes their mind, one who rarely gives feedback); regret after 300
+  replies over 100 seeded runs, a table and an SVG for the report. Checked
+  with a throwaway Thompson learner (not committed): about 6-8 regret for
+  clear users against 75-90 for fixed and random, and plain Thompson
+  sampling struggling with the user who changes their mind (65), which is
+  his improvement step. `tests/test_empathy_yours.py` checks his learner
+  once it exists (skipped until then).
+- Emotion model (M5), `perception/emotion.py`: superb/wav2vec2-base-superb-er
+  (Apache-2.0, IEMOCAP's four labels, ~63% there) runs on the push-to-talk
+  audio beside Whisper, on its own thread; its guess reaches the LLM as a
+  hedged hint only above [emotion] min_confidence and never "calm", and
+  only if it's ready half a second after Whisper; a failing model turns
+  itself off. Its 768 features (last layer, averaged) are what his level-2
+  classifier learns from: `/mood <label>` saves them with his label, the
+  baseline's scores and the session (data/emotion/, gitignored, no audio).
+  models/emotion/emotion.joblib, when he trains it, takes over the label.
+  The window shows "sounds frustrated 72%" when sure. `scripts/emotion_eval.py`
+  scores the baseline and his classifier on held-out sessions: accuracy,
+  macro-F1, F1 per label, and false alarms when he was calm. Off by default
+  ([emotion] enabled) until he tries it: the model is downloaded on first
+  use, which the cloud workspace can't do; the tests run the real code path
+  on a tiny random wav2vec2 built in the test.
+- The spoken-reply rule no longer says the window doesn't exist yet.
+- 22 tests (651 in all), 1 skipped until his learner exists.

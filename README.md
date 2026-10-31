@@ -41,9 +41,12 @@ guide) · [decisions](docs/DECISIONS.md) · [dev log](docs/DEVLOG.md) ·
 **Built and running on the laptop:** spoken conversation with push-to-talk in
 English, Sinhala and Tamil; the character and empathy modes; the greeting;
 YouTube and Bing by voice in any wording; palm to pause; PC tools behind a
-safety gate; news, research and checked maths; the window. **Waiting for the
-ML parts (Adhi's):** the intent model's level 2, the empathy learner, the
-emotion model. Measurements: [docs/RESULTS.md](docs/RESULTS.md).
+safety gate; news, weather, research and checked maths; the app window with
+maps and the board; moving to a new PC. **The ML parts (Adhi's):** the
+intent model (level 1 trained, level 2 next), the empathy learner and the
+emotion model (frames built and tested; the learner, labels and classifier
+are his: [empathy](docs/TRAINING_EMPATHY.md), [emotion](docs/TRAINING_EMOTION.md)).
+Measurements: [docs/RESULTS.md](docs/RESULTS.md).
 
 ## What works now
 
@@ -57,7 +60,12 @@ emotion model. Measurements: [docs/RESULTS.md](docs/RESULTS.md).
 - **Greets like a person**: a time-of-day greeting the first time each day,
   "Welcome back" after a break, just "Yes, sir?" within the same session.
 - **Empathy modes**: logical, balanced or supportive. Say "be more direct" or
-  "be gentler", or type `/empathy supportive`.
+  "be gentler", or type `/empathy supportive`. Jarvis counts your feedback
+  ("thanks", "too long", interrupting him) per mode, for the empathy learner
+  (`/empathy stats`).
+- **How you sound** (off until enabled): a speech emotion model beside
+  Whisper; a hedged hint to the LLM only when it's sure; `/mood <label>` to
+  correct it (features only, never audio).
 - **Natural timing**: a short "mm, one moment" only when a reply is slow.
 - **Three languages**: English, Sinhala, Tamil. "Switch to Tamil",
   "සිංහලෙන් කතා කරන්න", or `/lang si`. Each language has its own speech

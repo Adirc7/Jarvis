@@ -79,6 +79,7 @@ aside h2 { font-size:12px; font-weight:500; letter-spacing:2px; color:var(--cyan
   <span class="pill">language <b id="lang">-</b></span>
   <span class="pill">model <b id="model">-</b></span>
   <span class="pill" id="pcPill" hidden>pc <b id="pc">-</b></span>
+  <span class="pill" id="moodPill" hidden title="What the emotion model heard: a guess">sounds <b id="mood">-</b></span>
   <span class="pill" id="link">live</span>
 </header>
 <main>
@@ -144,6 +145,7 @@ function showState(s) {
   $("lang").textContent = s.language || "-";
   $("model").textContent = s.provider || "-";
   $("pc").textContent = s.pc || "-"; $("pcPill").hidden = !s.pc;
+  $("mood").textContent = s.mood || "-"; $("moodPill").hidden = !s.mood;
   const timers = $("timers"); timers.textContent = "";
   for (const t of s.timers || []) {
     const m = Math.floor(t.ends_in_s / 60), sec = String(Math.floor(t.ends_in_s % 60)).padStart(2, "0");

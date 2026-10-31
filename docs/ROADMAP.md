@@ -190,7 +190,7 @@ confused or frustrated actually happens.
 
 ### Steps
 
-1. **Off-the-shelf speech emotion model (no training).** Runs on the same
+1. **Off-the-shelf speech emotion model (no training; built 31 Oct, off until enabled; docs/TRAINING_EMOTION.md).** Runs on the same
    push-to-talk audio as Whisper, in parallel. Output: a label and a
    confidence, e.g. `frustrated 0.72`. Candidates to compare: emotion2vec,
    and wav2vec2 models trained on IEMOCAP. Check each one's licence and
@@ -233,7 +233,7 @@ voice, offer a choice).
 1. **Manual (built).** `/empathy supportive`, or say "be more direct", "be
    gentler", "back to normal". The LLM receives the mode's instruction; the
    voice speed follows the mode.
-2. **Feedback-only bandit (next).** Before any emotion detection, Jarvis
+2. **Feedback-only bandit (frame built 31 Oct; the learner is Adhi's, docs/TRAINING_EMPATHY.md).** Before any emotion detection, Jarvis
    learns which mode you prefer from direct feedback ("too much", "be more
    direct", "thanks") and stores the scores in a small JSON file. One
    Beta(good + 1, bad + 1) score per mode; Thompson sampling picks the mode.

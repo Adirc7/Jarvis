@@ -292,6 +292,10 @@ class App:
         self.recent_info: tuple[float, str] | None = None     # (when, what was fetched) for follow-ups
         self.view = None                                       # the window (ui/server.py), started by run()
         self.state.empathy = self.persona.default_mode
+        # The empathy learner (empathy/): feedback in what you say counts for the mode of the
+        # reply before; the learner (yours, in empathy/thompson.py) picks the mode within your limits.
+        self.coach = self._make_coach()
+        self._interrupted = False                # push-to-talk pressed while Jarvis was answering
         self._apply_empathy_voice()
         self.transcriber = transcriber
         self.recorder = recorder
@@ -302,6 +306,17 @@ class App:
         self._hotkeys: HotkeyListener | None = None
         self._ptt = None
         self._stt_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="stt")
+        # How you sound (perception/emotion.py), beside Whisper on the same audio; off until enabled.
+        from .perception.emotion import EmotionEars
+        try:
+            self.ears = EmotionEars.from_settings(settings)
+        except Exception as exc:  # noqa: BLE001 - a broken classifier file must not stop Jarvis
+            self.ears = None
+            out(f"[emotion] couldn't load ({type(exc).__name__}: {exc}); carrying on without it.")
+        self._emotion_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="emotion")
+        self.heard = None                      # the last Heard, for /mood and the window
+        self._heard_at = 0.0
+        self._heard_this_turn = None           # the hint for the reply being made now
         self._turn_lock = asyncio.Lock()      # one request at a time, in the order they came
         self._recorder_open = False
         # When you last talked to Jarvis, so greetings follow sessions, not restarts.
@@ -422,6 +437,8 @@ class App:
     def set_empathy(self, mode: str, source: str) -> bool:
         if mode not in self.persona.modes:
             return False
+        if getattr(self, "coach", None) is not None and source not in ("learner", "distress"):
+            self.coach.manual = mode                 # chosen by you (or a command): kept for the session
         if mode != self.state.empathy:
             self.telemetry.log("empathy_changed", old=self.state.empathy, new=mode, source=source)
         self.state.empathy = mode
@@ -438,9 +455,52 @@ class App:
             self._show("you", text=text, source=source)
             reply = await self._handle_text(text, source, turn, token)
             if reply and not token.cancelled:
-                self._show("jarvis", text=reply, speaker=self._speaker())
-                self._tables_to_board(reply)
+                self._after_reply(text, reply)
             return reply
+
+    async def _take_heard(self, hearing):
+        """The emotion model's guess, if it's ready soon after Whisper (it never holds up a reply)."""
+        if hearing is None:
+            return None
+        try:
+            heard = await asyncio.wait_for(hearing, float(self.settings.get("emotion.wait_s", 0.5)))
+        except TimeoutError:
+            self.telemetry.log("emotion_late")
+            return None
+        except Exception as exc:  # noqa: BLE001 - the model failed: say so once, then go on without it
+            self.telemetry.log("emotion_error", error=f"{type(exc).__name__}: {exc}"[:200])
+            self.out(f"[emotion] the model failed ({type(exc).__name__}); carrying on without it.")
+            self.ears = None
+            return None
+        self.heard, self._heard_at = heard, time.monotonic()
+        self.telemetry.log("emotion", label=heard.label, confidence=round(heard.confidence, 3), level=heard.level,
+                           ms=heard.ms)
+        return heard
+
+    def _emotion_note(self) -> str:
+        heard = self._heard_this_turn
+        if heard is None:
+            return ""
+        note = heard.note_for_model(float(self.settings.get("emotion.min_confidence", 0.6)))
+        return "\n\n" + note if note else ""
+
+    def _after_reply(self, question: str, reply: str) -> None:
+        self._show("jarvis", text=reply, speaker=self._speaker())
+        self._tables_to_board(reply)
+        if self.coach is not None:
+            self.coach.replied(question, self.state.empathy)
+
+    def _make_coach(self):
+        if not self.settings.get("empathy.learning", True):
+            return None
+        from .empathy import EmpathyCoach, EmpathyStore, load_learner
+        learner, note = load_learner(str(self.settings.get("empathy.learner", "fixed")), self.persona.default_mode)
+        if note:
+            self.out(note)
+        allowed = [m for m in self.settings.get("empathy.allowed", list(self.persona.modes)) if m in self.persona.modes]
+        store = EmpathyStore.load(self.settings.path("general.state_dir", "state") / "empathy.json")
+        return EmpathyCoach(store, learner, allowed or list(self.persona.modes),
+                            rechoose_every=int(self.settings.get("empathy.rechoose_every", 5)))
 
     def _tables_to_board(self, reply: str) -> None:
         """A table in a spoken reply goes on the board too, where it can be read (the voice
@@ -473,9 +533,18 @@ class App:
         # "be more direct" / "be gentler": change style, then let the model
         # acknowledge it naturally, in whatever language is active.
         mode = self.persona.detect_mode_command(text)
+        if self.coach is not None:
+            found = self.coach.after_user_turn(text, interrupted=self._interrupted, asked_mode=mode)
+            self._interrupted = False
+            for fb in found:
+                self.telemetry.log("empathy_feedback", mode=fb.mode, reward=fb.reward, weight=fb.weight, why=fb.why)
         if mode is not None:
             self.set_empathy(mode, source=f"{source}_command")
             turn.mark("empathy_switch")
+        elif self.coach is not None:
+            chosen, why = self.coach.mode_for(text, self.state.empathy)
+            if chosen != self.state.empathy:
+                self.set_empathy(chosen, source=why)
 
         code = self.lang.detect_switch(text)
         if code == self.lang.current.code and len(normalize(text).split()) > 2:
@@ -526,7 +595,7 @@ class App:
             # and the knowledge tools the request is about.
             system += notes
             extra["tools"] = specs
-        system += self._recent_info_note()
+        system += self._recent_info_note() + self._emotion_note()
         messages = [{"role": "system", "content": system}] + history + [{"role": "user", "content": text}]
         if decision.route in ("maths", "teach") and "maths" in groups:
             messages[0]["content"] += "\n\n" + STUDY_NOTE
@@ -740,7 +809,15 @@ class App:
                 "pc": self.pc.name if self.pc is not None else "",
                 "speaker": self._speaker(), "provider": self.llm.last_provider or "", "timers": timers,
                 "news": news, "map": bool(self._latest_map()),
-                "board": bool(self.info is not None and self.info.board)}
+                "board": bool(self.info is not None and self.info.board),
+                "mood": self._mood_for_window()}
+
+    def _mood_for_window(self) -> str:
+        if self.heard is None or time.monotonic() - self._heard_at > 60:
+            return ""
+        if self.heard.confidence < float(self.settings.get("emotion.min_confidence", 0.6)):
+            return ""
+        return f"{self.heard.label} {self.heard.confidence:.0%}"
 
     def _display_mode(self) -> str:
         """What the orb shows. Jarvis's own mode says listening and thinking; whether he's
@@ -890,6 +967,7 @@ class App:
                     self.state.cancel_all()          # barge-in: stop the current reply
                     self.sink.stop()
                     self.telemetry.log("barge_in")
+                    self._interrupted = True        # feedback for the empathy learner (a weak "no")
                 self.state.mode = Mode.LISTENING
                 self.out("\n[listening... release the key to send]")
                 if self.settings.get("llm.prewarm", True):
@@ -923,6 +1001,8 @@ class App:
             from .voice.audio_io import resample
             audio = resample(audio, rate, 16000)
         loop = asyncio.get_running_loop()
+        hearing = (loop.run_in_executor(self._emotion_executor, self.ears.hear, audio)
+                   if self.ears is not None else None)
         try:
             result = await loop.run_in_executor(self._stt_executor, self.transcriber.transcribe, audio)
         except Exception as exc:
@@ -956,10 +1036,13 @@ class App:
         if self.settings.get("general.language_mode", "fixed") == "auto" and result.language != self.state.language:
             self.lang.set(result.language, source="auto")
         self._show("you", text=result.text, source="voice")
-        reply = await self._handle_text(result.text, "voice", turn, token)
+        self._heard_this_turn = await self._take_heard(hearing)
+        try:
+            reply = await self._handle_text(result.text, "voice", turn, token)
+        finally:
+            self._heard_this_turn = None
         if reply and not token.cancelled:
-            self._show("jarvis", text=reply, speaker=self._speaker())
-            self._tables_to_board(reply)
+            self._after_reply(result.text, reply)
         return reply
 
     def _start_push_to_talk(self) -> None:
@@ -998,6 +1081,17 @@ class App:
             if device:
                 where = "the graphics card (CUDA)" if device == "cuda" else "the CPU"
                 self.out(f"{self.lang.current.name} voice runs on {where}.")
+        if self.ears is not None:
+            self.out("Loading the emotion model (the first run downloads it, about 380 MB)...")
+            try:
+                import numpy as np
+                heard = await loop.run_in_executor(self._emotion_executor, self.ears.hear,
+                                                   np.zeros(16000, np.float32))
+                level = "your classifier" if heard.level == 2 else "the ready-made model"
+                self.out(f"Emotion model ready on {self.ears.where or 'the CPU'} ({level}).")
+            except Exception as exc:  # noqa: BLE001 - no emotion model is no reason not to talk
+                self.ears = None
+                self.out(f"[emotion] couldn't load ({type(exc).__name__}: {str(exc)[:120]}); carrying on without it.")
         self.recorder.open()
         self._recorder_open = True            # closed on exit even if what follows fails
         self._start_push_to_talk()
@@ -1231,6 +1325,28 @@ class App:
                     self.telemetry.log("window_closed")
                     self._quit.set()
 
+    def _mood_command(self, mood: str) -> None:
+        """/mood: what the emotion model heard last; /mood <label>: your label for it (features only)."""
+        from .perception.emotion import MOODS, save_label
+        if self.ears is None:
+            self.out("[emotion] off: set [emotion] enabled = true (docs/TRAINING_EMOTION.md).")
+            return
+        recent = self.heard is not None and time.monotonic() - self._heard_at <= 600
+        if not mood:
+            self.out(f"[emotion] last heard: {self.heard.label} {self.heard.confidence:.0%} (level {self.heard.level})"
+                     if recent else "[emotion] nothing heard in the last 10 minutes.")
+            return
+        if mood not in MOODS:
+            self.out(f"[emotion] labels: {', '.join(MOODS)}")
+            return
+        if not recent:
+            self.out("[emotion] say something first (push-to-talk), then label it.")
+            return
+        path = save_label(self.settings.path("emotion.labels_dir", "data/emotion"), self.heard, mood,
+                          str(getattr(self.telemetry, "session_id", "") or ""))
+        self.telemetry.log("emotion_label", label=mood, heard=self.heard.label)
+        self.out(f"[emotion] labelled your last utterance {mood} (it heard {self.heard.label}); saved to {path}")
+
     def _learn_from(self, text: str) -> None:
         """Keep what the user tells Jarvis to remember (only what they said)."""
         if not self.memory.enabled:
@@ -1270,12 +1386,19 @@ class App:
                 self.lang.set(arg, source="command")
                 lang = self.lang.current
                 await self.sink.say(lang.confirm or f"Switched to {lang.name}.", lang, self.state.token())
+        elif cmd == "/empathy" and arg.strip() in ("stats", "learned") and self.coach is not None:
+            counts = self.coach.store.for_context("all")
+            rows = [f"  {m}: {g:.1f} good, {b:.1f} bad" for m, (g, b) in sorted(counts.items())] or ["  no feedback yet"]
+            self.out(f"[empathy] learner: {self.coach.learner.name}; allowed: {', '.join(self.coach.allowed)}; "
+                     f"now: {self.state.empathy}\n" + "\n".join(rows))
         elif cmd == "/empathy":
             arg = arg.strip()
             if not self.set_empathy(arg, source="command"):
                 self.out(f"Empathy modes: {', '.join(self.persona.modes)} (now: {self.state.empathy})")
             else:
                 self.out(f"[empathy: {arg}]")
+        elif cmd == "/mood":
+            self._mood_command(arg.strip().lower())
         elif cmd == "/name":
             if arg.strip():
                 self.memory.set_name(arg.strip())

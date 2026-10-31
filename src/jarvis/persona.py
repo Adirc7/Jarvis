@@ -127,8 +127,8 @@ class Persona:
             parts.append(
                 "Your replies are spoken aloud by a voice: no markdown, lists, headings, emojis or code. "
                 "Never write maths as symbols or LaTeX; say it in words, like 'E equals m c squared'. "
-                "For long equations, explain the idea and say you can show the full equations on screen "
-                "once the Jarvis window exists. "
+                "For long equations, explain the idea in words; the full working can go on the board in "
+                "Jarvis's window when the board tool is offered. "
                 "Usually one to three sentences unless the user asks for more."
             )
         parts.append(language_instruction)

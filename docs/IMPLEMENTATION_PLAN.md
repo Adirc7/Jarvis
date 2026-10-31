@@ -42,11 +42,11 @@ review**, or **you run**.
 |---|---|---|---|
 | M0 | Laptop check: setup, hardware check, first conversation, first measurements | you run | done (smoke test passes 28 Oct; latency in docs/RESULTS.md); recording round 1 left |
 | M1 | Greeting (done) and replying in the language you speak | Claude drafts, you review | built; Sinhala hearing waits on R (Whisper) |
-| M2 | Empathy feedback learner (Thompson sampling) | **you** | next |
+| M2 | Empathy feedback learner (Thompson sampling) | Claude builds the frame; **you** write the learner | frame built 31 Oct (signals, counts, coach, simulator, checks; docs/TRAINING_EMPATHY.md); your learner next |
 | M3 | Phase 2: tools, safety gate and intent test set | Claude drafts the gate; **you** write tools, tests and the safety test set | gate, confirm box, 6 PC tools, safety sets built 28-30 Oct; intent model level 1 trained, level 2 next (you) |
 | M4 | Study skill, level 1 | **you**, with Claude's outline | SymPy-checked maths and hints-first tutoring built 30 Oct; a week of use left |
-| M5 | Emotion model beside Whisper (Phase 1.5) | **you** | planned |
-| M6 | Jarvis window, tray, wake word, double clap, phone calls (Phase 1.6) | Claude drafts the window; **you** write the clap detector | window (local live page, orb) built 30 Oct; the rest later |
+| M5 | Emotion model beside Whisper (Phase 1.5) | Claude builds the frame; **you** label, train and measure | frame built 31 Oct (baseline beside Whisper, hedged hint, /mood labels, evaluation; docs/TRAINING_EMOTION.md); your labels and classifier next |
+| M6 | Jarvis window, tray, wake word, double clap, phone calls (Phase 1.6) | Claude drafts the window; **you** write the clap detector | the app window (orb, typing, maps, the board) built 30 Oct; the rest later |
 | M7 | Visualise, Data, Research and News skills; Telegram | together | News (with the map) and Research built 30 Oct; Visualise, Data, Telegram later |
 | M8 | Gestures (Phase 3), then the evaluation and report (Phase 8) | **you** | palm to pause built 25 Oct; scripts/evaluate_all.py writes docs/RESULTS.md; the report later |
 | R | Recording rounds, then our own Sinhala speech model (runs alongside) | **you** | round 1 ready; training planned |
