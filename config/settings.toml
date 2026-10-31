@@ -191,6 +191,22 @@ browser = "edge"            # "edge" (Microsoft Edge on Windows) or "default"
 # (30 Oct). "likely": the web and PC tools too only with a word for them;
 # "always": every tool on every request; "off".
 model_tools = "smart"
+# MATLAB code the model writes (src/jarvis/tools/matlab.py): "solve this ODE in
+# MATLAB and plot it". Offered when you mention MATLAB, Octave or a numerical
+# solution; the code shows on the board and runs only after you click.
+matlab = true
+
+[matlab]
+# "auto": MATLAB if it's installed (C: or D:, newest release), else GNU Octave
+# (free, runs most MATLAB code); or "matlab" / "octave". path: the program file,
+# if it isn't in the usual place (e.g. "D:/MATLAB/R2024b/bin/matlab.exe").
+engine = "auto"
+path = ""
+# Seconds before a run is stopped (MATLAB itself takes 10-30 s to start).
+timeout_s = 120
+# Ask before every run (a click). false: runs without asking, still logged and
+# still refusing code that reaches the system, files or the internet. Your call.
+confirm = true
 
 [empathy]
 # The empathy learner (src/jarvis/empathy/, docs/TRAINING_EMPATHY.md). What you

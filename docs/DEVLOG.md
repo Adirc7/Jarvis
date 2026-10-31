@@ -1488,3 +1488,23 @@ his (docs/TRAINING_EMPATHY.md, docs/TRAINING_EMOTION.md):
   equal) and molecules could slip through the wall in one frame.
 - 13 tests.
 
+## 2026-11-01: MATLAB runs the code Jarvis writes
+
+- `tools/matlab.py`: "solve this ODE in MATLAB and plot it" -> the model calls
+  run_matlab {title, code}; the code goes on the board, a box asks for a
+  click (the gate's "ask first" tier; [matlab] confirm), and MATLAB runs it
+  with `-batch` in Documents/Jarvis/matlab/run-<time>/, with no window and
+  a time limit (120 s, then it's stopped with everything it started). A
+  wrapper saves every figure as a PNG; the printed output, errors and
+  figures go on the board (served at /figure/<run>/figureN.png, only those
+  names), and the model explains the output (it's told it can't see the
+  figures). Finds the newest MATLAB on C: or D:, else GNU Octave ([matlab]
+  engine, path). Before asking, code using the shell, files, the internet,
+  Java/Python/.NET or eval is refused (strings and comments aside), and the
+  model is told why; the click stays the real check.
+- Checked with real GNU Octave 8.4 here (an ODE with ode45 and a 3D surface:
+  output and both figures right), and the board in a headless browser.
+  MATLAB itself isn't in this workspace: the MATLAB path is tested with a
+  stand-in, so the first real run is on the laptop.
+- 8 tests.
+

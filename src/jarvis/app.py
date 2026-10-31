@@ -57,6 +57,7 @@ from .tools.desktop import DesktopTools
 from .tools.desktop import available as desktop_available
 from .tools.gate import ActionLog
 from .tools.info import InfoTools
+from .tools.matlab import MatlabTools
 from .tools.web import TOOL_SPECS, WebTools
 from .voice.sink import TextSink
 
@@ -151,6 +152,10 @@ ANSWER_NOTES = {
                  "Author (Year) with the DOI when there is one. Never invent a source, a quote or a number. If the "
                  "sources don't answer the question, say what's missing. Then briefly give your own view of what it "
                  "means or where the field is heading, labelled as your view."),
+    "matlab": ("Explain the MATLAB run from its printed output: the numbers that matter and what they mean, in "
+               "spoken words. Its figures are on the board in Jarvis's window, but you can't see them: say what "
+               "the code plots, never details you can't know. If it failed or was refused, say why in one "
+               "sentence and offer to fix it."),
     "maths": ("Teach like a good tutor: unless the user asked for the full answer, give a hint or the first step and "
               "ask them to try the next one. Every result you state must match SymPy's checked result; never call "
               "an unchecked result correct. Say maths the way it's spoken (\"x squared times sine x\"). What's on "
@@ -163,6 +168,12 @@ STUDY_NOTE = ("Study help: you're a tutor for a physical science, maths and data
               "unchecked. Put formulas, derivations and graphs on the board (show_on_board) when they help: the "
               "user is listening, and the board lets them see it. For references or 'the latest research', use "
               "find_papers, never memory.")
+MATLAB_WORDS = re.compile(
+    r"matlab|octave|simulink|ode45|ode23|\bnumerical(?:ly)?\b|\.m file|run (?:the|this|that|my) code|"
+    r"මැට්ලැබ්", re.IGNORECASE)
+MATLAB_ASK = {"en": "The code's on the board. Click Run if it looks right.",
+              "si": "කෝඩ් එක බෝඩ් එකේ තියෙනවා. හරි නම් Run ඔබන්න.",
+              "ta": "குறியீடு பலகையில் உள்ளது. சரியாக இருந்தால் Run அழுத்துங்கள்."}
 RECENT_INFO_S = 15 * 60       # follow-ups ("tell me more about the second one") see the last fetch this long
 TIMER_DONE = {"en": "Time's up{label}, {address}.", "si": "වෙලාව හරි{label}.", "ta": "நேரம் முடிந்தது{label}."}
 DESK_WORDS = re.compile(
@@ -227,6 +238,7 @@ class App(LessonMode):
         camera_factory: Callable[[], Any] | None = None,
         desk: DesktopTools | None = None,
         info: InfoTools | None = None,
+        matlab: MatlabTools | None = None,
     ):
         self.settings = settings
         self.persona = persona or Persona.load()
@@ -293,6 +305,10 @@ class App(LessonMode):
                                   screen=self._screen)
         else:
             self.info = None
+        # MATLAB or Octave (tools/matlab.py): the model's code runs after a click; the figures go on the board.
+        self.matlab = matlab if matlab is not None else self._make_matlab()
+        if self.matlab is not None and not self.matlab.board_given:
+            self.matlab.show_board = self._board_from_tool
         self.recent_info: tuple[float, str] | None = None     # (when, what was fetched) for follow-ups
         self.view = None                                       # the window (ui/server.py), started by run()
         self.state.empathy = self.persona.default_mode
@@ -340,6 +356,29 @@ class App(LessonMode):
             self.persona.user_name = self.memory.name
         if self.settings.get("memory.keep_conversation", True):
             self.history = self.memory.recent_if_fresh(float(self.settings.get("memory.continue_hours", 12)))
+
+    def _make_matlab(self) -> MatlabTools | None:
+        if not self.settings.get("tools.matlab", True):
+            return None
+        from .tools.matlab import find_engine
+        engine = find_engine(str(self.settings.get("matlab.engine", "auto")), str(self.settings.get("matlab.path", "")))
+        if engine is None:
+            return None
+        confirm = None
+        if desktop_available():                          # the click box (tools/confirm.py)
+            from .tools.confirm import confirm_box
+            confirm = confirm_box
+        return MatlabTools(self.settings.get("tools.jarvis_folder", "~/Documents/Jarvis"), engine,
+                           ActionLog(self.settings.path("general.log_dir", "logs")), confirm,
+                           ask_first=bool(self.settings.get("matlab.confirm", True)),
+                           timeout_s=float(self.settings.get("matlab.timeout_s", 120)))
+
+    def _board_from_tool(self, board: dict) -> bool:
+        """A tool's board (MATLAB's code, output and figures): served at /board like the others."""
+        if self.info is not None:
+            return self.info._show_board(board)
+        self._show("board", **board)
+        return bool(self.view is not None and self.view.viewers)
 
     def _make_router(self) -> Router:
         """The keyword rules, or Adhi's trained intent model in front of them when
@@ -715,9 +754,16 @@ class App(LessonMode):
         if self.view is not None and (every or self._visual_offered(text, route)):
             groups.add("visual")                              # a lesson in the window (lesson_mode.py)
             specs.append(LESSON_SPEC)
+        if self.matlab is not None and (every or MATLAB_WORDS.search(text)
+                                        or ("matlab" in self.recent_kinds and self._recent_info_note())):
+            groups.add("matlab")                              # MATLAB or Octave (tools/matlab.py)
+            specs += self.matlab.specs()
         if groups:
-            notes += ("\n\nKnowledge tools this turn: "
-                      + "; ".join(LESSON_NOTE if g == "visual" else GROUP_NOTES[g] for g in sorted(groups))
+            said = {**GROUP_NOTES, "visual": LESSON_NOTE,
+                    "matlab": (f"run_matlab to write and run MATLAB code ({self.matlab.engine.name if self.matlab else ''})"
+                               " for MATLAB, numerical solutions and simulations; the user clicks to approve each "
+                               "run, and the code, output and figures show on the board")}
+            notes += ("\n\nKnowledge tools this turn: " + "; ".join(said[g] for g in sorted(groups))
                       + ". Several at once is fine.")
         return notes, specs, groups
 
@@ -793,6 +839,18 @@ class App(LessonMode):
                 if outcome.acted and data.get("for_model"):
                     fetched.append((data.get("kind", "research"), data["for_model"]))
                 result = ToolSaid(f"info_{call.name}_{outcome.status}", words_for(outcome, lang.code))
+                self._show("action", tool=call.name, status=outcome.status, text=outcome.text)
+            elif self.matlab is not None and call.name in self.matlab.names():
+                job = loop.run_in_executor(None, lambda c=call: self.matlab.call(c.name, c.arguments))
+                if self.matlab.will_ask(call.arguments):       # the click box is opening: say where the code is
+                    await self.sink.say(MATLAB_ASK.get(lang.code, MATLAB_ASK["en"]), lang, token)
+                outcome = await job
+                self.telemetry.log("model_tool", name=call.name, ok=outcome.acted, status=outcome.status,
+                                   reasons=outcome.reasons[:3], arguments=call.arguments[:200])
+                data = outcome.result.data if outcome.result is not None else {}
+                if data.get("for_model") and outcome.status != "cancelled":
+                    fetched.append(("matlab", data["for_model"]))   # ran, failed or refused: the model explains
+                result = ToolSaid(f"matlab_{outcome.status}", words_for(outcome, lang.code))
                 self._show("action", tool=call.name, status=outcome.status, text=outcome.text)
             elif self.desk is not None and call.name in self.desk.names():
                 # Outside text in this turn (video titles on screen, fetched news or
@@ -882,7 +940,8 @@ class App(LessonMode):
             self.view = LiveView(self._snapshot, int(self.settings.get("window.port", 8765)), self._latest_map,
                                  on_text=self._typed_in_window, on_ui=self._window_ui,
                                  board=lambda: self.info.board if self.info is not None else None,
-                                 lesson=self._lesson_data)
+                                 lesson=self._lesson_data,
+                                 figure=self.matlab.figure if self.matlab is not None else lambda run, name: None)
             url = self.view.start()
         except OSError as exc:                       # the port is taken (another Jarvis running?)
             self.view = None

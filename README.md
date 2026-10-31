@@ -108,6 +108,13 @@ Measurements: [docs/RESULTS.md](docs/RESULTS.md).
   a pendulum, projectiles, circuits, Fourier series, fields, orbits, lenses),
   3D graphs, diagrams and Wikipedia pictures, picked for what each step
   needs. "next", "again", "pause", "continue", or the buttons.
+- **MATLAB**: "solve y'' + 0.5y' + 4y = 0 in MATLAB and plot it". Jarvis
+  writes the code and puts it on the board; you click Run; MATLAB runs it
+  without a window and its output and figures show on the board, and Jarvis
+  explains them. It finds MATLAB (R2019a or newer) on C: or D:, else GNU
+  Octave; set `[matlab] path` in config/settings.local.toml if it's somewhere
+  else. Code that reaches the system, files or the internet is refused
+  before you're asked.
 - **Maps you can talk to**: "show Sri Lanka and zoom in", "zoom out",
   "leave the map": the news or weather map in his window moves when asked.
 - **Jarvis as an app**: the desktop icon opens Jarvis in a window of his own

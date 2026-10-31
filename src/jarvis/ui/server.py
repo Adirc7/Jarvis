@@ -96,9 +96,11 @@ class LiveView:
                  map_file: Callable[[], Path | None] = lambda: None, poll_s: float = 0.25,
                  on_text: Callable[[str], None] | None = None, on_ui: Callable[[dict], None] | None = None,
                  board: Callable[[], dict | None] = lambda: None,
-                 lesson: Callable[[], dict | None] = lambda: None):
+                 lesson: Callable[[], dict | None] = lambda: None,
+                 figure: Callable[[str, str], Path | None] = lambda run, name: None):
         self.snapshot, self.port, self.map_file, self.poll_s = snapshot, port, map_file, poll_s
         self.on_text, self.on_ui, self.board, self.lesson = on_text, on_ui, board, lesson
+        self.figure = figure                             # a MATLAB figure: (run folder, file) -> its PNG
         self.token = secrets.token_urlsafe(24)           # in the page; proves a POST came from it
         self.history: deque[dict] = deque(maxlen=60)     # a page opened later still sees recent turns
         self._clients: list[queue.Queue] = []
@@ -185,6 +187,13 @@ class LiveView:
                     self._send(200, json.dumps(view.board() or {}, default=str).encode(), "application/json")
                 elif path == "/lesson":
                     self._send(200, json.dumps(view.lesson() or {}, default=str).encode(), "application/json")
+                elif path.startswith("/figure/") and path.count("/") == 3:
+                    _, _, run, name = path.split("/")
+                    found = view.figure(run, name)           # tools/matlab.py checks both names
+                    if found is not None and found.is_file():
+                        self._send(200, found.read_bytes(), "image/png")
+                    else:
+                        self._send(404, b"no such figure", "text/plain")
                 elif path == "/lesson.js":
                     self._send(200, LESSON_JS.read_bytes(), "text/javascript; charset=utf-8")
                 elif path == "/events":
