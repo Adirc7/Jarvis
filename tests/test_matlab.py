@@ -41,8 +41,8 @@ def test_matlab_or_octave_is_found_newest_first(tmp_path):
         exe = c / "Program Files" / "MATLAB" / release / "bin" / "matlab.exe"
         exe.parent.mkdir(parents=True)
         exe.write_text("")
-    for release in ("Octave-10.1.0", "Octave-9.2.0"):
-        octave = c / "Program Files" / "GNU Octave" / release / "mingw64" / "bin" / "octave-cli.exe"
+    for release, build in (("Octave-10.1.0", "ucrt64"), ("Octave-9.2.0", "mingw64")):
+        octave = c / "Program Files" / "GNU Octave" / release / build / "bin" / "octave-cli.exe"
         octave.parent.mkdir(parents=True)
         octave.write_text("")
     none = lambda name: None  # noqa: E731

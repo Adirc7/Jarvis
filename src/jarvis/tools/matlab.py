@@ -144,12 +144,13 @@ def _find(kind: str, platform: str, which, roots: list[Path] | None) -> Path | N
     if platform == "win32":
         drives = roots or [Path(f"{d}:/") for d in "CD"]
         patterns = (["Program Files/MATLAB/R20*/bin/matlab.exe", "MATLAB/R20*/bin/matlab.exe"] if kind == "matlab"
-                    else ["Program Files/GNU Octave/Octave-*/mingw64/bin/octave-cli.exe",
-                          "Program Files/GNU Octave/Octave-*/mingw64/bin/octave.exe",
-                          "Octave/Octave-*/mingw64/bin/octave-cli.exe"])
+                    # mingw64\bin or ucrt64\bin, depending on the Octave release's Windows build
+                    else ["Program Files/GNU Octave/Octave-*/*/bin/octave-cli.exe",
+                          "Program Files/GNU Octave/Octave-*/bin/octave-cli.exe",
+                          "Octave/Octave-*/*/bin/octave-cli.exe", "GNU Octave/Octave-*/*/bin/octave-cli.exe"])
         found = [p for d in drives for pat in patterns for p in d.glob(pat)]
         if found:
-            return max(found, key=lambda p: _release(p.parents[1 if kind == "matlab" else 2].name))   # the newest
+            return max(found, key=lambda p: _release(next(x for x in p.parts if re.match(r"R20|Octave-", x))))
     for name in (["matlab"] if kind == "matlab" else ["octave-cli", "octave"]):
         hit = which(name)
         if hit:

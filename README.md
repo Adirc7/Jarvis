@@ -112,8 +112,9 @@ Measurements: [docs/RESULTS.md](docs/RESULTS.md).
   writes the code and puts it on the board; you click Run; MATLAB runs it
   without a window and its output and figures show on the board, and Jarvis
   explains them. It finds MATLAB (R2019a or newer) on C: or D:, else GNU
-  Octave; set `[matlab] path` in config/settings.local.toml if it's somewhere
-  else. Code that reaches the system, files or the internet is refused
+  Octave (free, from octave.org); `[matlab] engine = "octave"` uses Octave even
+  when MATLAB is there, and `[matlab] path` names the program if it's somewhere
+  else (config/settings.local.toml). Code that reaches the system, files or the internet is refused
   before you're asked.
 - **Maps you can talk to**: "show Sri Lanka and zoom in", "zoom out",
   "leave the map": the news or weather map in his window moves when asked.
