@@ -65,6 +65,7 @@ try
 catch
 end
 if exist('OCTAVE_VERSION', 'builtin')
+  warning('off', 'Octave:gnuplot-graphics');
   jarvis_tk = available_graphics_toolkits();
   if any(strcmp(jarvis_tk, 'gnuplot')) && ~any(strcmp(jarvis_tk, 'qt'))
     graphics_toolkit('gnuplot');
@@ -137,10 +138,10 @@ def find_engine(choice: str = "auto", path: str = "", platform: str = sys.platfo
     choice = (choice or "auto").lower()
     if path:
         exe = Path(path).expanduser()
-        if not exe.exists():
-            return None
-        kind = "octave" if "octave" in exe.name.lower() or choice == "octave" else "matlab"
-        return _engine(kind, exe)
+        if exe.exists():
+            kind = "octave" if "octave" in exe.name.lower() or choice == "octave" else "matlab"
+            return _engine(kind, exe)
+        # The named file isn't there (moved, or a typo): look in the usual places instead.
     kinds = ["matlab", "octave"] if choice == "auto" else [choice]
     for kind in kinds:
         exe = _find(kind, platform, which, roots)
@@ -164,7 +165,9 @@ def _find(kind: str, platform: str, which, roots: list[Path] | None) -> Path | N
                     else ["Program Files/GNU Octave/*/*/bin/octave-cli.exe",
                           "Program Files/GNU Octave/*/*/*/bin/octave-cli.exe",
                           "GNU Octave/*/*/bin/octave-cli.exe", "GNU Octave/*/*/*/bin/octave-cli.exe",
-                          "Octave*/*/bin/octave-cli.exe", "Octave*/*/*/bin/octave-cli.exe"])
+                          "Octave*/*/bin/octave-cli.exe", "Octave*/*/*/bin/octave-cli.exe",
+                          # unzipped into any folder on the drive: D:\GNU\octave-11.3.0-w64\mingw64\bin
+                          "*/octave-*/*/bin/octave-cli.exe", "octave-*/*/bin/octave-cli.exe"])
         found = [p for d in drives for pat in patterns for p in d.glob(pat)]
         if found:
             return max(found, key=_release)                                   # the newest release
@@ -176,7 +179,7 @@ def _find(kind: str, platform: str, which, roots: list[Path] | None) -> Path | N
 
 
 def _release(path: Path) -> tuple:
-    """...R2024a\bin -> (2024, 'a'); ...octave-10.1.0-w64\... -> (10, 1, 0): comparable, so the newest wins."""
+    r"""...R2024a\bin -> (2024, 'a'); ...octave-10.1.0-w64\... -> (10, 1, 0): comparable, so the newest wins."""
     for part in path.parts:
         if found := re.fullmatch(r"R(20\d\d)([ab])", part):
             return int(found.group(1)), found.group(2)
@@ -224,8 +227,9 @@ class MatlabTools:
             "run_matlab",
             (f"Run MATLAB code on this laptop ({engine.name}) and show its printed output and figures on the board "
              "in Jarvis's window; the user approves each run. Write complete, self-contained code that prints the "
-             "numbers that matter (disp, fprintf) and plots with labelled axes and a title. No files, internet, "
-             "system commands, eval or input."
+             "numbers that matter (disp, fprintf) and plots with labelled axes and a title. One statement a line; "
+             "keep each string on one line (a newline inside fprintf is the two characters \\n). No files, "
+             "internet, system commands, eval or input."
              + (" It's GNU Octave: stick to core MATLAB, no toolboxes." if engine.kind == "octave" else "")),
             {"type": "object", "properties": {
                 "title": {"type": "string", "minLength": 1, "maxLength": 120,
@@ -293,7 +297,7 @@ class MatlabTools:
         return folder
 
     def _run(self, args: Args) -> Result:
-        code, title = str(args["code"]), str(args["title"])[:120]
+        code, title = join_split_strings(str(args["code"])), str(args["title"])[:120]
         run = self._new_run()
         if self.engine.kind == "octave":
             code = "1;\n" + code                       # Octave: a script may define functions after this
@@ -313,8 +317,7 @@ class MatlabTools:
             out, err = proc.communicate()
             timed_out = True
         seconds = time.perf_counter() - start
-        errors = [line.split("JARVIS_ERROR:", 1)[1].strip() for line in (err or "").splitlines()
-                  if "JARVIS_ERROR:" in line]
+        errors = _errors(err or "", run, shifted=self.engine.kind == "octave")
         if not errors and proc.returncode not in (0, None) and not timed_out:
             errors = [line for line in (err or "").splitlines() if line.strip()][-3:] or [f"exit code {proc.returncode}"]
         figures = sorted(p.name for p in run.glob("figure*.png") if FIGURE_NAME.fullmatch(p.name))
@@ -341,7 +344,9 @@ class MatlabTools:
         summary = ("Ran it; the output and figures are on the board." if ok
                    else "It didn't run cleanly; the error is on the board.")
         return Result(ok, summary, data={"for_model": "\n".join(report), "kind": "matlab", "run": run.name,
-                                         "figures": figures, "say": ("matlab_ran" if ok else "matlab_failed", {})})
+                                         "figures": figures, "say": ("matlab_ran" if ok else "matlab_failed", {}),
+                                         "errors": errors, "timed_out": timed_out, "code": code.removeprefix("1;\n"),
+                                         "title": title})
 
     def figure(self, run: str, name: str) -> Path | None:
         """A figure for the window (/figure/<run>/<name>): only Jarvis's own runs and PNGs."""
@@ -349,6 +354,57 @@ class MatlabTools:
             return None
         path = self.folder / run / name
         return path if path.is_file() else None
+
+
+def _errors(err: str, run: Path, shifted: bool) -> list[str]:
+    """Each error the wrapper reported, with the lines after it (Octave's parse errors run over several),
+    the run folder's path left out, and line numbers as the model wrote them (Octave's code starts with "1;")."""
+    errors: list[str] = []
+    for block in err.split("JARVIS_ERROR:")[1:]:
+        lines = [ln.rstrip() for ln in block.strip().splitlines() if ln.strip()]
+        text = "\n".join(ln for ln in lines if not ln.startswith("warning:"))[:600]
+        text = re.sub(r"\s*(?:of |in )?(?:file )?\S*jarvis_code\.m", "", text.replace(str(run), ""))
+        if shifted:
+            text = re.sub(r"\bline (\d+)", lambda m: f"line {max(1, int(m.group(1)) - 1)}", text)
+        errors.append(text.strip())
+    return [e for e in errors if e]
+
+
+def join_split_strings(code: str) -> str:
+    """A string the model broke across lines (it wrote a real newline where it meant \\n): one line again."""
+    out: list[str] = []
+    pending = ""
+    for line in code.split("\n"):
+        text = pending + line if pending else line
+        if _open_string(text):
+            pending = text + "\\n"
+            continue
+        out.append(text)
+        pending = ""
+    if pending:
+        out.append(pending[:-2])
+    return "\n".join(out)
+
+
+def _open_string(line: str) -> bool:
+    """Does this line end inside a quoted string? (a' is a transpose; % and # start comments)"""
+    quote, prev = "", ""
+    i = 0
+    while i < len(line):
+        ch = line[i]
+        if quote:
+            if ch == quote:
+                if line[i + 1:i + 2] == quote:       # '' or "" inside a string
+                    i += 2
+                    continue
+                quote = ""
+        elif ch in "%#":
+            return False
+        elif ch == '"' or (ch == "'" and not (prev.isalnum() or prev in "_)]}.'")):
+            quote = ch
+        prev = ch if quote == "" or ch != quote else prev
+        i += 1
+    return bool(quote)
 
 
 def _clean(out: str | None) -> str:

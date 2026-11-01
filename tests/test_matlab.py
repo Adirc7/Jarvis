@@ -58,7 +58,15 @@ def test_matlab_or_octave_is_found_newest_first(tmp_path):
     assert find_engine("auto", platform="linux", which=lambda n: "/usr/bin/octave-cli" if n == "octave-cli" else None,
                        roots=[]).kind == "octave"
     assert find_engine("auto", path=str(octave)).kind == "octave"
-    assert find_engine("auto", path=str(tmp_path / "nowhere.exe")) is None
+    assert find_engine("auto", path=str(tmp_path / "nowhere.exe"), platform="win32", which=none,
+                       roots=[tmp_path / "empty"]) is None
+    # a wrong path falls back to the usual places; Octave unzipped into any folder on a drive is found
+    gnu = tmp_path / "E" / "GNU" / "octave-11.3.0-w64" / "mingw64" / "bin" / "octave-cli.exe"
+    gnu.parent.mkdir(parents=True)
+    gnu.write_text("")
+    found_gnu = find_engine("octave", path="D:/moved/octave-cli.exe", platform="win32", which=none,
+                            roots=[tmp_path / "E"])
+    assert found_gnu.name == "Octave 11.3.0" and found_gnu.exe == gnu
     folder = tmp_path / "it's here"
     assert found.command(folder) == [str(found.exe), "-batch", f"cd('{str(folder).replace(chr(39), chr(39) * 2)}'); jarvis_run"]
     assert OCTAVE.command(folder)[1:5] == ["--no-gui", "--quiet", "--norc", "--eval"]
@@ -190,6 +198,7 @@ async def test_ask_for_matlab_and_jarvis_runs_it_and_explains(settings, tmp_path
     assert "matlab" in app._tools_for("and with less damping?", "general")[2]       # a follow-up to the run
     app.recent_info = None
     app.history += [{"role": "user", "content": "thanks"}, {"role": "assistant", "content": "You're welcome."}]
+    app._matlab_at -= 11 * 60                                                     # some minutes later
     assert "matlab" not in app._tools_for("what's the weather like", "general")[2]   # only when it's about MATLAB
 
 
@@ -257,7 +266,68 @@ async def test_asked_to_do_it_in_matlab_the_model_must_run_it(settings, tmp_path
     assert "Never say you ran or plotted" in model.requests[0]["messages"][0]["content"]
     assert app._wants_matlab_run("can you show the code and run it and show?")       # right after: still MATLAB
     assert not app._wants_matlab_run("what is MATLAB used for?")                       # a question, not a job
+    assert not app._wants_matlab_run("can you show me the map?")                       # not a MATLAB job
+    assert app._wants_matlab_run("and can you run it by yourself?")                    # 1 Nov, 13:42
     app.history.append({"role": "user", "content": "thanks, what's the weather?"})
-    assert not app._wants_matlab_run("can you show me the map?")                       # moved on
+    app._matlab_at -= 11 * 60
+    assert not app._wants_matlab_run("run it again")                                   # long moved on
     assert not app._wants_matlab_run("why does it oscillate?")
 
+
+def test_errors_are_read_whole_and_broken_strings_are_joined(tmp_path):
+    run = tmp_path / "run-20261101-134223"
+    err = ("warning: using the gnuplot graphics toolkit is discouraged\nJARVIS_ERROR: parse error near line 4, column 26 "
+           f"in file {run}/jarvis_code.m\n\n  syntax error\n\n>>> ', x);\n         ^\n")
+    assert M._errors(err, run, shifted=True) == [
+        "parse error near line 3, column 26\n  syntax error\n>>> ', x);\n         ^"]
+    # 1 Nov: the model wrote a real newline where it meant \n inside fprintf's quotes
+    assert M.join_split_strings("x = 2;\nfprintf('x is %d\n', x);\ndisp('done')") == \
+        "x = 2;\nfprintf('x is %d\\n', x);\ndisp('done')"
+    fine = ("title('y'''' + 0.5y'' = 0');\nz = A';\n% it's a comment\ny = [a' b'];\n"
+            's = "say ""hi""";')
+    assert M.join_split_strings(fine) == fine
+
+
+async def test_an_error_gets_one_repair_and_another_click(settings, tmp_path):
+    from types import SimpleNamespace as NS
+
+    from test_lessons import Chunks
+
+    class Runs(FakeRun):
+        def __call__(self, command, cwd, **kwargs):
+            first = not self.commands
+            self.out = "" if first else "y(20) = -0.0020\n"
+            self.err = "JARVIS_ERROR: 'helix' undefined\n" if first else ""
+            self.figures = 0
+            return super().__call__(command, cwd, **kwargs)
+
+    clicks = []
+    t = MatlabTools(tmp_path / "Jarvis", OCTAVE, popen=Runs(),
+                    confirm=lambda tool, args, words: clicks.append(args["code"]) or True)
+
+    class Model:
+        def __init__(self):
+            self.requests = []
+            self.chat = NS(completions=NS(create=self.create))
+
+        async def create(self, model, messages, stream=False, **kwargs):
+            self.requests.append({"messages": messages, **kwargs})
+            n = len(self.requests)
+            if n in (1, 2):                                   # the run, then the repair: both call run_matlab
+                code = "helix()" if n == 1 else ODE
+                chunks = [NS(choices=[NS(delta=NS(content=None, tool_calls=[NS(index=0, function=NS(
+                    name="run_matlab", arguments=json.dumps({"title": "ODE", "code": code})))]))])]
+            else:
+                chunks = [NS(choices=[NS(delta=NS(content="It decays to zero.", tool_calls=None))])]
+            return Chunks(chunks)
+
+    model = Model()
+    said = []
+    app = App(settings, Telemetry.disabled(), llm=FallbackLLM([Provider("groq", "m", model)]),
+              out=lambda *a, **k: said.append(" ".join(map(str, a))), matlab=t)
+    app.view = NS(publish=lambda *a, **k: None, viewers=1, url="http://127.0.0.1:1/")
+    reply = await app.handle_text("solve y'' + 0.5y' + 4y = 0 in MATLAB and plot it")
+    assert reply == "It decays to zero." and clicks == ["helix()", ODE]
+    assert "'helix' undefined" in model.requests[1]["messages"][1]["content"]
+    assert model.requests[1]["tool_choice"]["function"]["name"] == "run_matlab"
+    assert "Jarvis: That had an error, so I've fixed the code on the board. Click Run again." in said

@@ -175,7 +175,12 @@ MATLAB_BY_NAME = re.compile(r"matlab|octave|මැට්ලැබ්", re.IGNORE
 # Something to do in MATLAB (with its name, or right after a request that named it: "run it and show me").
 MATLAB_ACTION = re.compile(r"\b(?:solve|plot|graph|draw|run|simulat\w*|comput\w*|calculat\w*|execute|"
                            r"integrat\w*|differentiat\w*|show)\b", re.IGNORECASE)
-MATLAB_RUN_IT = re.compile(r"\b(?:run|execute|plot|draw|graph|show)\b", re.IGNORECASE)
+MATLAB_RUN_IT = re.compile(r"\b(?:run|execute|re-?run|again)\b|\b(?:plot|graph|draw|show)\s+(?:it|that|this|"
+                           r"the (?:plot|graph|figure|result|output|code))\b", re.IGNORECASE)
+MATLAB_FIXED = {"en": "That had an error, so I've fixed the code on the board. Click Run again.",
+                "si": "ඒකේ error එකක් තිබුණා, කෝඩ් එක හදලා බෝඩ් එකේ දැම්මා. ආයෙත් Run ඔබන්න.",
+                "ta": "அதில் பிழை இருந்தது, குறியீட்டைச் சரிசெய்து பலகையில் வைத்தேன். மீண்டும் Run அழுத்துங்கள்."}
+MATLAB_RECENT_S = 10 * 60      # "run it again", "and with less damping?": still about the MATLAB job this long
 MATLAB_ASK = {"en": "The code's on the board. Click Run if it looks right.",
               "si": "කෝඩ් එක බෝඩ් එකේ තියෙනවා. හරි නම් Run ඔබන්න.",
               "ta": "குறியீடு பலகையில் உள்ளது. சரியாக இருந்தால் Run அழுத்துங்கள்."}
@@ -312,6 +317,7 @@ class App(LessonMode):
             self.info = None
         # MATLAB or Octave (tools/matlab.py): the model's code runs after a click; the figures go on the board.
         self.matlab = matlab if matlab is not None else self._make_matlab()
+        self._matlab_at = 0.0                    # when MATLAB last ran (follow-ups are about it for a while)
         if self.matlab is not None and not self.matlab.board_given:
             self.matlab.show_board = self._board_from_tool
         telemetry.log("matlab_engine", engine=self.matlab.engine.name if self.matlab is not None else None,
@@ -370,6 +376,10 @@ class App(LessonMode):
         from .tools.matlab import find_engine
         engine = find_engine(str(self.settings.get("matlab.engine", "auto")), str(self.settings.get("matlab.path", "")))
         if engine is None:
+            if self.settings.get("matlab.path", "") or str(self.settings.get("matlab.engine", "auto")) != "auto":
+                self.out(f"[matlab] {self.settings.get('matlab.engine', 'auto')} not found"
+                         f"{' at ' + str(self.settings.get('matlab.path')) if self.settings.get('matlab.path') else ''}: "
+                         "MATLAB requests will be answered in words. Check [matlab] in config/settings.local.toml.")
             return None
         confirm = None
         if desktop_available():                          # the click box (tools/confirm.py)
@@ -788,9 +798,35 @@ class App(LessonMode):
         return notes, specs, groups
 
     def _matlab_named_last(self) -> bool:
-        """Did the user's last request name MATLAB or Octave? ("...in MATLAB", then "run it and show me")"""
+        """Is this a follow-up to a MATLAB job? The last request named MATLAB or Octave ("...in MATLAB",
+        then "run it and show me"), or it ran in the last few minutes (1 Nov: the turn that ran it was cut
+        short by push-to-talk, so it wasn't in the history, and "can you run it?" got "I can't run MATLAB")."""
+        if self._matlab_at and time.monotonic() - self._matlab_at < MATLAB_RECENT_S:
+            return True
         last = next((m["content"] for m in reversed(self.history) if m["role"] == "user"), "")
         return bool(MATLAB_BY_NAME.search(last))
+
+    async def _repair_matlab(self, data: dict, token: CancelToken) -> str | None:
+        """The run failed with an error: the model sees the error and calls run_matlab again with fixed
+        code (another model than the one that wrote it, when there is one). New arguments, or None."""
+        messages = [{"role": "system", "content": (
+            "You fix MATLAB code that failed when Jarvis ran it in " + self.matlab.engine.name + ". Call run_matlab "
+            "with the complete corrected code and the same title. Keep what it does; fix only what's broken. One "
+            "statement a line, each string on one line.")},
+            {"role": "user", "content": f"Title: {data.get('title', '')}\n\nCode:\n{data.get('code', '')[:5000]}\n\n"
+                                        f"Error:\n{' | '.join(data.get('errors', []))[:800]}"}]
+        calls: list[ToolCall] = []
+        try:
+            async for piece in self.llm.stream_text(
+                    messages, token=token, route="code", lang="en", avoid=self.llm.last_provider,
+                    tools=self.matlab.specs(), tool_choice={"type": "function", "function": {"name": "run_matlab"}}):
+                if isinstance(piece, ToolCall):
+                    calls.append(piece)
+        except LLMUnavailable:
+            return None
+        fixed = next((c.arguments for c in calls if c.name == "run_matlab"), None)
+        self.telemetry.log("matlab_repair", ok=fixed is not None, provider=self.llm.last_provider)
+        return fixed
 
     def _wants_matlab_run(self, text: str) -> bool:
         """Something to do in MATLAB, said with its name or right after a request that named it."""
@@ -879,13 +915,25 @@ class App(LessonMode):
                 result = ToolSaid(f"info_{call.name}_{outcome.status}", words_for(outcome, lang.code))
                 self._show("action", tool=call.name, status=outcome.status, text=outcome.text)
             elif self.matlab is not None and call.name in self.matlab.names():
-                job = loop.run_in_executor(None, lambda c=call: self.matlab.call(c.name, c.arguments))
-                if self.matlab.will_ask(call.arguments):       # the click box is opening: say where the code is
-                    await self.sink.say(MATLAB_ASK.get(lang.code, MATLAB_ASK["en"]), lang, token)
-                outcome = await job
-                self.telemetry.log("model_tool", name=call.name, ok=outcome.acted, status=outcome.status,
-                                   reasons=outcome.reasons[:3], arguments=call.arguments[:200])
-                data = outcome.result.data if outcome.result is not None else {}
+                self._matlab_at = time.monotonic()
+                arguments = call.arguments
+                for attempt in range(2):                       # the run, and one repair if it hit an error
+                    job = loop.run_in_executor(None, lambda a=arguments: self.matlab.call("run_matlab", a))
+                    if self.matlab.will_ask(arguments):          # the click box is opening: say where the code is
+                        words = MATLAB_ASK if attempt == 0 else MATLAB_FIXED
+                        await self.sink.say(words.get(lang.code, words["en"]), lang, token)
+                    outcome = await job
+                    self.telemetry.log("model_tool", name=call.name, ok=outcome.acted, status=outcome.status,
+                                       reasons=outcome.reasons[:3], arguments=arguments[:200], attempt=attempt)
+                    data = outcome.result.data if outcome.result is not None else {}
+                    if (attempt or outcome.status != "failed" or not data.get("errors") or data.get("timed_out")
+                            or token.cancelled):
+                        break
+                    fixed = await self._repair_matlab(data, token)
+                    if fixed is None or token.cancelled:
+                        break
+                    arguments = fixed
+                self._matlab_at = time.monotonic()
                 if data.get("for_model") and outcome.status != "cancelled":
                     fetched.append(("matlab", data["for_model"]))   # ran, failed or refused: the model explains
                 result = ToolSaid(f"matlab_{outcome.status}", words_for(outcome, lang.code))

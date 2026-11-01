@@ -1528,4 +1528,19 @@ his (docs/TRAINING_EMPATHY.md, docs/TRAINING_EMOTION.md):
   or right after a request that named it) makes the model call run_matlab
   (tool_choice), and the tool's note says never to claim a run that didn't
   happen or to read code aloud.
+- Third try (13:42): Octave found and run after the click (19 s on the
+  laptop), but the model's code didn't parse: a string broken across lines
+  (it wrote a real newline where it meant \\n inside fprintf's quotes) and
+  other slips; the board showed only the error's first line. The key was
+  pressed during the run, so there was no explanation, and the turn wasn't
+  kept: "can you run it by yourself?" then got no MATLAB tool and "I can't
+  run MATLAB here". Now: strings broken across lines are joined before the
+  run; errors are read whole (path left out, line numbers as the model
+  wrote them); an error gets one repair (another model sees the code and
+  the error and calls run_matlab again; Jarvis says so and asks for a
+  second click); and for ten minutes after a run, "run it", "again" and
+  "show the plot" are still MATLAB jobs. Checked with real Octave: the
+  broken-string code now runs and plots. If the configured path is wrong,
+  Jarvis looks in the usual places and in any folder like D:\\GNU\\octave-*,
+  and says at start if MATLAB or Octave wasn't found.
 
