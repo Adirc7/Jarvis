@@ -62,6 +62,18 @@ def test_matlab_or_octave_is_found_newest_first(tmp_path):
     folder = tmp_path / "it's here"
     assert found.command(folder) == [str(found.exe), "-batch", f"cd('{str(folder).replace(chr(39), chr(39) * 2)}'); jarvis_run"]
     assert OCTAVE.command(folder)[1:5] == ["--no-gui", "--quiet", "--norc", "--eval"]
+    # like octave.bat: Octave's bin folder (gnuplot, Ghostscript) and the MSYS tools first on PATH
+    root = tmp_path / "GNU" / "octave-11.3.0-w64"
+    exe = root / "mingw64" / "bin" / "octave-cli.exe"
+    exe.parent.mkdir(parents=True)
+    exe.write_text("")
+    (exe.parent / "gs.exe").write_text("")
+    (root / "usr" / "bin").mkdir(parents=True)
+    unzipped = find_engine("octave", path=str(exe))
+    assert unzipped.name == "Octave 11.3.0"
+    env = unzipped.environment({"PATH": "/windows"})
+    assert env["PATH"].split(M.os.pathsep) == [str(exe.parent), str(root / "usr" / "bin"), "/windows"]
+    assert env["GS"] == "gs.exe" and found.environment({"PATH": "x"}) == {"PATH": "x"}
 
 
 class FakeRun:
@@ -73,6 +85,7 @@ class FakeRun:
 
     def __call__(self, command, cwd, **kwargs):
         self.commands.append(command)
+        self.env = kwargs.get("env")
         self.cwd = Path(cwd)
         for i in range(1, self.figures + 1):
             (self.cwd / f"figure{i}.png").write_bytes(b"\x89PNG fake")

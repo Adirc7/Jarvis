@@ -103,6 +103,21 @@ class Engine:
     exe: Path
     name: str           # "MATLAB R2024b", "Octave 9.2.0": for the model and the confirm box
 
+    def environment(self, base: dict[str, str] | None = None) -> dict[str, str]:
+        """What Octave's own launcher (octave.bat) sets up: its bin folder first on PATH (gnuplot and
+        Ghostscript for the figures live there) and the MSYS tools beside it. MATLAB needs nothing."""
+        env = dict(os.environ if base is None else base)
+        if self.kind != "octave":
+            return env
+        first = [str(self.exe.parent)]
+        usr_bin = self.exe.parent.parent.parent / "usr" / "bin"           # ...\octave-11.3.0-w64\usr\bin
+        if usr_bin.is_dir():
+            first.append(str(usr_bin))
+        env["PATH"] = os.pathsep.join([*first, env.get("PATH", "")])
+        if (self.exe.parent / "gs.exe").exists():
+            env["GS"] = "gs.exe"
+        return env
+
     def command(self, folder: Path) -> list[str]:
         where = str(folder).replace("'", "''")
         if self.kind == "matlab":
@@ -287,8 +302,9 @@ class MatlabTools:
         start = time.perf_counter()
         flags: dict[str, Any] = ({"creationflags": 0x00000200 | 0x08000000} if sys.platform == "win32"   # new group, no console
                                  else {"start_new_session": True})
-        proc = self.popen(self.engine.command(run), cwd=str(run), stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace", **flags)
+        proc = self.popen(self.engine.command(run), cwd=str(run), env=self.engine.environment(),
+                          stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                          encoding="utf-8", errors="replace", **flags)
         try:
             out, err = proc.communicate(timeout=self.timeout_s)
             timed_out = False
