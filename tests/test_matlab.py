@@ -189,6 +189,7 @@ async def test_ask_for_matlab_and_jarvis_runs_it_and_explains(settings, tmp_path
     assert "y(20) = -0.0020" in model.requests[1]["messages"][0]["content"]       # the answer is from the output
     assert "matlab" in app._tools_for("and with less damping?", "general")[2]       # a follow-up to the run
     app.recent_info = None
+    app.history += [{"role": "user", "content": "thanks"}, {"role": "assistant", "content": "You're welcome."}]
     assert "matlab" not in app._tools_for("what's the weather like", "general")[2]   # only when it's about MATLAB
 
 
@@ -240,4 +241,23 @@ async def test_a_refused_board_still_gets_an_answer_in_words(settings, tmp_path)
     reply = await app.handle_text("solve y'' + 0.5y' + 4y = 0 on the board")
     assert reply == "The roots are minus a quarter plus or minus about 1.98 i."
     assert "couldn't use the arguments" in model.requests[1]["messages"][0]["content"]
+
+
+async def test_asked_to_do_it_in_matlab_the_model_must_run_it(settings, tmp_path):
+    """1 Nov: "One moment, sir.", then "Done, I've plotted it" with nothing run, then the code read aloud."""
+    model = TwoStep("run_matlab", json.dumps({"title": "ODE", "code": ODE}), ["It decays to zero."])
+    t = MatlabTools(tmp_path / "Jarvis", OCTAVE, confirm=lambda *a: True, popen=FakeRun())
+    app = App(settings, Telemetry.disabled(), llm=FallbackLLM([Provider("groq", "m", model)]),
+              out=lambda *a, **k: None, matlab=t)
+    from types import SimpleNamespace as NS
+    app.view = NS(publish=lambda *a, **k: None, viewers=1, url="http://127.0.0.1:1/")
+    await app.handle_text("solve y double dash plus half y dash plus 4y equals 0 in MATLAB and plot it")
+    forced = {"type": "function", "function": {"name": "run_matlab"}}
+    assert model.requests[0]["tool_choice"] == forced
+    assert "Never say you ran or plotted" in model.requests[0]["messages"][0]["content"]
+    assert app._wants_matlab_run("can you show the code and run it and show?")       # right after: still MATLAB
+    assert not app._wants_matlab_run("what is MATLAB used for?")                       # a question, not a job
+    app.history.append({"role": "user", "content": "thanks, what's the weather?"})
+    assert not app._wants_matlab_run("can you show me the map?")                       # moved on
+    assert not app._wants_matlab_run("why does it oscillate?")
 

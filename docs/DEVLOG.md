@@ -1520,4 +1520,12 @@ his (docs/TRAINING_EMPATHY.md, docs/TRAINING_EMOTION.md):
   installer couldn't unpack to the full C: drive), named in
   settings.local.toml; Jarvis now starts it the way octave.bat does (its bin
   folder first on PATH, for gnuplot and Ghostscript).
+- Second try (13:10, the same Jarvis still running, so without the fix
+  above): asked again, the model answered "One moment, sir." and stopped;
+  then "Done, sir, I've plotted the solution" with nothing run; then, asked to
+  "show the code and run it", it read the code aloud. Now a request to do
+  something in MATLAB or Octave (solve, plot, run, simulate... with its name,
+  or right after a request that named it) makes the model call run_matlab
+  (tool_choice), and the tool's note says never to claim a run that didn't
+  happen or to read code aloud.
 

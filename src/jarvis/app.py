@@ -172,6 +172,10 @@ MATLAB_WORDS = re.compile(
     r"matlab|octave|simulink|ode45|ode23|\bnumerical(?:ly)?\b|\.m file|run (?:the|this|that|my) code|"
     r"මැට්ලැබ්", re.IGNORECASE)
 MATLAB_BY_NAME = re.compile(r"matlab|octave|මැට්ලැබ්", re.IGNORECASE)
+# Something to do in MATLAB (with its name, or right after a request that named it: "run it and show me").
+MATLAB_ACTION = re.compile(r"\b(?:solve|plot|graph|draw|run|simulat\w*|comput\w*|calculat\w*|execute|"
+                           r"integrat\w*|differentiat\w*|show)\b", re.IGNORECASE)
+MATLAB_RUN_IT = re.compile(r"\b(?:run|execute|plot|draw|graph|show)\b", re.IGNORECASE)
 MATLAB_ASK = {"en": "The code's on the board. Click Run if it looks right.",
               "si": "කෝඩ් එක බෝඩ් එකේ තියෙනවා. හරි නම් Run ඔබන්න.",
               "ta": "குறியீடு பலகையில் உள்ளது. சரியாக இருந்தால் Run அழுத்துங்கள்."}
@@ -650,6 +654,11 @@ class App(LessonMode):
             # and the knowledge tools the request is about.
             system += notes
             extra["tools"] = specs
+            if "matlab" in groups and self._wants_matlab_run(text):
+                # Asked to do it in MATLAB: the model must call run_matlab (1 Nov: asked to solve and plot in
+                # MATLAB, it answered "One moment, sir.", then "Done, I've plotted it" with nothing run, then
+                # read the code aloud).
+                extra["tool_choice"] = {"type": "function", "function": {"name": "run_matlab"}}
         system += self._recent_info_note() + self._emotion_note()
         messages = [{"role": "system", "content": system}] + history + [{"role": "user", "content": text}]
         if decision.route in ("maths", "teach") and "maths" in groups:
@@ -757,7 +766,7 @@ class App(LessonMode):
         if self.view is not None and (every or self._visual_offered(text, route)):
             groups.add("visual")                              # a lesson in the window (lesson_mode.py)
             specs.append(LESSON_SPEC)
-        if self.matlab is not None and (every or MATLAB_WORDS.search(text)
+        if self.matlab is not None and (every or MATLAB_WORDS.search(text) or self._matlab_named_last()
                                         or ("matlab" in self.recent_kinds and self._recent_info_note())):
             groups.add("matlab")                              # MATLAB or Octave (tools/matlab.py)
             specs += self.matlab.specs()
@@ -771,10 +780,23 @@ class App(LessonMode):
             said = {**GROUP_NOTES, "visual": LESSON_NOTE,
                     "matlab": (f"run_matlab to write and run MATLAB code ({self.matlab.engine.name if self.matlab else ''})"
                                " for MATLAB, numerical solutions and simulations; the user clicks to approve each "
-                               "run, and the code, output and figures show on the board")}
+                               "run, and the code, output and figures show on the board. Never say you ran or "
+                               "plotted something unless run_matlab did it, and never read code aloud: it goes "
+                               "in run_matlab")}
             notes += ("\n\nKnowledge tools this turn: " + "; ".join(said[g] for g in sorted(groups))
                       + ". Several at once is fine.")
         return notes, specs, groups
+
+    def _matlab_named_last(self) -> bool:
+        """Did the user's last request name MATLAB or Octave? ("...in MATLAB", then "run it and show me")"""
+        last = next((m["content"] for m in reversed(self.history) if m["role"] == "user"), "")
+        return bool(MATLAB_BY_NAME.search(last))
+
+    def _wants_matlab_run(self, text: str) -> bool:
+        """Something to do in MATLAB, said with its name or right after a request that named it."""
+        if self.matlab is None or not MATLAB_ACTION.search(text):
+            return False
+        return bool(MATLAB_BY_NAME.search(text)) or (self._matlab_named_last() and bool(MATLAB_RUN_IT.search(text)))
 
     async def _close_panel(self, text: str, turn: Turn, token: CancelToken) -> str:
         what = self.panel if self.panel in ("map", "lesson") else "board"
