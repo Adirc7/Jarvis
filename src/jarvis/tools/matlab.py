@@ -112,6 +112,62 @@ for jarvis_k = 1:min(numel(jarvis_figs), MAX_FIGURES)
     fprintf(2, 'JARVIS_ERROR: couldn''t save figure %d:%s\n', jarvis_k, jarvis_why);
   end
 end
+% What each figure shows, measured from its data, for Jarvis to explain it (he can't see the picture).
+try
+for jarvis_k = 1:min(numel(jarvis_figs), MAX_FIGURES)
+  jarvis_axes = findall(jarvis_figs(jarvis_k), 'type', 'axes');
+  for jarvis_a = 1:min(numel(jarvis_axes), 4)
+    jarvis_ax = jarvis_axes(jarvis_a);
+    if any(strcmpi(get(jarvis_ax, 'tag'), {'legend', 'colorbar'}))
+      continue;
+    end
+    jarvis_lab = {get(get(jarvis_ax, 'title'), 'string'), get(get(jarvis_ax, 'xlabel'), 'string'), ...
+                  get(get(jarvis_ax, 'ylabel'), 'string')};
+    for jarvis_i = 1:3
+      if iscell(jarvis_lab{jarvis_i}), jarvis_lab{jarvis_i} = strjoin(jarvis_lab{jarvis_i}, ' '); end
+      if size(jarvis_lab{jarvis_i}, 1) > 1, jarvis_lab{jarvis_i} = strjoin(cellstr(jarvis_lab{jarvis_i})', ' '); end
+    end
+    fprintf('JARVIS_DATA: figure %d: title "%s", x axis "%s", y axis "%s"\n', jarvis_k, jarvis_lab{1}, ...
+            jarvis_lab{2}, jarvis_lab{3});
+    jarvis_lines = findall(jarvis_ax, 'type', 'line');
+    for jarvis_j = 1:min(numel(jarvis_lines), 3)
+      jarvis_l = jarvis_lines(jarvis_j);
+      jarvis_x = double(get(jarvis_l, 'xdata')); jarvis_y = double(get(jarvis_l, 'ydata'));
+      jarvis_x = jarvis_x(:)'; jarvis_y = jarvis_y(:)';
+      jarvis_ok = isfinite(jarvis_x) & isfinite(jarvis_y);
+      jarvis_x = jarvis_x(jarvis_ok); jarvis_y = jarvis_y(jarvis_ok);
+      if numel(jarvis_y) < 2, continue; end
+      [jarvis_lo, jarvis_ilo] = min(jarvis_y); [jarvis_hi, jarvis_ihi] = max(jarvis_y);
+      jarvis_name = get(jarvis_l, 'displayname');
+      fprintf(['JARVIS_DATA:   curve %d%s (%d points): x from %.4g to %.4g; y starts at %.4g and ends at %.4g; ' ...
+               'lowest %.4g at x = %.4g; highest %.4g at x = %.4g\n'], jarvis_j, ...
+              char(repmat([' "' jarvis_name '"'], 1, ~isempty(jarvis_name))), numel(jarvis_y), jarvis_x(1), jarvis_x(end), jarvis_y(1), jarvis_y(end), ...
+              jarvis_lo, jarvis_x(jarvis_ilo), jarvis_hi, jarvis_x(jarvis_ihi));
+      jarvis_zc = find(jarvis_y(1:end-1) .* jarvis_y(2:end) < 0);
+      if ~isempty(jarvis_zc)
+        fprintf('JARVIS_DATA:     crosses zero %d times, first near x = %s\n', numel(jarvis_zc), ...
+                sprintf('%.3g ', jarvis_x(jarvis_zc(1:min(5, end)))));
+      end
+      jarvis_pk = find(jarvis_y(2:end-1) > jarvis_y(1:end-2) & jarvis_y(2:end-1) >= jarvis_y(3:end)) + 1;
+      if ~isempty(jarvis_pk)
+        jarvis_n = min(6, numel(jarvis_pk));
+        fprintf('JARVIS_DATA:     %d peaks; the first (x, y): %s\n', numel(jarvis_pk), ...
+                sprintf('(%.3g, %.3g) ', [jarvis_x(jarvis_pk(1:jarvis_n)); jarvis_y(jarvis_pk(1:jarvis_n))]));
+      end
+    end
+    jarvis_surfs = findall(jarvis_ax, 'type', 'surface');
+    for jarvis_j = 1:min(numel(jarvis_surfs), 2)
+      jarvis_z = double(get(jarvis_surfs(jarvis_j), 'zdata'));
+      jarvis_z = jarvis_z(isfinite(jarvis_z));
+      if ~isempty(jarvis_z)
+        fprintf('JARVIS_DATA:   surface %d: z from %.4g to %.4g\n', jarvis_j, min(jarvis_z), max(jarvis_z));
+      end
+    end
+  end
+end
+catch jarvis_err
+  fprintf('JARVIS_DATA: (could not measure the figures: %s)\n', jarvis_err.message);
+end
 """.replace("MAX_FIGURES", str(MAX_FIGURES))
 
 
@@ -340,7 +396,9 @@ class MatlabTools:
         if not errors and proc.returncode not in (0, None) and not timed_out:
             errors = [line for line in (err or "").splitlines() if line.strip()][-3:] or [f"exit code {proc.returncode}"]
         figures = sorted(p.name for p in run.glob("figure*.*") if FIGURE_NAME.fullmatch(p.name))
-        output = _clean(out)
+        measured = [ln.split("JARVIS_DATA:", 1)[1].rstrip() for ln in (out or "").splitlines()
+                    if ln.startswith("JARVIS_DATA:")]
+        output = _clean("\n".join(ln for ln in (out or "").splitlines() if not ln.startswith("JARVIS_DATA:")))
         steps = [{"text": f"{self.engine.name} code ({seconds:.0f} s)", "code": code.removeprefix("1;\n")[:6000]}]
         if output:
             steps.append({"text": "Output", "code": output})
@@ -353,8 +411,10 @@ class MatlabTools:
                   f"Printed output:\n{output}" if output else "It printed nothing.",
                   (f"{len(figures)} figure(s) saved and shown on the board in Jarvis's window"
                    if shown else f"{len(figures)} figure(s) saved; the window isn't open")
-                  + (" (you can't see them: explain what the code plots, not details you can't know)." if figures
+                  + (" (you can't see them; what they show, measured from their data, is below)." if figures
                      else ".")]
+        if measured:
+            report.append("What the figures show (measured from the plotted data):\n" + "\n".join(measured)[:1800])
         if timed_out:
             report.append(f"It was stopped after {self.timeout_s:.0f} seconds (too slow, or waiting for something).")
         if errors:

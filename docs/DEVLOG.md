@@ -1543,4 +1543,14 @@ his (docs/TRAINING_EMPATHY.md, docs/TRAINING_EMOTION.md):
   broken-string code now runs and plots. If the configured path is wrong,
   Jarvis looks in the usual places and in any folder like D:\\GNU\\octave-*,
   and says at start if MATLAB or Octave wasn't found.
+- 2 Nov, 04:15: the run worked but no figure (Octave chose Qt, which can't
+  draw without a window): gnuplot is now always used when present, each
+  figure saved as PNG or else SVG. Then Adhi on the explanation: say what
+  the equation is and where it comes from, what's special about it, and
+  explain the plot by your own analysis; he can see the code and the
+  numbers, so don't read them. The model can't see the figure, so the
+  wrapper now measures each one from its data (title, axes, each curve's
+  range, start and end, lowest and highest points, zero crossings, peaks;
+  surfaces' range) and the explanation is written from that, on the teach
+  route, with a note on what to cover and what never to read out.
 

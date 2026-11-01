@@ -152,10 +152,18 @@ ANSWER_NOTES = {
                  "Author (Year) with the DOI when there is one. Never invent a source, a quote or a number. If the "
                  "sources don't answer the question, say what's missing. Then briefly give your own view of what it "
                  "means or where the field is heading, labelled as your view."),
-    "matlab": ("Explain the MATLAB run from its printed output: the numbers that matter and what they mean, in "
-               "spoken words. Its figures are on the board in Jarvis's window, but you can't see them: say what "
-               "the code plots, never details you can't know. If it failed or was refused, say why in one "
-               "sentence and offer to fix it."),
+    # 2 Nov, Adhi: explain the background, what's special, and the plot by your own analysis; the code and
+    # the numbers are on the board already, so don't read them out.
+    "matlab": ("The code, its output and the figures are on the board in Jarvis's window, where the user can see "
+               "them: never read the code or list numbers one after another. Explain it like a good lecturer, in "
+               "spoken words, about 150 to 200 words: first what the equation or problem is and where it comes "
+               "from (what it models, what each term means physically); then what is special about this case and "
+               "why (for example underdamped because the damping is small next to the stiffness, stable or not); "
+               "then walk through the plot using the measured features: how it starts, its shape, its peaks and "
+               "how fast they shrink or grow, where it crosses zero, where it ends, with two or three key numbers "
+               "woven in; then your own analysis: what it means and what changing a parameter would do. Describe "
+               "only what the measured data supports. If it failed or was refused, say why in one sentence and "
+               "offer to fix it."),
     "maths": ("Teach like a good tutor: unless the user asked for the full answer, give a hint or the first step and "
               "ask them to try the next one. Every result you state must match SymPy's checked result; never call "
               "an unchecked result correct. Say maths the way it's spoken (\"x squared times sine x\"). What's on "
@@ -963,6 +971,8 @@ class App(LessonMode):
             self.telemetry.log("model_tool", name="show_lesson", ok=True, arguments=lesson_call.arguments[:200])
             return await self._lesson_from_tool(lesson_call.arguments, text, turn, token)
         if fetched and not token.cancelled:
+            if all(kind == "matlab" for kind, _ in fetched):
+                route = "teach"                     # explaining what MATLAB did is teaching, not writing code
             return await self._answer_from(text, fetched, turn, token, route)
         if done is None:                     # arguments that didn't check out: nothing was done
             done = WebTools._replier(lang.code, self.persona.address)("couldnt", "model_tool_failed")

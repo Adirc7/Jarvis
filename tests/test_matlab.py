@@ -354,3 +354,25 @@ def test_an_svg_figure_is_shown_but_can_never_run_anything(tmp_path):
     # 2 Nov, Windows: Qt was chosen and couldn't draw without a window; gnuplot now comes first, then PNG, then SVG
     assert "if any(strcmp(jarvis_tk, 'gnuplot'))\n    graphics_toolkit('gnuplot');" in M.WRAPPER
     assert "{'svg', '-dsvg', ''}" in M.WRAPPER
+
+
+async def test_jarvis_explains_the_plot_from_its_measured_data_not_the_code(settings, tmp_path):
+    """2 Nov, Adhi: explain the background, what's special and the plot itself; don't read the code or values."""
+    measured = ("y(10) = 0.0533\nJARVIS_DATA: figure 1: title \"Damped oscillator\", x axis \"t (s)\", y axis \"y\"\n"
+                "JARVIS_DATA:   curve 1 (400 points): x from 0 to 10; y starts at 1 and ends at 0.05329\n"
+                "JARVIS_DATA:     3 peaks; the first (x, y): (3.16, 0.453) (6.34, 0.205) (9.5, 0.0929)\n")
+    boards = []
+    t = MatlabTools(tmp_path / "Jarvis", OCTAVE, confirm=lambda *a: True, popen=FakeRun(out=measured),
+                    show_board=lambda b: boards.append(b) or True)
+    model = TwoStep("run_matlab", json.dumps({"title": "ODE", "code": ODE}), ["It's a damped spring..."])
+    app = App(settings, Telemetry.disabled(), llm=FallbackLLM([Provider("groq", "m", model)]),
+              out=lambda *a, **k: None, matlab=t)
+    from types import SimpleNamespace as NS
+    app.view = NS(publish=lambda *a, **k: None, viewers=1, url="http://127.0.0.1:1/")
+    await app.handle_text("solve y'' + 0.5y' + 4y = 0 in MATLAB and plot it")
+    answer = model.requests[1]["messages"][0]["content"]
+    assert "3 peaks; the first (x, y): (3.16, 0.453)" in answer                      # the plot, measured
+    assert "never read the code" in answer and "what is special about this case" in answer
+    assert boards[-1]["steps"][1] == {"text": "Output", "code": "y(10) = 0.0533"}     # measurements stay off the board
+    assert app.llm.last_route == "teach"                                              # explained by a teaching model
+    assert "for jarvis_k = 1:min(numel(jarvis_figs), 4)\n  jarvis_axes = findall" in M.WRAPPER
