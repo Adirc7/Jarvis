@@ -1507,4 +1507,17 @@ his (docs/TRAINING_EMPATHY.md, docs/TRAINING_EMOTION.md):
   MATLAB itself isn't in this workspace: the MATLAB path is tested with a
   stand-in, so the first real run is on the laptop.
 - 8 tests.
+- First run on the laptop (1 Nov, 12:53): "solve y'' + 0.5y' + 4y = 0 in Matlab
+  and plot it" never reached Octave. The model (qwen, on the code route) drew
+  the working on the board instead, with stray keys in its steps ("math': ",
+  "text1"), the board refused it, and Jarvis said "I can't do that one."
+  Fixed three ways: naming MATLAB or Octave now offers run_matlab only (not the
+  board, checked maths or lessons); the board ignores stray keys in a step
+  (only text and math are ever shown); and when a knowledge tool refuses the
+  model's arguments, the model answers in words instead. The log now records
+  which tool groups were offered each turn, and which MATLAB or Octave Jarvis
+  found at start. On the laptop: Octave 11.3.0 unzipped to D:\GNU (its
+  installer couldn't unpack to the full C: drive), named in
+  settings.local.toml; Jarvis now starts it the way octave.bat does (its bin
+  folder first on PATH, for gnuplot and Ghostscript).
 

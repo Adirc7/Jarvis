@@ -68,7 +68,14 @@ def test_show_on_board_puts_working_and_graphs_in_the_window(tmp_path):
     too_many = {"title": "x", "steps": [{"text": "a"}] * 13}
     assert info.call("show_on_board", json.dumps(too_many)).status == "refused"
     odd = {"title": "x", "steps": [{"text": "a", "script": "alert(1)"}]}
-    assert info.call("show_on_board", json.dumps(odd)).status == "refused"    # unknown keys: refused
+    assert info.call("show_on_board", json.dumps(odd)).status == "claimed"    # a stray key is ignored...
+    assert screen.shown[-1][1]["steps"] == [{"text": "a", "math": ""}]         # ...and never reaches the board
+    # what qwen sent on 1 Nov (stray "math': " and "text1" keys): shown, not refused
+    slip = {"title": "Damped oscillator", "steps": [{"math': ": "", "math: ": "", "text": "A linear ODE.", "text1": ""},
+                                                     {"text": "Assume y = e^(rx)."}]}
+    assert info.call("show_on_board", json.dumps(slip)).status == "claimed"
+    assert [st["text"] for st in screen.shown[-1][1]["steps"]] == ["A linear ODE.", "Assume y = e^(rx)."]
+    assert info.call("show_on_board", json.dumps({"title": "x", "steps": [{"text": 5}]})).status == "refused"
 
 
 def test_checked_maths_lands_on_the_board(tmp_path):

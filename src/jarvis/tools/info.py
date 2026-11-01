@@ -295,9 +295,12 @@ class InfoTools:
                  "y = f(x) (maths like check_maths writes it, e.g. exp(-x^2/2)/sqrt(2 pi)). Use it whenever "
                  "formulas, derivations or graphs help.",
                  _obj({"title": {**text, "maxLength": 120},
-                       "steps": {"type": "array", "maxItems": 12, "items": _obj(
-                           {"text": {"type": "string", "maxLength": 400}, "math": {"type": "string", "maxLength": 400}},
-                           [])},
+                       # Stray keys in a step are ignored, not refused: only text and math are ever shown
+                       # (1 Nov: a model sent "math': " and "text1" beside its text, and the board was refused).
+                       "steps": {"type": "array", "maxItems": 12, "items": {
+                           **_obj({"text": {"type": "string", "maxLength": 400},
+                                   "math": {"type": "string", "maxLength": 400}}, []),
+                           "additionalProperties": True}},
                        "graphs": {"type": "array", "maxItems": 3, "items": _obj(
                            {"expression": {**text, "maxLength": 200}, "variable": {"type": "string",
                                                                                   "pattern": "^[A-Za-z]$"},

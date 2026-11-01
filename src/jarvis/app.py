@@ -171,6 +171,7 @@ STUDY_NOTE = ("Study help: you're a tutor for a physical science, maths and data
 MATLAB_WORDS = re.compile(
     r"matlab|octave|simulink|ode45|ode23|\bnumerical(?:ly)?\b|\.m file|run (?:the|this|that|my) code|"
     r"මැට්ලැබ්", re.IGNORECASE)
+MATLAB_BY_NAME = re.compile(r"matlab|octave|මැට්ලැබ්", re.IGNORECASE)
 MATLAB_ASK = {"en": "The code's on the board. Click Run if it looks right.",
               "si": "කෝඩ් එක බෝඩ් එකේ තියෙනවා. හරි නම් Run ඔබන්න.",
               "ta": "குறியீடு பலகையில் உள்ளது. சரியாக இருந்தால் Run அழுத்துங்கள்."}
@@ -309,6 +310,8 @@ class App(LessonMode):
         self.matlab = matlab if matlab is not None else self._make_matlab()
         if self.matlab is not None and not self.matlab.board_given:
             self.matlab.show_board = self._board_from_tool
+        telemetry.log("matlab_engine", engine=self.matlab.engine.name if self.matlab is not None else None,
+                      exe=str(self.matlab.engine.exe) if self.matlab is not None else None)
         self.recent_info: tuple[float, str] | None = None     # (when, what was fetched) for follow-ups
         self.view = None                                       # the window (ui/server.py), started by run()
         self.state.empathy = self.persona.default_mode
@@ -654,7 +657,7 @@ class App(LessonMode):
         if decision.route in ("maths", "teach") and "visual" in groups:
             messages[0]["content"] += "\n\n" + OFFER_NOTE
         self.telemetry.log("route", route=decision.route, reason=decision.reason, intent=decision.intent,
-                           tools=bool(extra))
+                           tools=bool(extra), groups=sorted(groups))
         self.state.mode = Mode.THINKING
         calls: list[ToolCall] = []
 
@@ -758,6 +761,12 @@ class App(LessonMode):
                                         or ("matlab" in self.recent_kinds and self._recent_info_note())):
             groups.add("matlab")                              # MATLAB or Octave (tools/matlab.py)
             specs += self.matlab.specs()
+            if not every and MATLAB_BY_NAME.search(text):
+                # Asked for MATLAB by name: run_matlab only (1 Nov: offered the board too, the model drew
+                # the working on the board instead of running MATLAB).
+                dropped = {"show_on_board", "check_maths", "show_lesson"}
+                specs = [sp for sp in specs if sp["function"]["name"] not in dropped]
+                groups -= {"maths", "visual"}
         if groups:
             said = {**GROUP_NOTES, "visual": LESSON_NOTE,
                     "matlab": (f"run_matlab to write and run MATLAB code ({self.matlab.engine.name if self.matlab else ''})"
@@ -838,6 +847,13 @@ class App(LessonMode):
                 data = outcome.result.data if outcome.result is not None else {}
                 if outcome.acted and data.get("for_model"):
                     fetched.append((data.get("kind", "research"), data["for_model"]))
+                elif outcome.status == "refused":
+                    # The model's arguments didn't check out (a slip): answer in words rather than say
+                    # "I can't do that one" to a question that has an answer.
+                    kind = next((g for g, names in TOOL_GROUPS.items() if call.name in names), "research")
+                    fetched.append((kind, f"Jarvis's {call.name} tool couldn't use the arguments it was given "
+                                          f"({'; '.join(outcome.reasons[:3])[:300]}), so nothing was shown. Answer "
+                                          "the user's question in words now, without mentioning the tool."))
                 result = ToolSaid(f"info_{call.name}_{outcome.status}", words_for(outcome, lang.code))
                 self._show("action", tool=call.name, status=outcome.status, text=outcome.text)
             elif self.matlab is not None and call.name in self.matlab.names():

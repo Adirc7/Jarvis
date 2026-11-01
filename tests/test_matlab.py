@@ -212,3 +212,32 @@ def test_the_window_serves_jarvis_figures_only(tmp_path):
         assert get(f"/figure/{run}/../figure1.png")[0] == 404
     finally:
         v.stop()
+
+
+def test_asked_for_matlab_by_name_only_run_matlab_is_offered(settings, tmp_path):
+    from test_knowledge import make_info
+    info, _ = make_info(tmp_path)
+    t = MatlabTools(tmp_path / "Jarvis", OCTAVE, confirm=lambda *a: True, popen=FakeRun())
+    app = App(settings, Telemetry.disabled(), out=lambda *a, **k: None, info=info, matlab=t)
+    from types import SimpleNamespace as NS
+    app.view = NS(publish=lambda *a, **k: None, viewers=1, url="http://127.0.0.1:1/")
+    _, specs, groups = app._tools_for("Jarvis, solve y double dash plus half y dash plus 4y equals 0 in Matlab "
+                                      "and plot it", "code")
+    names = {s["function"]["name"] for s in specs}
+    assert "run_matlab" in names and not names & {"show_on_board", "check_maths", "show_lesson"}
+    assert "matlab" in groups and "maths" not in groups
+    _, specs, _ = app._tools_for("solve this ODE numerically and plot it", "maths")      # not by name: both
+    assert {"run_matlab", "show_on_board"} <= {s["function"]["name"] for s in specs}
+
+
+async def test_a_refused_board_still_gets_an_answer_in_words(settings, tmp_path):
+    from test_knowledge import make_info
+    info, _ = make_info(tmp_path)
+    model = TwoStep("show_on_board", json.dumps({"title": "x", "steps": [{"text": 5}]}),
+                    ["The roots are minus a quarter plus or minus about 1.98 i."])
+    app = App(settings, Telemetry.disabled(), llm=FallbackLLM([Provider("groq", "m", model)]),
+              out=lambda *a, **k: None, info=info)
+    reply = await app.handle_text("solve y'' + 0.5y' + 4y = 0 on the board")
+    assert reply == "The roots are minus a quarter plus or minus about 1.98 i."
+    assert "couldn't use the arguments" in model.requests[1]["messages"][0]["content"]
+
