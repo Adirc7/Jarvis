@@ -39,7 +39,8 @@ uv run python -c "import cv2; cv2.__version__; cv2.VideoCapture" >nul 2>nul || u
 echo.
 echo === Checking
 uv run python -c "import onnxruntime as o; print('onnxruntime', o.__version__, '|', ', '.join(o.get_available_providers()))"
-uv run pytest -q
+rem --durations: the slowest tests are listed, so a slow update can be traced (1 Nov: 9, 11, then 40 minutes)
+uv run pytest -q --durations=10
 if errorlevel 1 goto :fail
 echo.
 echo === Shortcuts

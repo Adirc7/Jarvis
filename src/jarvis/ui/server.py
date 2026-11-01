@@ -228,6 +228,14 @@ class LiveView:
 
             def do_POST(self) -> None:
                 path = self.path.split("?", 1)[0]
+                # Read the body before any answer, even a refusal: on Windows, closing a connection with
+                # unread data resets it, and the page (or test) gets "connection aborted" instead of the
+                # 403 (1 Nov, test_window on the laptop, now and then).
+                try:
+                    size = max(0, int(self.headers.get("Content-Length") or 0))
+                except ValueError:
+                    size = 0
+                raw = self.rfile.read(min(size, 65536)) if size else b""
                 handler = {"/say": view.on_text, "/ui": view.on_ui}.get(path)
                 if handler is None:
                     self._send(405, b"read only", "text/plain")
@@ -240,8 +248,7 @@ class LiveView:
                     self._send(403, b"forbidden", "text/plain")
                     return
                 try:
-                    size = int(self.headers.get("Content-Length") or 0)
-                    body = json.loads(self.rfile.read(min(size, 8000)) if 0 < size <= 8000 else b"")
+                    body = json.loads(raw if 0 < size <= 8000 else b"")
                     if path == "/ui":
                         event = _ui_event(body)
                     else:
