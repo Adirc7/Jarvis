@@ -331,3 +331,26 @@ async def test_an_error_gets_one_repair_and_another_click(settings, tmp_path):
     assert "'helix' undefined" in model.requests[1]["messages"][1]["content"]
     assert model.requests[1]["tool_choice"]["function"]["name"] == "run_matlab"
     assert "Jarvis: That had an error, so I've fixed the code on the board. Click Run again." in said
+
+
+def test_an_svg_figure_is_shown_but_can_never_run_anything(tmp_path):
+    t, _, _ = tools(tmp_path, FakeRun(figures=0))
+    out = t.call("run_matlab", json.dumps({"title": "t", "code": "plot(1:3)"}))
+    run = out.result.data["run"]
+    (tmp_path / "Jarvis" / "matlab" / run / "figure1.svg").write_text('<svg xmlns="http://www.w3.org/2000/svg"/>')
+    assert t.figure(run, "figure1.svg") is not None and t.figure(run, "figure1.svgz") is None
+    v = LiveView(port=0, figure=t.figure)
+    v.start()
+    try:
+        conn = http.client.HTTPConnection("127.0.0.1", v.port, timeout=5)
+        conn.request("GET", f"/figure/{run}/figure1.svg", headers={"Host": f"127.0.0.1:{v.port}"})
+        r = conn.getresponse()
+        r.read()
+        assert r.status == 200 and r.getheader("Content-Type") == "image/svg+xml"
+        assert "default-src 'none'" in r.getheader("Content-Security-Policy")       # no scripts, even opened alone
+        conn.close()
+    finally:
+        v.stop()
+    # 2 Nov, Windows: Qt was chosen and couldn't draw without a window; gnuplot now comes first, then PNG, then SVG
+    assert "if any(strcmp(jarvis_tk, 'gnuplot'))\n    graphics_toolkit('gnuplot');" in M.WRAPPER
+    assert "{'svg', '-dsvg', ''}" in M.WRAPPER

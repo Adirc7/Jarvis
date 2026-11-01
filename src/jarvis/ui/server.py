@@ -152,14 +152,15 @@ class LiveView:
                 host = (self.headers.get("Host") or "").lower()
                 return host in (f"127.0.0.1:{view.port}", f"localhost:{view.port}")
 
-            def _send(self, code: int, body: bytes, kind: str) -> None:
+            def _send(self, code: int, body: bytes, kind: str, policy: str = "") -> None:
                 self.send_response(code)
                 self.send_header("Content-Type", kind)
                 self.send_header("Content-Length", str(len(body)))
                 self.send_header("Cache-Control", "no-store")
                 self.send_header("X-Content-Type-Options", "nosniff")
                 # frame-src: a frame in the window (the map, a lesson's sketch) can't be sent to another site
-                self.send_header("Content-Security-Policy", "frame-ancestors 'self'; frame-src 'self'")
+                self.send_header("Content-Security-Policy",
+                                 "frame-ancestors 'self'; frame-src 'self'" + (f"; {policy}" if policy else ""))
                 self.end_headers()
                 self.wfile.write(body)
 
@@ -190,7 +191,11 @@ class LiveView:
                 elif path.startswith("/figure/") and path.count("/") == 3:
                     _, _, run, name = path.split("/")
                     found = view.figure(run, name)           # tools/matlab.py checks both names
-                    if found is not None and found.is_file():
+                    if found is not None and found.is_file() and found.suffix == ".svg":
+                        # an SVG is drawn, never run: no scripts or outside loads, even opened on its own
+                        self._send(200, found.read_bytes(), "image/svg+xml",
+                                   "default-src 'none'; style-src 'unsafe-inline'; img-src data:")
+                    elif found is not None and found.is_file():
                         self._send(200, found.read_bytes(), "image/png")
                     else:
                         self._send(404, b"no such figure", "text/plain")

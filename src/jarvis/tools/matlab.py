@@ -38,7 +38,7 @@ from .registry import Args, Registry, Result, Tier, Tool
 MAX_FIGURES = 4
 OUTPUT_CHARS = 4000
 RUN_NAME = re.compile(r"run-\d{8}-\d{6}(?:-\d{1,3})?")
-FIGURE_NAME = re.compile(r"figure[1-4]\.png")
+FIGURE_NAME = re.compile(r"figure[1-4]\.(?:png|svg)")
 # Functions that reach outside the run: the shell, files, the network, other languages, code built from text.
 BLOCKED = (
     "system", "dos", "unix", "winopen", "perl", "python", "pyrun", "pyrunfile", "pyenv", "javaObject", "javaMethod",
@@ -67,7 +67,9 @@ end
 if exist('OCTAVE_VERSION', 'builtin')
   warning('off', 'Octave:gnuplot-graphics');
   jarvis_tk = available_graphics_toolkits();
-  if any(strcmp(jarvis_tk, 'gnuplot')) && ~any(strcmp(jarvis_tk, 'qt'))
+  % gnuplot draws without a window; Qt and FLTK need one (2 Nov, Windows: "PNGCAIRO output is not
+  % available for OpenGL toolkits" with qt chosen)
+  if any(strcmp(jarvis_tk, 'gnuplot'))
     graphics_toolkit('gnuplot');
   end
 end
@@ -84,15 +86,30 @@ else
 end
 [jarvis_s, jarvis_o] = sort(jarvis_n);
 jarvis_figs = jarvis_figs(jarvis_o);
+% Each figure as a PNG; if this computer can't make one, as an SVG. Every reason is kept for the report.
+jarvis_ways = {{'png', '-dpng', '-r110'}, {'png', '-dpngcairo', '-r110'}, {'svg', '-dsvg', ''}};
 for jarvis_k = 1:min(numel(jarvis_figs), MAX_FIGURES)
-  try
-    print(jarvis_figs(jarvis_k), sprintf('figure%d.png', jarvis_k), '-dpng', '-r110');
-  catch
+  jarvis_why = '';
+  for jarvis_w = 1:numel(jarvis_ways)
+    jarvis_way = jarvis_ways{jarvis_w};
+    jarvis_file = sprintf('figure%d.%s', jarvis_k, jarvis_way{1});
     try
-      print(jarvis_figs(jarvis_k), sprintf('figure%d.png', jarvis_k), '-dpngcairo');   % Octave + gnuplot, no Ghostscript
+      if isempty(jarvis_way{3})
+        print(jarvis_figs(jarvis_k), jarvis_file, jarvis_way{2});
+      else
+        print(jarvis_figs(jarvis_k), jarvis_file, jarvis_way{2}, jarvis_way{3});
+      end
+      if exist(jarvis_file, 'file')
+        jarvis_why = '';
+        break;
+      end
+      jarvis_why = [jarvis_why ' ' jarvis_way{2} ': no file;'];
     catch jarvis_err
-      fprintf(2, 'JARVIS_ERROR: couldn''t save figure %d: %s\n', jarvis_k, jarvis_err.message);
+      jarvis_why = [jarvis_why ' ' jarvis_way{2} ': ' jarvis_err.message ';'];
     end
+  end
+  if ~isempty(jarvis_why)
+    fprintf(2, 'JARVIS_ERROR: couldn''t save figure %d:%s\n', jarvis_k, jarvis_why);
   end
 end
 """.replace("MAX_FIGURES", str(MAX_FIGURES))
@@ -228,7 +245,9 @@ class MatlabTools:
             (f"Run MATLAB code on this laptop ({engine.name}) and show its printed output and figures on the board "
              "in Jarvis's window; the user approves each run. Write complete, self-contained code that prints the "
              "numbers that matter (disp, fprintf) and plots with labelled axes and a title. One statement a line; "
-             "keep each string on one line (a newline inside fprintf is the two characters \\n). No files, "
+             "keep each string on one line (a newline inside fprintf is the two characters \\n). For an ODE "
+             "with no initial conditions given, pick ones that show the behaviour (y(0) = 1, y'(0) = 0, never all "
+             "zero) and print which. No files, "
              "internet, system commands, eval or input."
              + (" It's GNU Octave: stick to core MATLAB, no toolboxes." if engine.kind == "octave" else "")),
             {"type": "object", "properties": {
@@ -320,7 +339,7 @@ class MatlabTools:
         errors = _errors(err or "", run, shifted=self.engine.kind == "octave")
         if not errors and proc.returncode not in (0, None) and not timed_out:
             errors = [line for line in (err or "").splitlines() if line.strip()][-3:] or [f"exit code {proc.returncode}"]
-        figures = sorted(p.name for p in run.glob("figure*.png") if FIGURE_NAME.fullmatch(p.name))
+        figures = sorted(p.name for p in run.glob("figure*.*") if FIGURE_NAME.fullmatch(p.name))
         output = _clean(out)
         steps = [{"text": f"{self.engine.name} code ({seconds:.0f} s)", "code": code.removeprefix("1;\n")[:6000]}]
         if output:

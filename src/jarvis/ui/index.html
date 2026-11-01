@@ -353,7 +353,7 @@ function showBoard(b) {
     if (st.text) card.append(el("div", "t", st.text));
     if (st.math) { const m = el("div", "m"); maths(m, st.math); card.append(m); }
     if (st.code) card.append(el("pre", "code", String(st.code)));                   // MATLAB code and its output
-    if (/^\/figure\/run-[\d-]+\/figure[1-4]\.png$/.test(String(st.image || ""))) {  // a MATLAB figure, Jarvis's own
+    if (/^\/figure\/run-[\d-]+\/figure[1-4]\.(png|svg)$/.test(String(st.image || ""))) {  // a MATLAB figure, Jarvis's own
       const img = el("img", "fig"); img.src = st.image; img.alt = st.text || "figure"; card.append(img);
     }
     if (Array.isArray(st.table) && st.table.length) {
