@@ -1553,4 +1553,18 @@ his (docs/TRAINING_EMPATHY.md, docs/TRAINING_EMOTION.md):
   range, start and end, lowest and highest points, zero crossings, peaks;
   surfaces' range) and the explanation is written from that, on the teach
   route, with a note on what to cover and what never to read out.
+- 2 Nov, 05:48: still no plot on the laptop. The run folders showed why: no
+  run, even a successful one, left an image (Octave on Windows found no way to
+  print a figure without a window). Now the wrapper also saves each figure's
+  data (title, axis labels, every curve's points, a surface's grid) as JSON,
+  and when there's no picture Jarvis draws it himself on the board: curves
+  with the board's own graph, surfaces in 3D with the lessons' surface (drag
+  to turn). It no longer depends on the computer's graphics at all; checked
+  with real Octave with printing switched off, in a headless browser. Each
+  run also keeps its own record (jarvis_log.txt) and the turn log says how
+  many figures were drawn and why a picture wasn't saved. From the same logs:
+  Qwen (the code route) sent descriptions as code twice, and gpt-oss used
+  syms/dsolve, which Octave doesn't have here. A description or symbolic maths
+  is now sent back for a rewrite before anyone is asked to click, and MATLAB
+  turns and their repairs go to the teach route (gpt-oss-120b first).
 

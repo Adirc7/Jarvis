@@ -663,6 +663,7 @@ class App(LessonMode):
         self._last_route = decision.route
         system = self.system_prompt()
         extra: dict[str, Any] = {}
+        model_route = decision.route
         notes, specs, groups = self._tools_for(text, decision.route)
         if specs:
             # The fixed rules missed it, but it may still be a YouTube/Bing request
@@ -677,6 +678,9 @@ class App(LessonMode):
                 # MATLAB, it answered "One moment, sir.", then "Done, I've plotted it" with nothing run, then
                 # read the code aloud).
                 extra["tool_choice"] = {"type": "function", "function": {"name": "run_matlab"}}
+                # 2 Nov: on the code route, Qwen sent descriptions as code ("solve the damped ODE ..."); the
+                # teach route's gpt-oss-120b wrote code that ran
+                model_route = "teach"
         system += self._recent_info_note() + self._emotion_note()
         messages = [{"role": "system", "content": system}] + history + [{"role": "user", "content": text}]
         if decision.route in ("maths", "teach") and "maths" in groups:
@@ -697,7 +701,7 @@ class App(LessonMode):
 
         try:
             reply = await self.sink.stream(
-                words_only(self.llm.stream_text(messages, token=token, route=decision.route, lang=lang.code,
+                words_only(self.llm.stream_text(messages, token=token, route=model_route, lang=lang.code,
                                                 **extra)), lang, token, turn)
         except LLMUnavailable as exc:
             await self.sink.say(LLM_UNAVAILABLE, self.lang.languages.get("en", lang), token)
@@ -826,7 +830,7 @@ class App(LessonMode):
         calls: list[ToolCall] = []
         try:
             async for piece in self.llm.stream_text(
-                    messages, token=token, route="code", lang="en", avoid=self.llm.last_provider,
+                    messages, token=token, route="teach", lang="en",
                     tools=self.matlab.specs(), tool_choice={"type": "function", "function": {"name": "run_matlab"}}):
                 if isinstance(piece, ToolCall):
                     calls.append(piece)
@@ -934,6 +938,9 @@ class App(LessonMode):
                     self.telemetry.log("model_tool", name=call.name, ok=outcome.acted, status=outcome.status,
                                        reasons=outcome.reasons[:3], arguments=arguments[:200], attempt=attempt)
                     data = outcome.result.data if outcome.result is not None else {}
+                    self.telemetry.log("matlab_run", status=outcome.status, images=data.get("images", 0),
+                                       drawn=data.get("drawn", 0), errors=[e[:200] for e in data.get("errors", [])][:3],
+                                       figure_problems=[p[:300] for p in data.get("figure_problems", [])])
                     if (attempt or outcome.status != "failed" or not data.get("errors") or data.get("timed_out")
                             or token.cancelled):
                         break

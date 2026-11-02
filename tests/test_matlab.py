@@ -376,3 +376,47 @@ async def test_jarvis_explains_the_plot_from_its_measured_data_not_the_code(sett
     assert boards[-1]["steps"][1] == {"text": "Output", "code": "y(10) = 0.0533"}     # measurements stay off the board
     assert app.llm.last_route == "teach"                                              # explained by a teaching model
     assert "for jarvis_k = 1:min(numel(jarvis_figs), 4)\n  jarvis_axes = findall" in M.WRAPPER
+
+
+def test_without_a_saved_picture_jarvis_draws_the_figure_from_its_data(tmp_path):
+    """2 Nov: on the laptop no run left an image (Octave couldn't print without a window), so nothing showed."""
+    figures = [{"figure": 1, "title": "Damped oscillator", "xlabel": "t", "ylabel": "y",
+                "curves": [{"x": [0, 1, 2], "y": [1, None, -0.5], "name": "y", "color": [0, 0, 1]},
+                           {"x": [0, 1], "y": [0, 0.3], "name": "", "color": [1, 0, 0]}], "surfaces": []},
+               {"figure": 2, "title": "Gaussian", "xlabel": "", "ylabel": "", "curves": [],
+                "surfaces": {"z": [[0, 0.5], [0.5, 1]], "x": [-2, 2], "y": [-2, 2]}},
+               {"figure": 3, "title": "<script>alert(1)</script>", "curves": "not a list", "surfaces": []}]
+
+    class SavesData(FakeRun):
+        def __call__(self, command, cwd, **kwargs):
+            proc = super().__call__(command, cwd, **kwargs)
+            (Path(cwd) / "jarvis_figures.json").write_text(json.dumps(figures))
+            return proc
+
+    run = SavesData(figures=0, err="JARVIS_ERROR: couldn't save figure 1: -dpng: no toolkit;\n")
+    t, _, boards = tools(tmp_path, run)
+    out = t.call("run_matlab", json.dumps({"title": "ODE", "code": ODE}))
+    steps = boards[-1]["steps"]
+    plot = steps[-2]["plot"]
+    assert steps[-2]["text"] == "Figure 1: Damped oscillator" and plot["xlabel"] == "t"
+    assert plot["curves"][0] == {"label": "y", "points": [[0.0, 1.0], [1.0, None], [2.0, -0.5]], "colour": "#0000ff"}
+    assert plot["curves"][1]["label"] == "curve 2"
+    assert steps[-1]["surface"] == {"z": [[0.0, 0.5], [0.5, 1.0]], "x": [-2.0, 2.0], "y": [-2.0, 2.0]}
+    assert len(steps) == 4                                       # code, output, two figures; the bad one left out
+    assert out.status == "claimed" and out.result.data["errors"] == []      # drawn instead: not an error
+    assert out.result.data["figure_problems"] == ["couldn't save figure 1: -dpng: no toolkit;"]
+    assert "2 figure(s) shown on the board" in out.result.data["for_model"]
+    assert "--- printed" in (run.cwd / "jarvis_log.txt").read_text()     # the run's own record, for checking later
+    assert "jsonencode(jarvis_out)" in M.WRAPPER
+
+
+def test_descriptions_and_symbolic_maths_are_sent_back_without_a_click(tmp_path):
+    t, asked, _ = tools(tmp_path, FakeRun())
+    for code in ("Second order ODE: y'' + (1/2) y' + 4 y = 0, zero IC",               # 2 Nov, as sent
+                 "solve the damped ODE y'' + 0.5 y' + 4 y = 0, y(0)=1, y'(0)=0",
+                 "syms t y(t)\nsol = dsolve(diff(y, t, 2) + 4*y == 0);"):
+        out = t.call("run_matlab", json.dumps({"title": "t", "code": code}))
+        assert out.status == "failed" and out.result.data["errors"] and not t.will_ask(json.dumps({"code": code}))
+    assert asked == []
+    fine = "hold on\ngrid on\naxis equal tight\nfor k = 1:3\n  disp(k)\nend\nfunction y = f(x)\n  y = x;\nend"
+    assert t.not_runnable(fine) == ""

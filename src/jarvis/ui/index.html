@@ -79,6 +79,9 @@ main { display:grid; grid-template-columns:minmax(0,1fr) 360px; height:calc(100%
 #board pre.code { margin:6px 0 0; padding:10px 12px; background:#03070d; border:1px solid var(--line); border-radius:8px;
   font:13px/1.45 Consolas, "Cascadia Mono", monospace; color:var(--text); overflow:auto; max-height:360px; white-space:pre; }
 #board img.fig { display:block; max-width:100%; margin-top:8px; border-radius:8px; background:#fff; }
+#board .surfbox { position:relative; height:380px; max-width:760px; margin-top:10px; background:var(--panel);
+  border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+#board .axes { color:var(--muted); font-size:12px; margin-top:4px; }
 #board table.tbl th, #board table.tbl td { border:1px solid var(--line); padding:6px 10px; text-align:left; }
 #board table.tbl th { color:var(--cyan); font-weight:500; }
 #board .legend span { display:inline-flex; align-items:center; gap:6px; margin-right:14px; font-size:13px; color:var(--muted); }
@@ -344,8 +347,11 @@ function graph(plots) {
   });
   return svg;
 }
+let boardScenes = [];                                     // 3D surfaces on the board, stopped when it changes
 function showBoard(b) {
   if (!b || !b.title) return;
+  boardScenes.forEach(p => Promise.resolve(p).then(api => api && api.stop && api.stop()).catch(() => {}));
+  boardScenes = [];
   const box = $("board"); box.textContent = "";
   box.append(el("h2", "", b.title), el("div", "made", b.made ? "Jarvis, " + b.made.replace("T", " ").slice(0, 16) : ""));
   (b.steps || []).forEach((st, i) => {
@@ -355,6 +361,19 @@ function showBoard(b) {
     if (st.code) card.append(el("pre", "code", String(st.code)));                   // MATLAB code and its output
     if (/^\/figure\/run-[\d-]+\/figure[1-4]\.(png|svg)$/.test(String(st.image || ""))) {  // a MATLAB figure, Jarvis's own
       const img = el("img", "fig"); img.src = st.image; img.alt = st.text || "figure"; card.append(img);
+    }
+    if (st.plot && Array.isArray(st.plot.curves) && st.plot.curves.length) {  // MATLAB's figure, drawn from its data
+      const svg = graph(st.plot.curves); if (svg) card.append(svg);
+      const legend = el("div", "legend");
+      st.plot.curves.forEach((p, k) => { const s = el("span"); const sw = el("i"); sw.style.background = COLOURS[k % 3];
+        s.append(sw, document.createTextNode(p.label)); legend.append(s); });
+      card.append(legend);
+      const axes = [st.plot.xlabel && "x: " + st.plot.xlabel, st.plot.ylabel && "y: " + st.plot.ylabel].filter(Boolean);
+      if (axes.length) card.append(el("div", "axes", axes.join("  ·  ")));
+    }
+    if (st.surface && Array.isArray(st.surface.z) && window.JarvisLesson && JarvisLesson.surfaceIn) {
+      const surf = el("div", "surfbox"); card.append(surf);
+      boardScenes.push(JarvisLesson.surfaceIn(surf, st.surface));                // drag to turn it
     }
     if (Array.isArray(st.table) && st.table.length) {
       const t = el("table", "tbl");

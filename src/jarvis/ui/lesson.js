@@ -499,5 +499,7 @@ window.JarvisLesson = (function () {
     if (current && effective(shownIndex).from === index) { if (current.api && current.api.stop) current.api.stop(); current = null; show(shownIndex); }
   }
   function stop() { if (current && current.api && current.api.stop) current.api.stop(); current = null; lesson = null; shownIndex = -1; }
-  return { start, show, patch, stop, scenes: Object.keys(SCENES), get index() { return shownIndex; } };
+  // A 3D surface anywhere in the window (the board draws MATLAB's surfaces with it): {z: [[...]]}
+  function surfaceIn(el, vis) { return surface(el, vis); }
+  return { start, show, patch, stop, surfaceIn, scenes: Object.keys(SCENES), get index() { return shownIndex; } };
 })();

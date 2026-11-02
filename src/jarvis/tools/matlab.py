@@ -20,6 +20,7 @@ second line, not a sandbox: the click is the real check, so read the code on the
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
@@ -37,6 +38,12 @@ from .registry import Args, Registry, Result, Tier, Tool
 
 MAX_FIGURES = 4
 OUTPUT_CHARS = 4000
+# Words that start real MATLAB lines in command form ("hold on", "grid on", "format long"), not prose
+COMMAND_WORDS = {"hold", "grid", "axis", "format", "close", "clear", "clc", "legend", "box", "disp", "warning",
+                 "more", "figure", "colorbar", "shading", "view", "drawnow", "global", "function", "end", "if",
+                 "for", "while", "else", "elseif", "return", "break", "continue", "otherwise", "case", "switch",
+                 "try", "catch", "colormap", "subplot", "persistent", "printf", "fprintf", "title", "xlabel",
+                 "ylabel", "zlabel", "rotate3d", "camlight", "lighting", "material"}
 RUN_NAME = re.compile(r"run-\d{8}-\d{6}(?:-\d{1,3})?")
 FIGURE_NAME = re.compile(r"figure[1-4]\.(?:png|svg)")
 # Functions that reach outside the run: the shell, files, the network, other languages, code built from text.
@@ -111,6 +118,57 @@ for jarvis_k = 1:min(numel(jarvis_figs), MAX_FIGURES)
   if ~isempty(jarvis_why)
     fprintf(2, 'JARVIS_ERROR: couldn''t save figure %d:%s\n', jarvis_k, jarvis_why);
   end
+end
+% The figures' data, so Jarvis can draw them himself when no picture could be saved (2 Nov, Windows:
+% Octave's printing found no way to make an image without a window).
+try
+  jarvis_out = {};
+  for jarvis_k = 1:min(numel(jarvis_figs), MAX_FIGURES)
+    jarvis_axes = findall(jarvis_figs(jarvis_k), 'type', 'axes');
+    for jarvis_a = numel(jarvis_axes):-1:max(1, numel(jarvis_axes) - 3)
+      jarvis_ax = jarvis_axes(jarvis_a);
+      if any(strcmpi(get(jarvis_ax, 'tag'), {'legend', 'colorbar'})), continue; end
+      jarvis_lab = {get(get(jarvis_ax, 'title'), 'string'), get(get(jarvis_ax, 'xlabel'), 'string'), ...
+                    get(get(jarvis_ax, 'ylabel'), 'string')};
+      for jarvis_i = 1:3
+        if iscell(jarvis_lab{jarvis_i}), jarvis_lab{jarvis_i} = strjoin(jarvis_lab{jarvis_i}, ' '); end
+        if size(jarvis_lab{jarvis_i}, 1) > 1, jarvis_lab{jarvis_i} = strjoin(cellstr(jarvis_lab{jarvis_i})', ' '); end
+      end
+      jarvis_p = struct('figure', jarvis_k, 'title', jarvis_lab{1}, 'xlabel', jarvis_lab{2}, ...
+                        'ylabel', jarvis_lab{3});
+      jarvis_p.curves = {};
+      jarvis_p.surfaces = {};
+      jarvis_ls = findall(jarvis_ax, 'type', 'line');
+      for jarvis_j = numel(jarvis_ls):-1:max(1, numel(jarvis_ls) - 5)      % the first drawn first
+        jarvis_x = double(get(jarvis_ls(jarvis_j), 'xdata')); jarvis_y = double(get(jarvis_ls(jarvis_j), 'ydata'));
+        jarvis_x = jarvis_x(:)'; jarvis_y = jarvis_y(:)';
+        if numel(jarvis_x) ~= numel(jarvis_y) || numel(jarvis_y) < 2, continue; end
+        jarvis_st = max(1, ceil(numel(jarvis_y) / 600));
+        jarvis_c = get(jarvis_ls(jarvis_j), 'color');
+        if ~isnumeric(jarvis_c) || numel(jarvis_c) ~= 3, jarvis_c = [0 0.45 0.74]; end
+        jarvis_p.curves{end+1} = struct('x', jarvis_x(1:jarvis_st:end), 'y', jarvis_y(1:jarvis_st:end), ...
+                                        'name', get(jarvis_ls(jarvis_j), 'displayname'), 'color', jarvis_c(:)');
+      end
+      jarvis_ss = findall(jarvis_ax, 'type', 'surface');
+      if ~isempty(jarvis_ss)
+        jarvis_z = double(get(jarvis_ss(1), 'zdata'));
+        jarvis_X = double(get(jarvis_ss(1), 'xdata')); jarvis_Y = double(get(jarvis_ss(1), 'ydata'));
+        if size(jarvis_z, 1) >= 2 && size(jarvis_z, 2) >= 2
+          jarvis_z = jarvis_z(1:max(1, ceil(size(jarvis_z, 1) / 60)):end, 1:max(1, ceil(size(jarvis_z, 2) / 60)):end);
+          jarvis_p.surfaces{end+1} = struct('z', jarvis_z, 'x', [min(jarvis_X(:)) max(jarvis_X(:))], ...
+                                            'y', [min(jarvis_Y(:)) max(jarvis_Y(:))]);
+        end
+      end
+      if ~isempty(jarvis_p.curves) || ~isempty(jarvis_p.surfaces)
+        jarvis_out{end+1} = jarvis_p;
+      end
+    end
+  end
+  jarvis_fid = fopen('jarvis_figures.json', 'w');
+  fprintf(jarvis_fid, '%s', jsonencode(jarvis_out));
+  fclose(jarvis_fid);
+catch jarvis_err
+  fprintf(2, 'JARVIS_NOTE: the figures'' data wasn''t saved: %s\n', jarvis_err.message);
 end
 % What each figure shows, measured from its data, for Jarvis to explain it (he can't see the picture).
 try
@@ -329,8 +387,27 @@ class MatlabTools:
             return False
         tool = self.registry.get("run_matlab")
         return (isinstance(args, dict) and bool(str(args.get("code", "")).strip())
-                and not blocked(str(args["code"])) and tool is not None and tool.tier is Tier.ASK_FIRST
+                and not blocked(str(args["code"])) and not self.not_runnable(str(args["code"]))
+                and tool is not None and tool.tier is Tier.ASK_FIRST
                 and self.gate.confirm is not None)
+
+    def not_runnable(self, code: str) -> str:
+        """Why this can't run here, before anyone is asked to click: a description instead of code (2 Nov:
+        "Second order ODE: y'' + (1/2) y' + 4 y = 0, zero IC" was sent as the code), or symbolic maths
+        Octave doesn't have here (syms, dsolve)."""
+        if not code.strip():
+            return ""
+        for line in code.splitlines():
+            words = line.split("%", 1)[0].strip()
+            first = words.split(" ", 1)[0].lower().rstrip(":,.")
+            # three bare words in a row can't start a MATLAB statement, except a command like "axis equal tight"
+            if re.match(r"^[A-Za-z]+(?:\s+[A-Za-z']+){2,}\s*[:,.]?(?:\s|$)", words) and first not in COMMAND_WORDS:
+                return ("that's a description, not MATLAB code ('" + words[:60] + "'). Write the actual code: "
+                        "assignments, ode45, plot, with one statement a line.")
+        if self.engine.kind == "octave" and re.search(r"\b(?:syms|dsolve|vpa|sym)\s*[\s(]", code):
+            return ("Octave on this laptop has no symbolic maths (syms, dsolve, vpa). Solve it numerically: "
+                    "ode45 for differential equations, then print the values that matter and plot.")
+        return ""
 
     def _describe(self, args: Args) -> str:
         lines = len(str(args["code"]).strip().splitlines())
@@ -354,6 +431,15 @@ class MatlabTools:
             return Outcome("refused", "I won't run that code: it reaches outside its folder.", name,
                            Result(False, "refused", data={"for_model": text, "kind": "matlab"}),
                            reasons=[f"uses {', '.join(found)}"])
+        problem = self.not_runnable(code)
+        if problem:
+            # Not worth a click: no run, and Jarvis has the model write it again (app.py, one repair)
+            self.gate.log.write(tool=name, args={"title": args.get("title", "")}, decision="not_code", reasons=[problem])
+            return Outcome("failed", "That wasn't code I could run.", name,
+                           Result(False, "not runnable", data={"for_model": f"Not run: {problem}", "kind": "matlab",
+                                                                "errors": [problem], "timed_out": False, "code": code,
+                                                                "title": str(args.get("title", ""))[:120]}),
+                           reasons=[problem])
         if isinstance(args, dict) and code:
             self.show_board({"title": str(args.get("title", "MATLAB"))[:120], "plots": [], "from": "matlab",
                              "steps": [{"text": f"{self.engine.name} code, waiting for your approval",
@@ -392,10 +478,22 @@ class MatlabTools:
             out, err = proc.communicate()
             timed_out = True
         seconds = time.perf_counter() - start
+        try:
+            (run / "jarvis_log.txt").write_text(f"--- printed\n{out or ''}\n--- errors and warnings\n{err or ''}",
+                                                encoding="utf-8")
+        except OSError:
+            pass
         errors = _errors(err or "", run, shifted=self.engine.kind == "octave")
         if not errors and proc.returncode not in (0, None) and not timed_out:
             errors = [line for line in (err or "").splitlines() if line.strip()][-3:] or [f"exit code {proc.returncode}"]
         figures = sorted(p.name for p in run.glob("figure*.*") if FIGURE_NAME.fullmatch(p.name))
+        drawn = [a for a in _figure_data(run) if not any(f.startswith(f"figure{a['figure']}.") for f in figures)]
+        if drawn:
+            # Jarvis draws these himself from their data: an image that couldn't be saved isn't an error
+            problems = [e for e in errors if e.startswith("couldn't save figure")]
+            errors = [e for e in errors if not e.startswith("couldn't save figure")]
+        else:
+            problems = []
         measured = [ln.split("JARVIS_DATA:", 1)[1].rstrip() for ln in (out or "").splitlines()
                     if ln.startswith("JARVIS_DATA:")]
         output = _clean("\n".join(ln for ln in (out or "").splitlines() if not ln.startswith("JARVIS_DATA:")))
@@ -405,13 +503,17 @@ class MatlabTools:
         if errors or timed_out:
             steps.append({"text": "Error", "code": "\n".join(errors) if errors else
                           f"Stopped after {self.timeout_s:.0f} seconds."})
-        steps += [{"text": f"Figure {i}", "image": f"/figure/{run.name}/{name}"} for i, name in enumerate(figures, 1)]
+        steps += [{"text": f"Figure {name[6]}", "image": f"/figure/{run.name}/{name}"} for name in figures]
+        steps += [{"text": f"Figure {a['figure']}" + (f": {a['title']}" if a["title"] else ""),
+                   **({"plot": a["plot"]} if a.get("plot") else {}),
+                   **({"surface": a["surface"]} if a.get("surface") else {})} for a in drawn]
+        n_figures = len(figures) + len({a["figure"] for a in drawn})
         shown = self.show_board({"title": title, "plots": [], "from": "matlab", "steps": steps})
         report = [f"{self.engine.name} ran: {title} ({seconds:.0f} s).",
                   f"Printed output:\n{output}" if output else "It printed nothing.",
-                  (f"{len(figures)} figure(s) saved and shown on the board in Jarvis's window"
-                   if shown else f"{len(figures)} figure(s) saved; the window isn't open")
-                  + (" (you can't see them; what they show, measured from their data, is below)." if figures
+                  (f"{n_figures} figure(s) shown on the board in Jarvis's window"
+                   if shown else f"{n_figures} figure(s) made; the window isn't open")
+                  + (" (you can't see them; what they show, measured from their data, is below)." if n_figures
                      else ".")]
         if measured:
             report.append("What the figures show (measured from the plotted data):\n" + "\n".join(measured)[:1800])
@@ -419,13 +521,14 @@ class MatlabTools:
             report.append(f"It was stopped after {self.timeout_s:.0f} seconds (too slow, or waiting for something).")
         if errors:
             report.append("Errors: " + " | ".join(errors)[:800])
-        ok = not timed_out and not (errors and not output and not figures)
+        ok = not timed_out and not (errors and not output and not n_figures)
         summary = ("Ran it; the output and figures are on the board." if ok
                    else "It didn't run cleanly; the error is on the board.")
         return Result(ok, summary, data={"for_model": "\n".join(report), "kind": "matlab", "run": run.name,
                                          "figures": figures, "say": ("matlab_ran" if ok else "matlab_failed", {}),
                                          "errors": errors, "timed_out": timed_out, "code": code.removeprefix("1;\n"),
-                                         "title": title})
+                                         "title": title, "drawn": len(drawn), "images": len(figures),
+                                         "figure_problems": problems[:3]})
 
     def figure(self, run: str, name: str) -> Path | None:
         """A figure for the window (/figure/<run>/<name>): only Jarvis's own runs and PNGs."""
@@ -433,6 +536,58 @@ class MatlabTools:
             return None
         path = self.folder / run / name
         return path if path.is_file() else None
+
+
+def _number(v: Any) -> float | None:
+    return float(v) if isinstance(v, int | float) and not isinstance(v, bool) and abs(v) < 1e300 else None
+
+
+def _numbers(v: Any, limit: int) -> list[float | None]:
+    v = v if isinstance(v, list) else [v]
+    return [_number(x) for x in v[:limit]]
+
+
+def _figure_data(run: Path) -> list[dict]:
+    """The figures' data the wrapper saved (jarvis_figures.json), checked and ready for the board:
+    curves as [x, y] points (None where undefined), a surface as a grid of z. Nothing else gets through."""
+    path = run / "jarvis_figures.json"
+    if not path.is_file() or path.stat().st_size > 5_000_000:
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError:
+        return []
+    data = data if isinstance(data, list) else [data]
+    out = []
+    for a in data[:8]:
+        if not isinstance(a, dict):
+            continue
+        text = {k: str(a.get(k) or "")[:120] for k in ("title", "xlabel", "ylabel")}
+        curves = []
+        raw = a.get("curves") or []
+        for c in (raw if isinstance(raw, list) else [raw])[:6]:
+            if not isinstance(c, dict):
+                continue
+            xs, ys = _numbers(c.get("x"), 2000), _numbers(c.get("y"), 2000)
+            points = [[x, y] for x, y in zip(xs, ys) if x is not None]
+            colour = _numbers(c.get("color"), 3)
+            hexed = ("#" + "".join(f"{max(0, min(255, round((v or 0) * 255))):02x}" for v in colour)
+                     if len(colour) == 3 else "")
+            if len(points) >= 2:
+                curves.append({"label": str(c.get("name") or "")[:60] or f"curve {len(curves) + 1}",
+                               "points": points, "colour": hexed})
+        surface = None
+        raw = a.get("surfaces") or []
+        for s in (raw if isinstance(raw, list) else [raw])[:1]:
+            z = s.get("z") if isinstance(s, dict) else None
+            if isinstance(z, list) and len(z) >= 2 and all(isinstance(r, list) and len(r) >= 2 for r in z[:80]):
+                surface = {"z": [_numbers(r, 80) for r in z[:80]], "x": _numbers(s.get("x"), 2),
+                           "y": _numbers(s.get("y"), 2)}
+        if curves or surface:
+            plot = {**text, "curves": curves} if curves else None
+            out.append({"figure": int(_number(a.get("figure")) or 1), "title": text["title"],
+                        "plot": plot, "surface": surface})
+    return out
 
 
 def _errors(err: str, run: Path, shifted: bool) -> list[str]:
