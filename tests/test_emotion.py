@@ -217,3 +217,53 @@ async def test_a_recording_round_labels_each_take_and_jarvis_stays_quiet(setting
     for _ in whole.items:
         whole.took(whole.current[0])
     assert whole.current is None and whole.counts == {"calm": 3, "rushed": 3}
+
+
+def test_every_layer_is_kept_and_your_classifier_picks_which():
+    """docs/EMOTION_RESEARCH.md: the middle layers carry the most emotion, so labels keep every layer."""
+    from sklearn.linear_model import LogisticRegression
+
+    from jarvis.perception.emotion import decode_layers, encode_layers, features_of, pick_features
+    ears = EmotionEars(loader=tiny_loader)
+    heard = ears.hear(np.random.default_rng(3).normal(0, 0.1, 16000).astype(np.float32))
+    assert heard.layers.shape == (3, 32) and heard.features == pytest.approx(list(heard.layers[-1]), abs=1e-4)
+    layers = np.arange(13 * 4, dtype=np.float32).reshape(13, 4)          # wav2vec2-base: input + 12 layers
+    assert list(pick_features(layers, "last")) == list(layers[12])
+    assert list(pick_features(layers, "middle")) == list(layers[4:9].mean(axis=0))
+    assert list(pick_features(layers, "all")) == list(layers[1:].mean(axis=0))
+    assert list(pick_features(layers, "layer6")) == list(layers[6])
+    with pytest.raises(ValueError):
+        pick_features(layers, "layer13")
+    back = decode_layers(encode_layers(heard.layers))
+    assert back.shape == (3, 32) and np.allclose(back, heard.layers, atol=1e-2)
+    row = {"features": [1.0, 2.0]}                                        # saved before layers were kept
+    assert list(features_of(row)) == [1.0, 2.0] and features_of(row, "middle") is None
+    rng = np.random.default_rng(4)
+    x = np.vstack([rng.normal(-1, 0.3, (20, 32)), rng.normal(1, 0.3, (20, 32))])
+    clf = LogisticRegression().fit(x, ["calm"] * 20 + ["rushed"] * 20)
+    mid = EmotionEars(loader=tiny_loader, classifier=clf, classifier_info={"features": "middle"})
+    assert mid.hear(np.zeros(16000, np.float32)).level == 2
+
+
+def test_a_public_corpus_becomes_labels_like_yours(tmp_path):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("emotion_features", "scripts/emotion_features.py")
+    ef = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ef)
+    rav = tmp_path / "RAVDESS" / "Actor_12"
+    rav.mkdir(parents=True)
+    for name in ("03-01-05-01-02-01-12.wav", "03-01-02-01-01-01-12.wav", "02-01-05-01-02-01-12.wav", "x.wav"):
+        (rav / name).write_bytes(b"")                                     # 02-...: video, not audio: skipped
+    assert [(lab, spk) for _, lab, spk in ef.ravdess(tmp_path / "RAVDESS")] == [("calm", "ravdess:12"),
+                                                                              ("angry", "ravdess:12")]
+    crema = tmp_path / "CREMA"
+    crema.mkdir()
+    (crema / "1001_DFA_ANG_XX.wav").write_bytes(b"")
+    assert [(lab, spk) for _, lab, spk in ef.cremad(crema)] == [("angry", "cremad:1001")]
+    out = tmp_path / "corpus.jsonl"
+    said = []
+    code = ef.main(["ravdess", str(tmp_path / "RAVDESS"), "--out", str(out)], ears=EmotionEars(loader=tiny_loader),
+                   loader=lambda p: np.zeros(16000, np.float32), say=said.append)
+    rows = read_labels(out)
+    assert code == 0 and len(rows) == 2 and {r["how"] for r in rows} == {"corpus"} and "layers" in rows[0]
+    assert rows[0]["session"] == "ravdess:12" and "Done: 2 recordings from 1 speakers" in said[-1]

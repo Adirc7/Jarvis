@@ -28,6 +28,7 @@ from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 NEAREST = {"upset": {"upset", "frustrated", "angry"}, "calm": {"calm"}, "happy": {"happy", "excited"},
            "sad": {"sad", "tired"}}
 
@@ -100,7 +101,16 @@ def main(argv=None) -> int:
             print("Every labelled session was used for training: label a new session (or train on fewer) to test.")
             return 1
         model = saved["classifier"]
-        probs = model.predict_proba(np.asarray([r["features"] for r in test]))
+        from jarvis.perception.emotion import features_of
+        spec = str(saved.get("features", "last"))               # the layers it learned from (pick_features)
+        usable = [r for r in test if features_of(r, spec) is not None]
+        if len(usable) < len(test):
+            print(f"{len(test) - len(usable)} labels were saved before every layer was kept, so they can't be "
+                  f"scored with features={spec!r}; left out.")
+        test = usable
+        if not test:
+            return 1
+        probs = model.predict_proba(np.asarray([features_of(r, spec) for r in test]))
         classes = [str(c) for c in model.classes_]
         yours = []
         for p in probs:

@@ -154,3 +154,22 @@ async def test_the_standin_command_says_what_it_knows(settings):
     await app._command("/standin")
     assert "the lookup, over 5 saved answers (tfidf)" in out[-1] and "Saving is on" in out[-1]
     assert "No Kaggle run yet" in out[-1]
+
+
+async def test_wikipedia_and_maths_answers_are_kept_but_news_never(settings, tmp_path):
+    from test_knowledge import TwoStep, make_info
+
+    from jarvis.agent.llm import FallbackLLM, Provider
+    from jarvis.app import App
+    from jarvis.telemetry import Telemetry
+    settings.raw["standin"]["save"] = True
+    info, _ = make_info(tmp_path)
+    model = TwoStep("check_maths", json.dumps({"task": "differentiate", "expression": "x^3"}),
+                    ["The derivative of x cubed is 3 x squared."])
+    app = App(settings, Telemetry.disabled(), llm=FallbackLLM([Provider("groq", "m", model)]),
+              out=lambda *a, **k: None, info=info)
+    await app.handle_text("differentiate x cubed for me")
+    model.tool, model.arguments, model.words = "get_news", '{"theme": "space"}', ["ISRO launched a satellite."]
+    await app.handle_text("anything happening in space")
+    await asyncio.sleep(0.2)
+    assert [p.question for p in app.standin.log.read()] == ["differentiate x cubed for me"]

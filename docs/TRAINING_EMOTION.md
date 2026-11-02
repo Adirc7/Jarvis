@@ -133,9 +133,26 @@ Write `scripts/train_emotion_level2.py`. What it must do:
    training sessions only (`sklearn.model_selection.GroupKFold`,
    `groups=session`), scoring macro-F1.
 5. Save with joblib to `models/emotion/emotion.joblib` a dict:
-   `{"classifier": model, "trained_sessions": [...], "labels": [...],
-   "trained": date, "cv_macro_f1": ...}`. Jarvis loads it at the next start
-   and says "(your classifier)".
+   `{"classifier": model, "features": "middle", "trained_sessions": [...],
+   "labels": [...], "trained": date, "cv_macro_f1": ...}`. Jarvis loads it at
+   the next start and says "(your classifier)", and feeds it the same layers.
+
+**Which layers (3 Nov):** every label now keeps all 13 layers of the model
+(the input to the transformer and its 12 layers), each averaged over time.
+`features_of(row, spec)` gives one vector: `"last"` (what you had before),
+`"middle"` (layers 4-8 averaged), `"all"` (layers 1-12 averaged) or
+`"layer6"`. Three studies found the middle layers carry the most emotion and
+the last can be the worst (docs/EMOTION_RESEARCH.md); try all four with the
+same GroupKFold and report the table: that's a clean experiment of your own.
+Labels saved before 3 Nov only have `"last"`.
+
+**More voices (optional):** `scripts/emotion_features.py` turns a public
+emotional speech set (RAVDESS, CREMA-D, or EmoTa, Sri Lankan Tamil) into the
+same kind of rows in `data/emotion/corpus-<name>.jsonl`, each speaker a
+session. Their labels are theirs (angry, sad, neutral...): map the ones that
+fit yours (neutral and calm to calm; angry to frustrated is a stretch: say so)
+and compare training on yours only against corpus + yours, always testing on
+your own newest session.
 
 <details>
 <summary>A skeleton to start from</summary>
@@ -152,21 +169,23 @@ from sklearn.model_selection import GroupKFold, cross_val_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-from jarvis.perception.emotion import read_labels
+from jarvis.perception.emotion import features_of, read_labels
 
 ROOT = Path(__file__).resolve().parents[1]
 rows = read_labels(ROOT / "data" / "emotion" / "labels.jsonl")
 sessions = sorted({r["session"] for r in rows}, key=lambda s: min(r["time"] for r in rows if r["session"] == s))
 test_sessions = set(sessions[-1:])                      # the newest session: never seen in training
 train = [r for r in rows if r["session"] not in test_sessions]
-X = np.array([r["features"] for r in train])
+SPEC = "middle"                                         # or "last", "all", "layer6": compare them
+train = [r for r in train if features_of(r, SPEC) is not None]
+X = np.array([features_of(r, SPEC) for r in train])
 y = [r["label"] for r in train]
 groups = [r["session"] for r in train]
 
 # TODO: for C in (0.1, 1, 10): cross_val_score(..., cv=GroupKFold(n_splits=...), groups=groups,
 #       scoring="f1_macro"); keep the best C
 # TODO: fit the pipeline with the best C on all of train
-# TODO: joblib.dump({...}, ROOT / "models" / "emotion" / "emotion.joblib") with "trained_sessions"
+# TODO: joblib.dump({... "features": SPEC, "trained_sessions": ...}, ROOT / "models" / "emotion" / "emotion.joblib")
 ```
 </details>
 

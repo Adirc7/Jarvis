@@ -1328,6 +1328,12 @@ class App(LessonMode):
             if self.memory.enabled and self.settings.get("memory.keep_conversation", True):
                 self.memory.set_recent(self.history[-HISTORY_TURNS * 2:])
                 self.memory.save()
+            # Wikipedia and checked maths stay true: the stand-in may learn them (3 Nov: "explain entropy"
+            # went through Wikipedia and wasn't kept). News, weather and the rest change: never.
+            if self.standin is not None and self.standin.save and kinds and set(kinds) <= {"research", "maths"}:
+                self._standin_executor.submit(self.standin.add, text, reply, route=route, lang=lang.code,
+                                              provider=self.llm.last_provider or "",
+                                              session=str(getattr(self.telemetry, "session_id", "") or ""))
         turn.finish(kind="knowledge", kinds=kinds, provider=self.llm.last_provider, route=route,
                     language=lang.code, chars=len(reply), cancelled=token.cancelled, **_script_slips(reply))
         return reply

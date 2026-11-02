@@ -22,8 +22,10 @@ No audio is kept: /mood stores the features and your label, nothing else.
 
 from __future__ import annotations
 
+import base64
 import json
 import random
+import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -70,10 +72,11 @@ class Heard:
     label: str
     confidence: float
     scores: dict[str, float] = field(default_factory=dict)
-    features: list[float] | None = None          # what level 2 learns from (never audio)
+    features: list[float] | None = None          # what level 2 learns from (never audio): the last layer
     ms: float = 0.0
     level: int = 1
     baseline: dict[str, float] = field(default_factory=dict)    # the ready-made model's scores, always
+    layers: np.ndarray | None = None             # every layer, averaged over time: (layers, 768); see LAYERS
 
     def note_for_model(self, min_confidence: float) -> str:
         """The hint for the LLM, or "" when it isn't sure enough (or you sound calm)."""
@@ -117,12 +120,15 @@ class EmotionEars:
         start = time.perf_counter()
         self.load()
         audio = np.asarray(audio, dtype=np.float32)[: int(MAX_SECONDS * rate)]
-        labels, probs, features = self._run(audio, rate)
+        labels, probs, layers = self._run(audio, rate)
+        features = layers[-1]
         scores = {SAID_AS.get(lab, lab): round(float(p), 4) for lab, p in zip(labels, probs, strict=True)}
         best = max(scores, key=scores.get)
-        heard = Heard(best, scores[best], scores, [round(float(x), 5) for x in features], 0.0, 1, dict(scores))
+        heard = Heard(best, scores[best], scores, [round(float(x), 5) for x in features], 0.0, 1, dict(scores),
+                      layers)
         if self.classifier is not None:
-            p = self.classifier.predict_proba(np.asarray([features]))[0]
+            spec = str(self.classifier_info.get("features", "last"))       # what your classifier learned from
+            p = self.classifier.predict_proba(np.asarray([pick_features(layers, spec)]))[0]
             classes = [str(c) for c in self.classifier.classes_]
             i = int(np.argmax(p))
             heard.label, heard.confidence, heard.level = classes[i], float(p[i]), 2
@@ -131,15 +137,16 @@ class EmotionEars:
         return heard
 
     def _run(self, audio: np.ndarray, rate: int) -> tuple[list[str], np.ndarray, np.ndarray]:
+        """The labels, their probabilities, and every hidden layer averaged over time (layers x 768)."""
         import torch
         inputs = self._extractor(audio, sampling_rate=rate, return_tensors="pt")
         inputs = {k: v.to(self.where) for k, v in inputs.items()}
         with torch.no_grad():
             out = self._model(**inputs, output_hidden_states=True)
         probs = torch.softmax(out.logits, dim=-1)[0].float().cpu().numpy()
-        features = out.hidden_states[-1].mean(dim=1)[0].float().cpu().numpy()
+        layers = torch.stack([h.mean(dim=1)[0] for h in out.hidden_states]).float().cpu().numpy()
         labels = [self._model.config.id2label[i] for i in range(len(probs))]
-        return labels, probs, features
+        return labels, probs, layers
 
 
 def _load_pretrained(model_id: str, device: str) -> tuple[Any, Any, str]:
@@ -210,9 +217,54 @@ def save_label(folder: Path, heard: Heard, mood: str, session: str, now: datetim
            "session": session, "label": mood, "heard": heard.label, "heard_confidence": heard.confidence,
            "level": heard.level, "scores": heard.scores, "baseline": heard.baseline, "features": heard.features,
            "how": how}
+    if heard.layers is not None:
+        row["layers"] = encode_layers(heard.layers)
     with path.open("a", encoding="utf-8") as f:
         f.write(json.dumps(row) + "\n")
     return path
+
+
+# Which layer to learn from (docs/EMOTION_RESEARCH.md). The last layer is what the model's own classifier saw,
+# but three studies found the MIDDLE layers carry the most emotion (Pepino et al. 2021; Li et al. 2023;
+# Singh and Gupta 2023), and the last can be the worst. Every label keeps all of them, so you can compare.
+LAYERS = ("last", "middle", "all", "layer<N>")
+
+
+def pick_features(layers: np.ndarray, spec: str = "last") -> np.ndarray:
+    """One vector from every layer's average: "last", "middle" (the middle third of the transformer layers,
+    averaged), "all" (every transformer layer, averaged) or "layer6" (one layer; 0 is the input to the
+    transformer, 1-12 its layers in wav2vec2-base)."""
+    layers = np.asarray(layers, dtype=np.float32)
+    n = layers.shape[0]
+    if spec == "last":
+        return layers[-1]
+    if spec == "all":
+        return layers[1:].mean(axis=0) if n > 1 else layers[0]
+    if spec == "middle":
+        lo, hi = max(1, n // 3), max(1, (2 * n) // 3)
+        return layers[lo:hi + 1].mean(axis=0)
+    m = re.fullmatch(r"layer(\d+)", spec)
+    if m and int(m.group(1)) < n:
+        return layers[int(m.group(1))]
+    raise ValueError(f"features must be one of {', '.join(LAYERS)} (layer0 to layer{n - 1}), not {spec!r}")
+
+
+def encode_layers(layers: np.ndarray) -> dict:
+    """Every layer's average in half precision, base64: about 27 KB a label instead of 70 KB of numbers."""
+    a = np.asarray(layers, dtype=np.float16)
+    return {"shape": list(a.shape), "f16": base64.b64encode(a.tobytes()).decode("ascii")}
+
+
+def decode_layers(saved: dict) -> np.ndarray:
+    return np.frombuffer(base64.b64decode(saved["f16"]), dtype=np.float16).reshape(saved["shape"]).astype(np.float32)
+
+
+def features_of(row: dict, spec: str = "last") -> np.ndarray | None:
+    """A saved label's features for this choice; None when the label was saved before layers were kept
+    (2 Nov) and something other than "last" is asked for."""
+    if "layers" in row:
+        return pick_features(decode_layers(row["layers"]), spec)
+    return np.asarray(row["features"], dtype=np.float32) if spec == "last" and row.get("features") else None
 
 
 def remove_last_label(folder: Path) -> dict | None:
@@ -233,5 +285,6 @@ def read_labels(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-__all__ = ["BASELINE", "MOODS", "PROMPTS", "ROUND_MOODS", "EmotionEars", "Heard", "LabelRound", "read_labels",
-           "remove_last_label", "save_label"]
+__all__ = ["BASELINE", "LAYERS", "MOODS", "PROMPTS", "ROUND_MOODS", "EmotionEars", "Heard", "LabelRound",
+           "decode_layers", "encode_layers", "features_of", "pick_features", "read_labels", "remove_last_label",
+           "save_label"]

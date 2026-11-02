@@ -1674,3 +1674,29 @@ the loading and the test. Guide: `docs/TRAINING_STANDIN.md`.
   (it was 3:35 am; Jarvis: "It's late"), would have been saved, and replayed
   at noon would be wrong. Greetings, thanks and the time (the quick route) are
   no longer saved, and the rules apply to pairs saved earlier too.
+- 3 Nov, 03:50: the first study question on the laptop went through Wikipedia
+  and wasn't kept for the stand-in (only replies without tools were). Answers
+  from Wikipedia, papers and checked maths are kept now too; news and weather
+  never. Emotion on the laptop's CPU: 160-420 ms a turn, inside the 0.5 s
+  Jarvis waits (happy 95%, upset 44%, happy 99%).
+
+## 2026-11-03: Emotion research: middle layers, better models, public sets
+
+Adhi asked for what's known: models, papers, datasets, code
+(`docs/EMOTION_RESEARCH.md`). What it changed:
+
+- Three layer-probing studies (Pepino 2021; Li et al. 2023; Singh and Gupta
+  2023) agree the middle layers of wav2vec 2.0 carry the most emotion and the
+  last can be the worst, and Jarvis kept only the last. Every label now keeps
+  all 13 layers (half precision, base64, about 27 KB); `features_of` /
+  `pick_features` give last, middle (4-8), all, or one layer; a saved
+  classifier names its choice and Jarvis feeds it the same.
+- `scripts/emotion_features.py`: public sets (RAVDESS, CREMA-D, EmoTa, the
+  Sri Lankan Tamil set, or any CSV) to the same rows, speakers as sessions,
+  no audio kept. faster-whisper's `decode_audio` fails with PyAV 19
+  (`metadata_errors`), so WAV goes through the standard library and
+  scipy's `resample_poly`, anything else through PyAV directly.
+- emotion2vec+ (the strongest open model) and audEERING's arousal/valence
+  model are documented as the next encoders to try, not wired in: new
+  libraries and downloads that can't be tried here three days before the
+  deadline.
