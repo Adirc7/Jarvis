@@ -455,3 +455,15 @@ def test_every_kind_of_figure_is_read_and_measured(tmp_path):
     for kind in ("UData", "SizeData", "BarWidth", "LevelList", "'image'", "BinEdges", "'zdata'"):
         assert kind in M.WRAPPER, kind
 
+
+
+def test_plots_show_values_under_the_mouse():
+    """2 Nov, Adhi: move the mouse over a plot and see x, y (and z) there, like MATLAB's data tips.
+    Checked in a headless browser with real Octave figures; here, that the pieces are in the pages."""
+    page = (Path(M.__file__).parents[1] / "ui" / "index.html").read_text(encoding="utf-8")
+    lesson = (Path(M.__file__).parents[1] / "ui" / "lesson.js").read_text(encoding="utf-8")
+    assert "function hoverSvg(svg, cands)" in page and page.count("hoverSvg(svg, ") == 3   # SymPy graphs, MATLAB figures
+    assert "value = ${fmt(v)}" in page                                                       # colour maps
+    assert "|F| = ${fmt(Math.hypot(u, v))}" in page                                          # vector fields
+    assert "return { spin: 0.15, pick };" in lesson and lesson.count("const pick = ray =>") == 2  # 3D surface, 3D curves
+    assert "if (mouse) {" in lesson                                                          # lessons' graphs

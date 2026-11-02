@@ -1579,4 +1579,13 @@ his (docs/TRAINING_EMPATHY.md, docs/TRAINING_EMOTION.md):
   map's range, bar values, a 3D curve's extent), and a quiver's arrows or a
   bar's baseline are no longer measured as curves. Checked with real Octave
   with printing off: all eight figures drawn in a headless browser.
+- 2 Nov, 06:51: values under the mouse, like MATLAB's data tips, on every plot
+  Jarvis draws: board graphs and MATLAB figures (the nearest point's x and y
+  with its curve's name and a guide line; a vector field's arrow position,
+  (u, v) and length; a bar's value; true values on log axes), colour maps (x,
+  y and the value), 3D surfaces and 3D curves (x, y, z of the point under the
+  mouse; the scene stops turning while you look), and the lessons' graphs.
+  Checked in a headless browser on real Octave figures: F = (-y, x) at
+  (0.8, 0) shows (0, 0.8); the saddle at (1.8, 0) shows 3.24; the Gaussian
+  surface at (0.6, -0.2) shows 0.670 = e^-0.4; e^7 on the log axis shows 1096.6.
 

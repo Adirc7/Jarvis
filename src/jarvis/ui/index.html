@@ -82,6 +82,10 @@ main { display:grid; grid-template-columns:minmax(0,1fr) 360px; height:calc(100%
 #board .surfbox { position:relative; height:380px; max-width:760px; margin-top:10px; background:var(--panel);
   border:1px solid var(--line); border-radius:10px; overflow:hidden; }
 #board .axes { color:var(--muted); font-size:12px; margin-top:4px; }
+#board .cmap { position:relative; }
+#board .maptip, .tip3d { position:absolute; pointer-events:none; background:#03070dee; border:1px solid #1c4766;
+  border-radius:6px; padding:4px 8px; font-size:12px; color:var(--text); white-space:nowrap; z-index:3; }
+#board .maptip[hidden] { display:none; }
 #board .cmap canvas { width:100%; max-width:560px; aspect-ratio:4/3; image-rendering:pixelated; display:block;
   margin-top:8px; border:1px solid var(--line); border-radius:8px; }
 #board table.tbl th, #board table.tbl td { border:1px solid var(--line); padding:6px 10px; text-align:left; }
@@ -315,6 +319,38 @@ function maths(el, tex) {
   }
   el.classList.add("raw"); el.textContent = tex;                // offline: the LaTeX as text
 }
+// ---- values under the mouse, like MATLAB's data tips: the nearest point's x and y (and more) ----
+const fmt = v => (v === null || v === undefined || !isFinite(v)) ? "?" : String(+Number(v).toPrecision(5));
+function hoverSvg(svg, cands) {
+  if (!cands.length) return;
+  const NS = "http://www.w3.org/2000/svg", vb = svg.viewBox.baseVal;
+  const mk = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); return e; };
+  const g = mk("g", { visibility: "hidden", "pointer-events": "none", class: "tip" });
+  const guide = mk("line", { stroke: "#8fa7ba", "stroke-dasharray": "3 4", y1: 0, y2: vb.height });
+  const dot = mk("circle", { r: 5, fill: "none", stroke: "#eaf5ff", "stroke-width": 2 });
+  const box = mk("rect", { rx: 6, fill: "#03070dee", stroke: "#1c4766" });
+  const text = mk("text", { fill: "#eaf5ff", "font-size": 13 });
+  g.append(guide, dot, box, text); svg.append(g);
+  svg.addEventListener("mousemove", e => {
+    const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+    const ctm = svg.getScreenCTM(); if (!ctm) return;
+    const p = pt.matrixTransform(ctm.inverse());
+    let best = null, bd = Infinity;
+    for (const c of cands) { const d = (c.x - p.x) ** 2 + (c.y - p.y) ** 2; if (d < bd) { bd = d; best = c; } }
+    if (!best || bd > 45 * 45) { g.setAttribute("visibility", "hidden"); return; }
+    guide.setAttribute("x1", best.x); guide.setAttribute("x2", best.x);
+    dot.setAttribute("cx", best.x); dot.setAttribute("cy", best.y);
+    text.textContent = best.text;
+    const tw = text.getComputedTextLength() + 16, th = 24;
+    let bx = best.x + 12, by = best.y - th - 8;
+    if (bx + tw > vb.width - 4) bx = best.x - tw - 12;
+    if (by < 4) by = best.y + 12;
+    box.setAttribute("x", bx); box.setAttribute("y", by); box.setAttribute("width", tw); box.setAttribute("height", th);
+    text.setAttribute("x", bx + 8); text.setAttribute("y", by + 16);
+    g.setAttribute("visibility", "visible");
+  });
+  svg.addEventListener("mouseleave", () => g.setAttribute("visibility", "hidden"));
+}
 function graph(plots) {
   const W = 760, H = 380, L = 54, R = 16, T = 16, B = 34, NS = "http://www.w3.org/2000/svg";
   const pts = plots.flatMap(p => p.points.filter(q => q[1] !== null));
@@ -347,6 +383,8 @@ function graph(plots) {
     }
     add("path", { d, fill: "none", stroke: COLOURS[i % 3], "stroke-width": 2.5 });
   });
+  hoverSvg(svg, plots.flatMap(p => p.points.filter(([x, y]) => y !== null && y >= y0 && y <= y1)
+    .map(([x, y]) => ({ x: X(x), y: Y(y), text: (plots.length > 1 ? p.label + ":  " : "") + `x = ${fmt(x)},  y = ${fmt(y)}` }))));
   return svg;
 }
 // ---- MATLAB / Octave figures drawn from their data (tools/matlab.py), when no picture could be saved ----
@@ -361,7 +399,7 @@ function figure2d(spec) {                 // curves (lines, markers), vector fie
     const area = Math.max(1e-12, (Math.max(...ax) - Math.min(...ax)) * (Math.max(...ay) - Math.min(...ay)));
     const gap = Math.sqrt(area / spec.arrows.length) || 1, longest = Math.max(1e-12, ...spec.arrows.map(a => Math.hypot(a[2], a[3])));
     const sc = 0.9 * gap / longest;
-    spec = { ...spec, arrows: spec.arrows.map(([x, y, u, v]) => [x, y, u * sc, v * sc]) };
+    spec = { ...spec, real: spec.arrows, arrows: spec.arrows.map(([x, y, u, v]) => [x, y, u * sc, v * sc]) };
   }
   (spec.curves || []).forEach(c => c.points.forEach(([x, y]) => { if (y !== null) { xs.push(fx(x)); ys.push(fy(y)); } }));
   (spec.arrows || []).forEach(([x, y, u, v]) => { xs.push(fx(x), fx(x + u)); ys.push(fy(y), fy(y + v)); });
@@ -404,6 +442,16 @@ function figure2d(spec) {                 // curves (lines, markers), vector fie
       const ux = (bx - ax) / len, uy = (by - ay) / len, hd = Math.min(7, len * 0.35);
       add("path", { d: `M${ax} ${ay} L${bx} ${by} M${bx} ${by} L${bx - hd * (ux - uy * 0.5)} ${by - hd * (uy + ux * 0.5)} ` +
         `M${bx} ${by} L${bx - hd * (ux + uy * 0.5)} ${by - hd * (uy - ux * 0.5)}`, stroke: col, "stroke-width": 1.5, fill: "none" }); } }
+  // the values under the mouse: a curve's point, an arrow's (u, v) and length, a bar's height
+  const tips = [], named = (spec.curves || []).length + (spec.bars || []).length > 1;
+  (spec.curves || []).forEach(c => c.points.forEach(([x, y]) => { const a = fx(x), b = y === null ? null : fy(y);
+    if (a !== null && b !== null) tips.push({ x: X(a), y: Y(b), text: (named ? c.label + ":  " : "") + `x = ${fmt(x)},  y = ${fmt(y)}` }); }));
+  (spec.real || spec.arrows || []).forEach(([x, y, u, v]) => { const a = fx(x), b = fy(y);
+    if (a !== null && b !== null) tips.push({ x: X(a), y: Y(b),
+      text: `at (${fmt(x)}, ${fmt(y)}):  (u, v) = (${fmt(u)}, ${fmt(v)}),  |F| = ${fmt(Math.hypot(u, v))}` }); });
+  (spec.bars || []).forEach(b => b.points.forEach(([x, y]) => { const a = fx(x), c = fy(y);
+    if (a !== null && c !== null) tips.push({ x: X(a), y: Y(c), text: (named ? b.label + ":  " : "") + `${fmt(x)}:  ${fmt(y)}` }); }));
+  hoverSvg(svg, tips);
   return svg;
 }
 function colourMap(grid) {                 // contour and image data as a colour map, with its scale
@@ -420,6 +468,18 @@ function colourMap(grid) {                 // contour and image data as a colour
   }
   ctx.putImageData(img, 0, 0);
   const xr = grid.x || [], yr = grid.y || [];
+  const tip = el("div", "maptip"); tip.hidden = true; wrap.append(tip);
+  cv.addEventListener("mousemove", e => {
+    const r = cv.getBoundingClientRect();
+    const c = Math.min(m - 1, Math.max(0, Math.floor((e.clientX - r.left) / r.width * m)));
+    const row = Math.min(n - 1, Math.max(0, Math.floor((e.clientY - r.top) / r.height * n)));
+    const zr = grid.kind === "image" ? row : n - 1 - row, v = z[zr][c];
+    const x = xr.length === 2 ? xr[0] + c / Math.max(1, m - 1) * (xr[1] - xr[0]) : c + 1;
+    const y = yr.length === 2 ? yr[0] + zr / Math.max(1, n - 1) * (yr[1] - yr[0]) : zr + 1;
+    tip.textContent = `x = ${fmt(x)},  y = ${fmt(y)},  value = ${fmt(v)}`;
+    tip.style.left = (e.clientX - r.left + 14) + "px"; tip.style.top = (e.clientY - r.top + 10) + "px"; tip.hidden = false;
+  });
+  cv.addEventListener("mouseleave", () => { tip.hidden = true; });
   wrap.append(el("div", "axes", `${grid.kind === "contour" ? "contour plot shown as a colour map" : "colour map"}: ` +
     `low ${+lo.toPrecision(4)} (blue) to high ${+hi.toPrecision(4)} (amber)` +
     (xr.length === 2 ? `; x ${+xr[0].toPrecision(4)} to ${+xr[1].toPrecision(4)}` : "") +

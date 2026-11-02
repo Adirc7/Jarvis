@@ -63,20 +63,40 @@ window.JarvisLesson = (function () {
     scene.add(new T.AmbientLight(0xffffff, 0.55));
     const sun = new T.DirectionalLight(0xffffff, 0.8); sun.position.set(6, 14, 8); scene.add(sun);
     const view = { yaw: 0.7, pitch: 0.7, dist: 30 };
-    let drag = null, alive = true, t = 0, last = performance.now();
+    let drag = null, alive = true, t = 0, last = performance.now(), hovering = false;
     const dom = renderer.domElement;
+    if (getComputedStyle(box).position === "static") box.style.position = "relative";
+    const tip = el("div", "tip3d"); tip.style.cssText = "position:absolute;pointer-events:none;display:none;background:#03070dee;" +
+      "border:1px solid #1c4766;border-radius:6px;padding:4px 8px;font:12px Segoe UI,system-ui,sans-serif;color:#eaf5ff;" +
+      "white-space:nowrap;z-index:3";
+    box.append(tip);
+    const ray = new T.Raycaster(), mouse = new T.Vector2();
+    ray.params.Line = { threshold: 0.35 };
     dom.addEventListener("pointerdown", e => { drag = [e.clientX, e.clientY, view.yaw, view.pitch]; dom.setPointerCapture(e.pointerId); });
     dom.addEventListener("pointermove", e => { if (!drag) return; view.yaw = drag[2] - (e.clientX - drag[0]) * 0.01;
       view.pitch = Math.max(-1.4, Math.min(1.45, drag[3] + (e.clientY - drag[1]) * 0.01)); });
     dom.addEventListener("pointerup", () => { drag = null; });
     dom.addEventListener("wheel", e => { e.preventDefault(); view.dist = Math.max(8, Math.min(90, view.dist * (e.deltaY > 0 ? 1.1 : 0.9))); }, { passive: false });
     const api = build(T, scene, view);
+    dom.addEventListener("pointermove", e => {
+      hovering = true;
+      if (drag || !api.pick) { tip.style.display = "none"; return; }
+      const r = dom.getBoundingClientRect();
+      mouse.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+      ray.setFromCamera(mouse, camera);
+      const text = api.pick(ray);
+      if (!text) { tip.style.display = "none"; return; }
+      tip.textContent = text; tip.style.display = "block";
+      tip.style.left = Math.min(r.width - tip.offsetWidth - 4, e.clientX - r.left + 14) + "px";
+      tip.style.top = Math.min(r.height - 30, e.clientY - r.top + 10) + "px";
+    });
+    dom.addEventListener("pointerleave", () => { hovering = false; tip.style.display = "none"; });
     function frame(now) {
       if (!alive) return;
       const dt = Math.min(0.05, (now - last) / 1000); last = now; t += dt;
       const w = box.clientWidth || 600, h = box.clientHeight || 400;
       if (dom.width !== Math.round(w * renderer.getPixelRatio())) { renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
-      if (!drag && api.spin) view.yaw += dt * api.spin;
+      if (!drag && !hovering && api.spin) view.yaw += dt * api.spin;
       camera.position.set(view.dist * Math.cos(view.pitch) * Math.sin(view.yaw), view.dist * Math.sin(view.pitch),
         view.dist * Math.cos(view.pitch) * Math.cos(view.yaw));
       camera.lookAt(0, 0, 0);
@@ -382,12 +402,23 @@ window.JarvisLesson = (function () {
       colors[3 * i] = c.r; colors[3 * i + 1] = c.g; colors[3 * i + 2] = c.b;
     }
     geo.setAttribute("color", new T.BufferAttribute(colors, 3)); geo.computeVertexNormals();
-    scene.add(new T.Mesh(geo, new T.MeshStandardMaterial({ vertexColors: true, side: T.DoubleSide, roughness: 0.6 })));
+    const mesh = new T.Mesh(geo, new T.MeshStandardMaterial({ vertexColors: true, side: T.DoubleSide, roughness: 0.6 }));
+    scene.add(mesh);
+    const xr = Array.isArray(vis.x) && vis.x.length === 2 ? vis.x : [0, m - 1], yr = Array.isArray(vis.y) && vis.y.length === 2 ? vis.y : [0, n - 1];
+    const f5 = v => String(+Number(v).toPrecision(5)), here = new T.Vector3();
+    const pick = ray => {
+      const hit = ray.intersectObject(mesh)[0]; if (!hit || !hit.face) return null;
+      let best = hit.face.a, bd = Infinity;
+      for (const i of [hit.face.a, hit.face.b, hit.face.c]) { const d = hit.point.distanceTo(here.fromBufferAttribute(pos, i)); if (d < bd) { bd = d; best = i; } }
+      const row = Math.floor(best / m), col = best % m, r = n - 1 - row, v = z[r][col];
+      if (v === null || v === undefined) return null;
+      return `x = ${f5(xr[0] + col / Math.max(1, m - 1) * (xr[1] - xr[0]))},  y = ${f5(yr[0] + r / Math.max(1, n - 1) * (yr[1] - yr[0]))},  z = ${f5(v)}`;
+    };
     const wire = new T.LineSegments(new T.WireframeGeometry(geo), new T.LineBasicMaterial({ color: 0x12314a, transparent: true, opacity: 0.35 }));
     scene.add(wire);
     scene.add(new T.AxesHelper(10));
     view.dist = 30; view.pitch = 0.6;
-    return { spin: 0.15 };
+    return { spin: 0.15, pick };
   });
 
   const COLOURS = () => { const c = C(); return [c.cyan, c.amber, c.green]; };
@@ -400,7 +431,8 @@ window.JarvisLesson = (function () {
     const x0 = vis.from, x1 = vis.to, legend = el("div", "legend");
     curves.forEach((cv, i) => { const s = el("span"); const sw = el("i"); sw.style.background = COLOURS()[i % 3]; s.append(sw, document.createTextNode(cv.label)); legend.append(s); });
     box.append(legend);
-    return canvas2d(box, (ctx, w, h) => {
+    let mouse = null;
+    const api = canvas2d(box, (ctx, w, h) => {
       const c = C(), L = 50, R = 16, T = 16, B = 40, X = x => L + (x - x0) / (x1 - x0) * (w - L - R), Y = y => T + (y1 - y) / (y1 - y0) * (h - T - B);
       const ticks = (a, b) => { const st = Math.pow(10, Math.floor(Math.log10((b - a) / 5 || 1))); const k = [1, 2, 5, 10].find(m => (b - a) / (st * m) <= 8) * st; const o = []; for (let v = Math.ceil(a / k) * k; v <= b + 1e-9; v += k) o.push(+v.toFixed(10)); return o; };
       ctx.strokeStyle = c.line; ctx.lineWidth = 1;
@@ -408,7 +440,26 @@ window.JarvisLesson = (function () {
       for (const v of ticks(y0, y1)) { ctx.beginPath(); ctx.moveTo(L, Y(v)); ctx.lineTo(w - R, Y(v)); ctx.stroke(); label(ctx, String(v), L - 6, Y(v) + 4, c.muted, 11, "right"); }
       curves.forEach((cv, i) => { ctx.strokeStyle = COLOURS()[i % 3]; ctx.lineWidth = 2.5; ctx.beginPath(); let pen = false;
         for (const [x, y] of cv.points) { if (y === null || y < y0 - (y1 - y0) || y > y1 + (y1 - y0)) { pen = false; continue; } pen ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)); pen = true; } ctx.stroke(); });
+      if (mouse) {                                   // the point nearest the mouse, with its values
+        let best = null, bd = 45 * 45;
+        curves.forEach(cv => cv.points.forEach(([x, y]) => { if (y === null || y < y0 || y > y1) return;
+          const d = (X(x) - mouse[0]) ** 2 + (Y(y) - mouse[1]) ** 2; if (d < bd) { bd = d; best = [x, y, cv.label]; } }));
+        if (best) {
+          const px = X(best[0]), py = Y(best[1]), f5 = v => String(+Number(v).toPrecision(5));
+          const text = (curves.length > 1 ? best[2] + ":  " : "") + `x = ${f5(best[0])},  y = ${f5(best[1])}`;
+          ctx.setLineDash([3, 4]); ctx.strokeStyle = c.muted; ctx.beginPath(); ctx.moveTo(px, T); ctx.lineTo(px, h - B); ctx.stroke(); ctx.setLineDash([]);
+          ctx.strokeStyle = c.text; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(px, py, 5, 0, 7); ctx.stroke();
+          ctx.font = "13px Segoe UI, system-ui, sans-serif"; const tw = ctx.measureText(text).width + 16;
+          const bx = px + 12 + tw > w ? px - tw - 12 : px + 12, by = py - 32 < 0 ? py + 12 : py - 32;
+          ctx.fillStyle = "#03070dee"; ctx.fillRect(bx, by, tw, 24); ctx.strokeStyle = "#1c4766"; ctx.strokeRect(bx, by, tw, 24);
+          label(ctx, text, bx + 8, by + 16, c.text, 13);
+        }
+      }
     });
+    const cv = box.querySelector("canvas");
+    cv.addEventListener("mousemove", e => { const r = cv.getBoundingClientRect(); mouse = [e.clientX - r.left, e.clientY - r.top]; });
+    cv.addEventListener("mouseleave", () => { mouse = null; });
+    return api;
   }
 
   // ---- diagrams, pictures, formulas, the model's own sketch ----
@@ -508,16 +559,21 @@ window.JarvisLesson = (function () {
       if (!all.length) return {};
       const lo = [0, 1, 2].map(i => Math.min(...all.map(p => p[i]))), hi = [0, 1, 2].map(i => Math.max(...all.map(p => p[i])));
       const span = Math.max(1e-9, ...hi.map((h, i) => h - lo[i])), s = 12 / span, mid = hi.map((h, i) => (h + lo[i]) / 2);
-      const colours = [0x4de1ff, 0xffb43b, 0xb48cff];
+      const colours = [0x4de1ff, 0xffb43b, 0xb48cff], lines = [];
       vis.curves.forEach((c, k) => {
         const pts = c.points.filter(p => p.every(v => v !== null && isFinite(v)))
           .map(([x, y, z]) => new T.Vector3((x - mid[0]) * s, (z - mid[2]) * s, -(y - mid[1]) * s));   // z up
-        if (pts.length > 1) scene.add(new T.Line(new T.BufferGeometry().setFromPoints(pts),
-                                                 new T.LineBasicMaterial({ color: colours[k % 3] })));
+        if (pts.length > 1) { const line = new T.Line(new T.BufferGeometry().setFromPoints(pts),
+                                                    new T.LineBasicMaterial({ color: colours[k % 3] }));
+          line.userData.points = c.points.filter(p => p.every(v => v !== null && isFinite(v))); lines.push(line); scene.add(line); }
       });
       scene.add(new T.AxesHelper(8));
       view.dist = 26; view.pitch = 0.5;
-      return { spin: 0.15 };
+      const f5 = v => String(+Number(v).toPrecision(5));
+      const pick = ray => { const hit = ray.intersectObjects(lines)[0]; if (!hit) return null;
+        const p = hit.object.userData.points[Math.min(hit.index, hit.object.userData.points.length - 1)];
+        return p ? `x = ${f5(p[0])},  y = ${f5(p[1])},  z = ${f5(p[2])}` : null; };
+      return { spin: 0.15, pick };
     });
   }
   return { start, show, patch, stop, surfaceIn, curvesIn, scenes: Object.keys(SCENES), get index() { return shownIndex; } };
