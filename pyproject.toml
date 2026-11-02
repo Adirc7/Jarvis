@@ -35,6 +35,8 @@ ml = [
     "scikit-learn>=1.5",
     "joblib>=1.4",
     "sentence-transformers>=3.0",
+    "kaggle>=2.2",          # training the stand-in model on Kaggle's free GPU (docs/TRAINING_STANDIN.md)
+    "six",                  # kaggle 2.2.5 imports it without listing it
 ]
 vision = [
     # MediaPipe 1.x: the Tasks API only (the old mp.solutions is gone). It
