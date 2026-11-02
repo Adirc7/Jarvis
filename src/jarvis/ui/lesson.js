@@ -501,5 +501,24 @@ window.JarvisLesson = (function () {
   function stop() { if (current && current.api && current.api.stop) current.api.stop(); current = null; lesson = null; shownIndex = -1; }
   // A 3D surface anywhere in the window (the board draws MATLAB's surfaces with it): {z: [[...]]}
   function surfaceIn(el, vis) { return surface(el, vis); }
-  return { start, show, patch, stop, surfaceIn, scenes: Object.keys(SCENES), get index() { return shownIndex; } };
+  // 3D curves (MATLAB's plot3): {curves: [{points: [[x, y, z], ...]}]}, scaled to fit, drag to turn
+  function curvesIn(el, vis) {
+    return three(el, (T, scene, view) => {
+      const all = vis.curves.flatMap(c => c.points.filter(p => p.every(v => v !== null && isFinite(v))));
+      if (!all.length) return {};
+      const lo = [0, 1, 2].map(i => Math.min(...all.map(p => p[i]))), hi = [0, 1, 2].map(i => Math.max(...all.map(p => p[i])));
+      const span = Math.max(1e-9, ...hi.map((h, i) => h - lo[i])), s = 12 / span, mid = hi.map((h, i) => (h + lo[i]) / 2);
+      const colours = [0x4de1ff, 0xffb43b, 0xb48cff];
+      vis.curves.forEach((c, k) => {
+        const pts = c.points.filter(p => p.every(v => v !== null && isFinite(v)))
+          .map(([x, y, z]) => new T.Vector3((x - mid[0]) * s, (z - mid[2]) * s, -(y - mid[1]) * s));   // z up
+        if (pts.length > 1) scene.add(new T.Line(new T.BufferGeometry().setFromPoints(pts),
+                                                 new T.LineBasicMaterial({ color: colours[k % 3] })));
+      });
+      scene.add(new T.AxesHelper(8));
+      view.dist = 26; view.pitch = 0.5;
+      return { spin: 0.15 };
+    });
+  }
+  return { start, show, patch, stop, surfaceIn, curvesIn, scenes: Object.keys(SCENES), get index() { return shownIndex; } };
 })();

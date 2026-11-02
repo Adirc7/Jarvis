@@ -82,6 +82,8 @@ main { display:grid; grid-template-columns:minmax(0,1fr) 360px; height:calc(100%
 #board .surfbox { position:relative; height:380px; max-width:760px; margin-top:10px; background:var(--panel);
   border:1px solid var(--line); border-radius:10px; overflow:hidden; }
 #board .axes { color:var(--muted); font-size:12px; margin-top:4px; }
+#board .cmap canvas { width:100%; max-width:560px; aspect-ratio:4/3; image-rendering:pixelated; display:block;
+  margin-top:8px; border:1px solid var(--line); border-radius:8px; }
 #board table.tbl th, #board table.tbl td { border:1px solid var(--line); padding:6px 10px; text-align:left; }
 #board table.tbl th { color:var(--cyan); font-weight:500; }
 #board .legend span { display:inline-flex; align-items:center; gap:6px; margin-right:14px; font-size:13px; color:var(--muted); }
@@ -347,6 +349,83 @@ function graph(plots) {
   });
   return svg;
 }
+// ---- MATLAB / Octave figures drawn from their data (tools/matlab.py), when no picture could be saved ----
+function figure2d(spec) {                 // curves (lines, markers), vector fields, bars; log axes
+  const W = 760, H = 400, L = 58, R = 16, T = 16, B = 38, NS = "http://www.w3.org/2000/svg";
+  const lx = !!spec.xscale, ly = !!spec.yscale;
+  const fx = v => (lx ? (v > 0 ? Math.log10(v) : null) : v), fy = v => (ly ? (v > 0 ? Math.log10(v) : null) : v);
+  const xs = [], ys = [];
+  // Arrows scaled as MATLAB's quiver does by default: the longest one about as long as the grid spacing
+  if ((spec.arrows || []).length) {
+    const ax = spec.arrows.map(a => a[0]), ay = spec.arrows.map(a => a[1]);
+    const area = Math.max(1e-12, (Math.max(...ax) - Math.min(...ax)) * (Math.max(...ay) - Math.min(...ay)));
+    const gap = Math.sqrt(area / spec.arrows.length) || 1, longest = Math.max(1e-12, ...spec.arrows.map(a => Math.hypot(a[2], a[3])));
+    const sc = 0.9 * gap / longest;
+    spec = { ...spec, arrows: spec.arrows.map(([x, y, u, v]) => [x, y, u * sc, v * sc]) };
+  }
+  (spec.curves || []).forEach(c => c.points.forEach(([x, y]) => { if (y !== null) { xs.push(fx(x)); ys.push(fy(y)); } }));
+  (spec.arrows || []).forEach(([x, y, u, v]) => { xs.push(fx(x), fx(x + u)); ys.push(fy(y), fy(y + v)); });
+  (spec.bars || []).forEach(b => b.points.forEach(([x, y]) => { xs.push(fx(x)); ys.push(fy(y)); if (!ly) ys.push(0); }));
+  const X0 = xs.filter(v => v !== null && isFinite(v)), Y0 = ys.filter(v => v !== null && isFinite(v));
+  if (!X0.length || !Y0.length) return null;
+  let x0 = Math.min(...X0), x1 = Math.max(...X0), y0 = Math.min(...Y0), y1 = Math.max(...Y0);
+  if (x0 === x1) { x0 -= 1; x1 += 1; } if (y0 === y1) { y0 -= 1; y1 += 1; }
+  const bw = (spec.bars || []).length ? (x1 - x0) / Math.max(4, (spec.bars[0].points.length || 1) * 1.6) : 0;
+  x0 -= bw; x1 += bw;
+  const py = (y1 - y0) * 0.06; y0 -= py; y1 += py;
+  const X = x => L + (x - x0) / (x1 - x0) * (W - L - R), Y = y => T + (y1 - y) / (y1 - y0) * (H - T - B);
+  const svg = document.createElementNS(NS, "svg"); svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("class", "plot");
+  const add = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); svg.append(e); return e; };
+  const ticks = (a, b) => { const st = Math.pow(10, Math.floor(Math.log10((b - a) / 5 || 1))); const k = [1, 2, 5, 10].find(m => (b - a) / (st * m) <= 8) * st;
+    const o = []; for (let v = Math.ceil(a / k) * k; v <= b + 1e-9; v += k) o.push(+v.toFixed(10)); return o; };
+  const label = (v, log) => log ? "1e" + v : String(+v.toPrecision(6));
+  for (const v of ticks(x0, x1)) { add("line", { x1: X(v), x2: X(v), y1: T, y2: H - B, stroke: "#12314a" });
+    const t = add("text", { x: X(v), y: H - 14, fill: "#8fa7ba", "font-size": 12, "text-anchor": "middle" }); t.textContent = label(v, lx); }
+  for (const v of ticks(y0, y1)) { add("line", { x1: L, x2: W - R, y1: Y(v), y2: Y(v), stroke: "#12314a" });
+    const t = add("text", { x: L - 6, y: Y(v) + 4, fill: "#8fa7ba", "font-size": 12, "text-anchor": "end" }); t.textContent = label(v, ly); }
+  if (y0 < 0 && y1 > 0) add("line", { x1: L, x2: W - R, y1: Y(0), y2: Y(0), stroke: "#3a5a75" });
+  if (x0 < 0 && x1 > 0) add("line", { x1: X(0), x2: X(0), y1: T, y2: H - B, stroke: "#3a5a75" });
+  let k = 0;
+  (spec.bars || []).forEach(b => { const col = COLOURS[k++ % 3];
+    b.points.forEach(([x, y]) => { const yy = fy(y), base = ly ? y0 : 0; if (yy === null) return;
+      add("rect", { x: X(fx(x)) - (X(x0 + bw * 0.8) - X(x0)) / 2, width: X(x0 + bw * 0.8) - X(x0), y: Math.min(Y(yy), Y(base)),
+        height: Math.abs(Y(base) - Y(yy)), fill: col, opacity: 0.85 }); }); });
+  (spec.curves || []).forEach(c => { const col = COLOURS[k++ % 3];
+    if (c.line !== false) { let d = "", pen = false;
+      for (const [x, y] of c.points) { const a = fx(x), b = y === null ? null : fy(y);
+        if (a === null || b === null) { pen = false; continue; } d += (pen ? "L" : "M") + X(a).toFixed(1) + " " + Y(b).toFixed(1) + " "; pen = true; }
+      add("path", { d, fill: "none", stroke: col, "stroke-width": 2.5 }); }
+    if (c.markers) for (const [x, y] of c.points) { const a = fx(x), b = y === null ? null : fy(y);
+      if (a !== null && b !== null) add("circle", { cx: X(a), cy: Y(b), r: 3.5, fill: "none", stroke: col, "stroke-width": 1.8 }); } });
+  if ((spec.arrows || []).length) { const col = COLOURS[k++ % 3];
+    for (const [x, y, u, v] of spec.arrows) { const ax = X(fx(x)), ay = Y(fy(y)), bx = X(fx(x + u)), by = Y(fy(y + v));
+      if (![ax, ay, bx, by].every(isFinite)) continue;
+      const len = Math.hypot(bx - ax, by - ay); if (len < 0.5) continue;
+      const ux = (bx - ax) / len, uy = (by - ay) / len, hd = Math.min(7, len * 0.35);
+      add("path", { d: `M${ax} ${ay} L${bx} ${by} M${bx} ${by} L${bx - hd * (ux - uy * 0.5)} ${by - hd * (uy + ux * 0.5)} ` +
+        `M${bx} ${by} L${bx - hd * (ux + uy * 0.5)} ${by - hd * (uy - ux * 0.5)}`, stroke: col, "stroke-width": 1.5, fill: "none" }); } }
+  return svg;
+}
+function colourMap(grid) {                 // contour and image data as a colour map, with its scale
+  const z = grid.z, n = z.length, m = z[0].length, flat = z.flat().filter(v => v !== null && isFinite(v));
+  if (!flat.length) return null;
+  const lo = Math.min(...flat), hi = Math.max(...flat);
+  const wrap = el("div", "cmap"), cv = el("canvas"); cv.width = m; cv.height = n; wrap.append(cv);
+  const ctx = cv.getContext("2d"), img = ctx.createImageData(m, n);
+  const ramp = t => [12 + t * (255 - 12), 68 + t * (180 - 68), 124 + t * (59 - 124)];     // blue to amber
+  for (let r = 0; r < n; r++) for (let c = 0; c < m; c++) {
+    const v = z[grid.kind === "image" ? r : n - 1 - r][c], t = v === null ? 0 : (v - lo) / Math.max(1e-12, hi - lo);
+    const [R_, G, B_] = v === null ? [9, 21, 34] : ramp(t), i = 4 * (r * m + c);
+    img.data[i] = R_; img.data[i + 1] = G; img.data[i + 2] = B_; img.data[i + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  const xr = grid.x || [], yr = grid.y || [];
+  wrap.append(el("div", "axes", `${grid.kind === "contour" ? "contour plot shown as a colour map" : "colour map"}: ` +
+    `low ${+lo.toPrecision(4)} (blue) to high ${+hi.toPrecision(4)} (amber)` +
+    (xr.length === 2 ? `; x ${+xr[0].toPrecision(4)} to ${+xr[1].toPrecision(4)}` : "") +
+    (yr.length === 2 ? `, y ${+yr[0].toPrecision(4)} to ${+yr[1].toPrecision(4)}` : "")));
+  return wrap;
+}
 let boardScenes = [];                                     // 3D surfaces on the board, stopped when it changes
 function showBoard(b) {
   if (!b || !b.title) return;
@@ -359,17 +438,25 @@ function showBoard(b) {
     if (st.text) card.append(el("div", "t", st.text));
     if (st.math) { const m = el("div", "m"); maths(m, st.math); card.append(m); }
     if (st.code) card.append(el("pre", "code", String(st.code)));                   // MATLAB code and its output
-    if (/^\/figure\/run-[\d-]+\/figure[1-4]\.(png|svg)$/.test(String(st.image || ""))) {  // a MATLAB figure, Jarvis's own
+    if (/^\/figure\/run-[\d-]+\/figure[1-8]\.(png|svg)$/.test(String(st.image || ""))) {  // a MATLAB figure, Jarvis's own
       const img = el("img", "fig"); img.src = st.image; img.alt = st.text || "figure"; card.append(img);
     }
-    if (st.plot && Array.isArray(st.plot.curves) && st.plot.curves.length) {  // MATLAB's figure, drawn from its data
-      const svg = graph(st.plot.curves); if (svg) card.append(svg);
+    if (st.plot && typeof st.plot === "object") {                    // MATLAB's figure, drawn from its data
+      const svg = figure2d(st.plot); if (svg) card.append(svg);
+      const named = [...(st.plot.bars || []), ...(st.plot.curves || [])];
       const legend = el("div", "legend");
-      st.plot.curves.forEach((p, k) => { const s = el("span"); const sw = el("i"); sw.style.background = COLOURS[k % 3];
+      named.forEach((p, k) => { const s = el("span"); const sw = el("i"); sw.style.background = COLOURS[k % 3];
         s.append(sw, document.createTextNode(p.label)); legend.append(s); });
-      card.append(legend);
-      const axes = [st.plot.xlabel && "x: " + st.plot.xlabel, st.plot.ylabel && "y: " + st.plot.ylabel].filter(Boolean);
+      if ((st.plot.arrows || []).length) legend.append(el("span", "", "arrows: the vector field"));
+      if (legend.children.length > 1 || (st.plot.arrows || []).length) card.append(legend);
+      const axes = [st.plot.xlabel && "x: " + st.plot.xlabel + (st.plot.xscale ? " (log)" : ""),
+                    st.plot.ylabel && "y: " + st.plot.ylabel + (st.plot.yscale ? " (log)" : "")].filter(Boolean);
       if (axes.length) card.append(el("div", "axes", axes.join("  ·  ")));
+    }
+    if (st.grid && Array.isArray(st.grid.z)) { const cm = colourMap(st.grid); if (cm) card.append(cm); }
+    if (st.curve3d && Array.isArray(st.curve3d.curves) && window.JarvisLesson && JarvisLesson.curvesIn) {
+      const box3 = el("div", "surfbox"); card.append(box3);
+      boardScenes.push(JarvisLesson.curvesIn(box3, st.curve3d));                // drag to turn it
     }
     if (st.surface && Array.isArray(st.surface.z) && window.JarvisLesson && JarvisLesson.surfaceIn) {
       const surf = el("div", "surfbox"); card.append(surf);

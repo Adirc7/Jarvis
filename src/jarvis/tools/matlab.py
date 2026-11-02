@@ -36,7 +36,7 @@ from typing import Any
 from .gate import ActionLog, Confirm, Gate, Outcome
 from .registry import Args, Registry, Result, Tier, Tool
 
-MAX_FIGURES = 4
+MAX_FIGURES = 8
 OUTPUT_CHARS = 4000
 # Words that start real MATLAB lines in command form ("hold on", "grid on", "format long"), not prose
 COMMAND_WORDS = {"hold", "grid", "axis", "format", "close", "clear", "clc", "legend", "box", "disp", "warning",
@@ -45,7 +45,7 @@ COMMAND_WORDS = {"hold", "grid", "axis", "format", "close", "clear", "clc", "leg
                  "try", "catch", "colormap", "subplot", "persistent", "printf", "fprintf", "title", "xlabel",
                  "ylabel", "zlabel", "rotate3d", "camlight", "lighting", "material"}
 RUN_NAME = re.compile(r"run-\d{8}-\d{6}(?:-\d{1,3})?")
-FIGURE_NAME = re.compile(r"figure[1-4]\.(?:png|svg)")
+FIGURE_NAME = re.compile(r"figure[1-8]\.(?:png|svg)")
 # Functions that reach outside the run: the shell, files, the network, other languages, code built from text.
 BLOCKED = (
     "system", "dos", "unix", "winopen", "perl", "python", "pyrun", "pyrunfile", "pyenv", "javaObject", "javaMethod",
@@ -120,7 +120,8 @@ for jarvis_k = 1:min(numel(jarvis_figs), MAX_FIGURES)
   end
 end
 % The figures' data, so Jarvis can draw them himself when no picture could be saved (2 Nov, Windows:
-% Octave's printing found no way to make an image without a window).
+% Octave's printing found no way to make an image without a window). Lines, markers, 3D curves, vector
+% fields (quiver), scatter, bars, contour and image colour maps, surfaces; MATLAB and Octave alike.
 try
   jarvis_out = {};
   for jarvis_k = 1:min(numel(jarvis_figs), MAX_FIGURES)
@@ -135,20 +136,79 @@ try
         if size(jarvis_lab{jarvis_i}, 1) > 1, jarvis_lab{jarvis_i} = strjoin(cellstr(jarvis_lab{jarvis_i})', ' '); end
       end
       jarvis_p = struct('figure', jarvis_k, 'title', jarvis_lab{1}, 'xlabel', jarvis_lab{2}, ...
-                        'ylabel', jarvis_lab{3});
-      jarvis_p.curves = {};
-      jarvis_p.surfaces = {};
+                        'ylabel', jarvis_lab{3}, 'xscale', get(jarvis_ax, 'xscale'), 'yscale', get(jarvis_ax, 'yscale'));
+      jarvis_p.curves = {}; jarvis_p.arrows = {}; jarvis_p.bars = {}; jarvis_p.grids = {}; jarvis_p.surfaces = {};
+      % lines drawn straight on the axes (a quiver's or a bar's own lines belong to it, not here)
       jarvis_ls = findall(jarvis_ax, 'type', 'line');
-      for jarvis_j = numel(jarvis_ls):-1:max(1, numel(jarvis_ls) - 5)      % the first drawn first
-        jarvis_x = double(get(jarvis_ls(jarvis_j), 'xdata')); jarvis_y = double(get(jarvis_ls(jarvis_j), 'ydata'));
-        jarvis_x = jarvis_x(:)'; jarvis_y = jarvis_y(:)';
+      for jarvis_j = numel(jarvis_ls):-1:1
+        jarvis_h = jarvis_ls(jarvis_j);
+        if ~isequal(get(jarvis_h, 'parent'), jarvis_ax) || numel(jarvis_p.curves) >= 6, continue; end
+        jarvis_x = double(get(jarvis_h, 'xdata')); jarvis_y = double(get(jarvis_h, 'ydata'));
+        jarvis_z = double(get(jarvis_h, 'zdata'));
+        jarvis_x = jarvis_x(:)'; jarvis_y = jarvis_y(:)'; jarvis_z = jarvis_z(:)';
         if numel(jarvis_x) ~= numel(jarvis_y) || numel(jarvis_y) < 2, continue; end
         jarvis_st = max(1, ceil(numel(jarvis_y) / 600));
-        jarvis_c = get(jarvis_ls(jarvis_j), 'color');
-        if ~isnumeric(jarvis_c) || numel(jarvis_c) ~= 3, jarvis_c = [0 0.45 0.74]; end
-        jarvis_p.curves{end+1} = struct('x', jarvis_x(1:jarvis_st:end), 'y', jarvis_y(1:jarvis_st:end), ...
-                                        'name', get(jarvis_ls(jarvis_j), 'displayname'), 'color', jarvis_c(:)');
+        jarvis_c = struct('x', jarvis_x(1:jarvis_st:end), 'y', jarvis_y(1:jarvis_st:end), ...
+                          'name', get(jarvis_h, 'displayname'), ...
+                          'line', ~strcmpi(get(jarvis_h, 'linestyle'), 'none'), ...
+                          'markers', ~strcmpi(get(jarvis_h, 'marker'), 'none'));
+        if numel(jarvis_z) == numel(jarvis_y), jarvis_c.z = jarvis_z(1:jarvis_st:end); end
+        jarvis_p.curves{end+1} = jarvis_c;
       end
+      % scatter (markers only)
+      jarvis_hs = findall(jarvis_ax, '-property', 'SizeData');
+      for jarvis_j = 1:min(numel(jarvis_hs), 3)
+        jarvis_x = double(get(jarvis_hs(jarvis_j), 'xdata')); jarvis_y = double(get(jarvis_hs(jarvis_j), 'ydata'));
+        jarvis_st = max(1, ceil(numel(jarvis_y) / 2000));
+        if numel(jarvis_x) == numel(jarvis_y) && numel(jarvis_y) >= 1
+          jarvis_p.curves{end+1} = struct('x', jarvis_x(1:jarvis_st:end), 'y', jarvis_y(1:jarvis_st:end), ...
+                                          'name', get(jarvis_hs(jarvis_j), 'displayname'), 'line', false, 'markers', true);
+        end
+      end
+      % vector fields (quiver): arrows from (x, y) along (u, v)
+      jarvis_hs = findall(jarvis_ax, '-property', 'UData');
+      for jarvis_j = 1:min(numel(jarvis_hs), 2)
+        jarvis_h = jarvis_hs(jarvis_j);
+        jarvis_x = double(get(jarvis_h, 'xdata')); jarvis_y = double(get(jarvis_h, 'ydata'));
+        jarvis_u = double(get(jarvis_h, 'udata')); jarvis_v = double(get(jarvis_h, 'vdata'));
+        if isequal(size(jarvis_x), size(jarvis_u)) && isequal(size(jarvis_y), size(jarvis_v)) && numel(jarvis_u) >= 1
+          jarvis_st = max(1, ceil(numel(jarvis_u) / 600));
+          jarvis_p.arrows{end+1} = struct('x', jarvis_x(1:jarvis_st:end), 'y', jarvis_y(1:jarvis_st:end), ...
+                                          'u', jarvis_u(1:jarvis_st:end), 'v', jarvis_v(1:jarvis_st:end));
+        end
+      end
+      % bars (bar, hist; histogram in MATLAB)
+      jarvis_hs = findall(jarvis_ax, '-property', 'BarWidth');
+      for jarvis_j = numel(jarvis_hs):-1:max(1, numel(jarvis_hs) - 3)
+        jarvis_x = double(get(jarvis_hs(jarvis_j), 'xdata')); jarvis_y = double(get(jarvis_hs(jarvis_j), 'ydata'));
+        if numel(jarvis_x) == numel(jarvis_y) && numel(jarvis_y) <= 400
+          jarvis_p.bars{end+1} = struct('x', jarvis_x(:)', 'y', jarvis_y(:)', 'name', get(jarvis_hs(jarvis_j), 'displayname'));
+        end
+      end
+      jarvis_hs = findall(jarvis_ax, '-property', 'BinEdges');
+      for jarvis_j = 1:min(numel(jarvis_hs), 2)
+        jarvis_e = double(get(jarvis_hs(jarvis_j), 'BinEdges')); jarvis_y = double(get(jarvis_hs(jarvis_j), 'Values'));
+        if numel(jarvis_e) == numel(jarvis_y) + 1 && numel(jarvis_y) <= 400
+          jarvis_p.bars{end+1} = struct('x', (jarvis_e(1:end-1) + jarvis_e(2:end)) / 2, 'y', jarvis_y(:)', 'name', '');
+        end
+      end
+      % contour and image colour maps: a grid of values over an x and y range
+      jarvis_hs = [findall(jarvis_ax, '-property', 'LevelList'); findall(jarvis_ax, 'type', 'image')];
+      for jarvis_j = 1:min(numel(jarvis_hs), 2)
+        jarvis_h = jarvis_hs(jarvis_j);
+        if strcmpi(get(jarvis_h, 'type'), 'image')
+          jarvis_z = double(get(jarvis_h, 'cdata')); jarvis_kind = 'image';
+        else
+          jarvis_z = double(get(jarvis_h, 'zdata')); jarvis_kind = 'contour';
+        end
+        jarvis_X = double(get(jarvis_h, 'xdata')); jarvis_Y = double(get(jarvis_h, 'ydata'));
+        if ndims(jarvis_z) == 2 && min(size(jarvis_z)) >= 2
+          jarvis_z = jarvis_z(1:max(1, ceil(size(jarvis_z, 1) / 80)):end, 1:max(1, ceil(size(jarvis_z, 2) / 80)):end);
+          jarvis_p.grids{end+1} = struct('z', jarvis_z, 'x', [min(jarvis_X(:)) max(jarvis_X(:))], ...
+                                         'y', [min(jarvis_Y(:)) max(jarvis_Y(:))], 'kind', jarvis_kind);
+        end
+      end
+      % surfaces (surf, mesh)
       jarvis_ss = findall(jarvis_ax, 'type', 'surface');
       if ~isempty(jarvis_ss)
         jarvis_z = double(get(jarvis_ss(1), 'zdata'));
@@ -159,7 +219,8 @@ try
                                             'y', [min(jarvis_Y(:)) max(jarvis_Y(:))]);
         end
       end
-      if ~isempty(jarvis_p.curves) || ~isempty(jarvis_p.surfaces)
+      if ~isempty(jarvis_p.curves) || ~isempty(jarvis_p.arrows) || ~isempty(jarvis_p.bars) || ...
+         ~isempty(jarvis_p.grids) || ~isempty(jarvis_p.surfaces)
         jarvis_out{end+1} = jarvis_p;
       end
     end
@@ -188,9 +249,14 @@ for jarvis_k = 1:min(numel(jarvis_figs), MAX_FIGURES)
     fprintf('JARVIS_DATA: figure %d: title "%s", x axis "%s", y axis "%s"\n', jarvis_k, jarvis_lab{1}, ...
             jarvis_lab{2}, jarvis_lab{3});
     jarvis_lines = findall(jarvis_ax, 'type', 'line');
-    for jarvis_j = 1:min(numel(jarvis_lines), 3)
+    jarvis_cn = 0;
+    for jarvis_j = 1:numel(jarvis_lines)
       jarvis_l = jarvis_lines(jarvis_j);
+      % only lines drawn straight on the axes: a quiver's arrows or a bar's baseline are measured elsewhere
+      if ~isequal(get(jarvis_l, 'parent'), jarvis_ax) || jarvis_cn >= 3, continue; end
       jarvis_x = double(get(jarvis_l, 'xdata')); jarvis_y = double(get(jarvis_l, 'ydata'));
+      if numel(jarvis_y) == 2 && all(jarvis_y == 0), continue; end
+      jarvis_cn = jarvis_cn + 1;
       jarvis_x = jarvis_x(:)'; jarvis_y = jarvis_y(:)';
       jarvis_ok = isfinite(jarvis_x) & isfinite(jarvis_y);
       jarvis_x = jarvis_x(jarvis_ok); jarvis_y = jarvis_y(jarvis_ok);
@@ -495,7 +561,7 @@ class MatlabTools:
         else:
             problems = []
         measured = [ln.split("JARVIS_DATA:", 1)[1].rstrip() for ln in (out or "").splitlines()
-                    if ln.startswith("JARVIS_DATA:")]
+                    if ln.startswith("JARVIS_DATA:")] + _measure_more(_figure_data(run))
         output = _clean("\n".join(ln for ln in (out or "").splitlines() if not ln.startswith("JARVIS_DATA:")))
         steps = [{"text": f"{self.engine.name} code ({seconds:.0f} s)", "code": code.removeprefix("1;\n")[:6000]}]
         if output:
@@ -505,8 +571,7 @@ class MatlabTools:
                           f"Stopped after {self.timeout_s:.0f} seconds."})
         steps += [{"text": f"Figure {name[6]}", "image": f"/figure/{run.name}/{name}"} for name in figures]
         steps += [{"text": f"Figure {a['figure']}" + (f": {a['title']}" if a["title"] else ""),
-                   **({"plot": a["plot"]} if a.get("plot") else {}),
-                   **({"surface": a["surface"]} if a.get("surface") else {})} for a in drawn]
+                   **{k: a[k] for k in ("plot", "grid", "surface", "curve3d") if a.get(k)}} for a in drawn]
         n_figures = len(figures) + len({a["figure"] for a in drawn})
         shown = self.show_board({"title": title, "plots": [], "from": "matlab", "steps": steps})
         report = [f"{self.engine.name} ran: {title} ({seconds:.0f} s).",
@@ -547,9 +612,20 @@ def _numbers(v: Any, limit: int) -> list[float | None]:
     return [_number(x) for x in v[:limit]]
 
 
+def _items(v: Any, limit: int) -> list:
+    return (v if isinstance(v, list) else [v])[:limit] if v else []
+
+
+def _grid(z: Any, cells: int) -> list[list[float | None]] | None:
+    if isinstance(z, list) and len(z) >= 2 and all(isinstance(r, list) and len(r) >= 2 for r in z[:cells]):
+        return [_numbers(r, cells) for r in z[:cells]]
+    return None
+
+
 def _figure_data(run: Path) -> list[dict]:
-    """The figures' data the wrapper saved (jarvis_figures.json), checked and ready for the board:
-    curves as [x, y] points (None where undefined), a surface as a grid of z. Nothing else gets through."""
+    """The figures' data the wrapper saved (jarvis_figures.json), checked and ready for the board: curves
+    (lines, markers, 3D), arrows (vector fields), bars, colour maps (contour, image) and a surface.
+    Only numbers and short labels get through."""
     path = run / "jarvis_figures.json"
     if not path.is_file() or path.stat().st_size > 5_000_000:
         return []
@@ -557,37 +633,90 @@ def _figure_data(run: Path) -> list[dict]:
         data = json.loads(path.read_text(encoding="utf-8"))
     except ValueError:
         return []
-    data = data if isinstance(data, list) else [data]
     out = []
-    for a in data[:8]:
+    for a in _items(data, 12):
         if not isinstance(a, dict):
             continue
         text = {k: str(a.get(k) or "")[:120] for k in ("title", "xlabel", "ylabel")}
-        curves = []
-        raw = a.get("curves") or []
-        for c in (raw if isinstance(raw, list) else [raw])[:6]:
+        logs = {k: a.get(k) == "log" for k in ("xscale", "yscale")}
+        curves, arrows, bars, grid, surface = [], [], [], None, None
+        for c in _items(a.get("curves"), 8):
             if not isinstance(c, dict):
                 continue
             xs, ys = _numbers(c.get("x"), 2000), _numbers(c.get("y"), 2000)
-            points = [[x, y] for x, y in zip(xs, ys) if x is not None]
-            colour = _numbers(c.get("color"), 3)
-            hexed = ("#" + "".join(f"{max(0, min(255, round((v or 0) * 255))):02x}" for v in colour)
-                     if len(colour) == 3 else "")
-            if len(points) >= 2:
+            zs = _numbers(c.get("z"), 2000) if "z" in c else []
+            points = ([[x, y, z] for x, y, z in zip(xs, ys, zs)] if len(zs) == len(xs) and zs
+                      else [[x, y] for x, y in zip(xs, ys) if x is not None])
+            if len(points) >= 1:
                 curves.append({"label": str(c.get("name") or "")[:60] or f"curve {len(curves) + 1}",
-                               "points": points, "colour": hexed})
-        surface = None
-        raw = a.get("surfaces") or []
-        for s in (raw if isinstance(raw, list) else [raw])[:1]:
-            z = s.get("z") if isinstance(s, dict) else None
-            if isinstance(z, list) and len(z) >= 2 and all(isinstance(r, list) and len(r) >= 2 for r in z[:80]):
-                surface = {"z": [_numbers(r, 80) for r in z[:80]], "x": _numbers(s.get("x"), 2),
-                           "y": _numbers(s.get("y"), 2)}
-        if curves or surface:
-            plot = {**text, "curves": curves} if curves else None
-            out.append({"figure": int(_number(a.get("figure")) or 1), "title": text["title"],
-                        "plot": plot, "surface": surface})
+                               "points": points, "line": bool(c.get("line", True)),
+                               "markers": bool(c.get("markers", False)), "three_d": bool(zs)})
+        for q in _items(a.get("arrows"), 2):
+            if isinstance(q, dict):
+                cols = [_numbers(q.get(k), 600) for k in ("x", "y", "u", "v")]
+                arrows += [list(t) for t in zip(*cols) if None not in t]
+        for b in _items(a.get("bars"), 4):
+            if isinstance(b, dict):
+                xs, ys = _numbers(b.get("x"), 400), _numbers(b.get("y"), 400)
+                bars.append({"label": str(b.get("name") or "")[:60] or f"bars {len(bars) + 1}",
+                             "points": [[x, y] for x, y in zip(xs, ys) if x is not None and y is not None]})
+        for g in _items(a.get("grids"), 1):
+            z = _grid(g.get("z"), 80) if isinstance(g, dict) else None
+            if z:
+                grid = {"z": z, "x": _numbers(g.get("x"), 2), "y": _numbers(g.get("y"), 2),
+                        "kind": "contour" if g.get("kind") == "contour" else "image"}
+        for sf in _items(a.get("surfaces"), 1):
+            z = _grid(sf.get("z"), 80) if isinstance(sf, dict) else None
+            if z:
+                surface = {"z": z, "x": _numbers(sf.get("x"), 2), "y": _numbers(sf.get("y"), 2)}
+        flat = [c for c in curves if not c["three_d"]]
+        if bars:            # a bar chart's own baseline (a flat line at zero) isn't a curve of its own
+            flat = [c for c in flat if not (len(c["points"]) <= 2 and all(p[1] == 0 for p in c["points"]))]
+        plot = ({**text, **logs, "curves": flat, "arrows": arrows[:600], "bars": bars}
+                if flat or arrows or bars else None)
+        curve3d = [c for c in curves if c["three_d"]]
+        if plot or grid or surface or curve3d:
+            out.append({"figure": int(_number(a.get("figure")) or 1), "title": text["title"], "plot": plot,
+                        "grid": {**grid, **text} if grid else None, "surface": surface,
+                        "curve3d": {**text, "curves": curve3d} if curve3d else None})
     return out
+
+
+def _g(v: float | None) -> str:
+    return "?" if v is None else f"{v:.4g}"
+
+
+def _measure_more(figures: list[dict]) -> list[str]:
+    """What the wrapper's own measurements leave out, for Jarvis to explain: vector fields, colour maps,
+    bars and 3D curves (lines and surfaces are measured in the wrapper)."""
+    lines = []
+    for a in figures:
+        head = f" figure {a['figure']}" + (f" ({a['title']})" if a["title"] else "")
+        plot = a.get("plot") or {}
+        if plot.get("arrows"):
+            arrows = plot["arrows"]
+            sizes = [((u * u + v * v) ** 0.5, x, y) for x, y, u, v in arrows]
+            big, small = max(sizes), min(sizes)
+            lines.append(f"{head}: a vector field of {len(arrows)} arrows; longest {_g(big[0])} at "
+                         f"({_g(big[1])}, {_g(big[2])}), shortest {_g(small[0])} at ({_g(small[1])}, {_g(small[2])})")
+        for b in plot.get("bars", []):
+            values = ", ".join(f"{_g(x)}: {_g(y)}" for x, y in b["points"][:12])
+            lines.append(f"{head}: bars ({len(b['points'])}) {values}")
+        grid = a.get("grid")
+        if grid:
+            cells = [(v, r, c) for r, row in enumerate(grid["z"]) for c, v in enumerate(row) if v is not None]
+            if cells:
+                hi, lo = max(cells), min(cells)
+                xr, yr = grid.get("x") or [None, None], grid.get("y") or [None, None]
+                lines.append(f"{head}: a {grid['kind']} map over x {_g(xr[0])} to {_g(xr[-1])}, y {_g(yr[0])} to "
+                             f"{_g(yr[-1])}; values from {_g(lo[0])} to {_g(hi[0])}")
+        for c in (a.get("curve3d") or {}).get("curves", []):
+            pts = [p for p in c["points"] if None not in p]
+            if pts:
+                rng = [(min(p[i] for p in pts), max(p[i] for p in pts)) for i in range(3)]
+                lines.append(f"{head}: a 3D curve of {len(pts)} points; x {_g(rng[0][0])} to {_g(rng[0][1])}, "
+                             f"y {_g(rng[1][0])} to {_g(rng[1][1])}, z {_g(rng[2][0])} to {_g(rng[2][1])}")
+    return lines
 
 
 def _errors(err: str, run: Path, shifted: bool) -> list[str]:

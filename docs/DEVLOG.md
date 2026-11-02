@@ -1567,4 +1567,16 @@ his (docs/TRAINING_EMPATHY.md, docs/TRAINING_EMOTION.md):
   syms/dsolve, which Octave doesn't have here. A description or symbolic maths
   is now sent back for a rewrite before anyone is asked to click, and MATLAB
   turns and their repairs go to the teach route (gpt-oss-120b first).
+- 2 Nov, 06:40: Adhi asked whether other questions work too (vector analysis,
+  numerical methods), not only that ODE. They didn't, when no picture can be
+  saved: only line plots and surfaces were drawn from data. Now every common
+  kind is: vector fields (quiver, arrows scaled as MATLAB does), scatter and
+  marker points, bars and histograms, contour and image colour maps, 3D curves
+  (plot3, drag to turn), log axes, subplots, surfaces; up to 8 figures a run.
+  Each kind is read the same way in MATLAB and Octave (by the property only it
+  has: UData, SizeData, BarWidth, LevelList, BinEdges). Jarvis is told what
+  each shows too (a vector field's longest and shortest arrows and where, a
+  map's range, bar values, a 3D curve's extent), and a quiver's arrows or a
+  bar's baseline are no longer measured as curves. Checked with real Octave
+  with printing off: all eight figures drawn in a headless browser.
 

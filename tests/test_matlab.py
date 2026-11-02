@@ -375,7 +375,7 @@ async def test_jarvis_explains_the_plot_from_its_measured_data_not_the_code(sett
     assert "never read the code" in answer and "what is special about this case" in answer
     assert boards[-1]["steps"][1] == {"text": "Output", "code": "y(10) = 0.0533"}     # measurements stay off the board
     assert app.llm.last_route == "teach"                                              # explained by a teaching model
-    assert "for jarvis_k = 1:min(numel(jarvis_figs), 4)\n  jarvis_axes = findall" in M.WRAPPER
+    assert "for jarvis_k = 1:min(numel(jarvis_figs), 8)\n  jarvis_axes = findall" in M.WRAPPER
 
 
 def test_without_a_saved_picture_jarvis_draws_the_figure_from_its_data(tmp_path):
@@ -399,7 +399,8 @@ def test_without_a_saved_picture_jarvis_draws_the_figure_from_its_data(tmp_path)
     steps = boards[-1]["steps"]
     plot = steps[-2]["plot"]
     assert steps[-2]["text"] == "Figure 1: Damped oscillator" and plot["xlabel"] == "t"
-    assert plot["curves"][0] == {"label": "y", "points": [[0.0, 1.0], [1.0, None], [2.0, -0.5]], "colour": "#0000ff"}
+    assert plot["curves"][0] == {"label": "y", "points": [[0.0, 1.0], [1.0, None], [2.0, -0.5]], "line": True,
+                                 "markers": False, "three_d": False}
     assert plot["curves"][1]["label"] == "curve 2"
     assert steps[-1]["surface"] == {"z": [[0.0, 0.5], [0.5, 1.0]], "x": [-2.0, 2.0], "y": [-2.0, 2.0]}
     assert len(steps) == 4                                       # code, output, two figures; the bad one left out
@@ -420,3 +421,37 @@ def test_descriptions_and_symbolic_maths_are_sent_back_without_a_click(tmp_path)
     assert asked == []
     fine = "hold on\ngrid on\naxis equal tight\nfor k = 1:3\n  disp(k)\nend\nfunction y = f(x)\n  y = x;\nend"
     assert t.not_runnable(fine) == ""
+
+
+def test_every_kind_of_figure_is_read_and_measured(tmp_path):
+    """Vector analysis and numerical methods use more than plot(): quiver, contour, imagesc, bar, scatter,
+    plot3, semilogy, subplots. All of them are drawn when no picture could be saved."""
+    figures = [
+        {"figure": 1, "title": "field", "xlabel": "x", "ylabel": "y", "xscale": "linear", "yscale": "linear",
+         "curves": [], "arrows": {"x": [0, 1], "y": [0, 0], "u": [0, 1], "v": [1, 0]}, "bars": [], "grids": [],
+         "surfaces": []},
+        {"figure": 2, "title": "saddle", "curves": [], "arrows": [], "bars": [],
+         "grids": {"z": [[0, 1], [2, 3]], "x": [-2, 2], "y": [-1, 1], "kind": "contour"}, "surfaces": []},
+        {"figure": 3, "title": "bars", "curves": {"x": [0, 6], "y": [0, 0], "name": "", "line": True, "markers": False},
+         "bars": {"x": [1, 2], "y": [3, 5], "name": ""}, "arrows": [], "grids": [], "surfaces": []},
+        {"figure": 4, "title": "helix", "curves": {"x": [1, 0, -1], "y": [0, 1, 0], "z": [0, 0.5, 1], "name": "",
+                                                   "line": True, "markers": False}},
+        {"figure": 5, "title": "growth", "yscale": "log",
+         "curves": [{"x": [1, 2], "y": [10, 100], "name": "", "line": True, "markers": False},
+                    {"x": [1, 2], "y": [5, 50], "name": "data", "line": False, "markers": True}]},
+    ]
+    run = tmp_path / "run-20261102-070000"
+    run.mkdir()
+    (run / "jarvis_figures.json").write_text(json.dumps(figures))
+    got = {a["figure"]: a for a in M._figure_data(run)}
+    assert got[1]["plot"]["arrows"] == [[0.0, 0.0, 0.0, 1.0], [1.0, 0.0, 1.0, 0.0]]
+    assert got[2]["grid"]["kind"] == "contour" and got[2]["grid"]["z"] == [[0.0, 1.0], [2.0, 3.0]]
+    assert got[3]["plot"]["bars"][0]["points"] == [[1.0, 3.0], [2.0, 5.0]] and got[3]["plot"]["curves"] == []
+    assert got[4]["curve3d"]["curves"][0]["points"][2] == [-1.0, 0.0, 1.0] and got[4]["plot"] is None
+    assert got[5]["plot"]["yscale"] is True and got[5]["plot"]["curves"][1]["markers"] is True
+    said = "\n".join(M._measure_more(list(got.values())))
+    assert "a vector field of 2 arrows; longest 1" in said and "a contour map over x -2 to 2" in said
+    assert "values from 0 to 3" in said and "bars (2) 1: 3, 2: 5" in said and "a 3D curve of 3 points" in said
+    for kind in ("UData", "SizeData", "BarWidth", "LevelList", "'image'", "BinEdges", "'zdata'"):
+        assert kind in M.WRAPPER, kind
+
