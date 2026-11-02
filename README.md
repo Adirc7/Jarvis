@@ -116,6 +116,13 @@ Measurements: [docs/RESULTS.md](docs/RESULTS.md).
   when MATLAB is there, and `[matlab] path` names the program if it's somewhere
   else (config/settings.local.toml). Code that reaches the system, files or the internet is refused
   before you're asked.
+- **A stand-in when the internet is weak** (research, Adhi's): Jarvis keeps
+  the timeless answers the language models gave (text only, on the laptop)
+  and, when no model can be reached or none has started after 6 seconds,
+  answers from them and says so. Version 1 finds the same question asked
+  before; version 2, Adhi's student model, is trained on Kaggle's free GPU
+  when Jarvis closes and used only if it beats version 1 on conversations it
+  never saw ([the guide](docs/TRAINING_STANDIN.md); `/standin`).
 - **Maps you can talk to**: "show Sri Lanka and zoom in", "zoom out",
   "leave the map": the news or weather map in his window moves when asked.
 - **Jarvis as an app**: the desktop icon opens Jarvis in a window of his own

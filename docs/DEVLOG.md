@@ -1636,3 +1636,35 @@ collects anything, two fixes to the frame:
   use) or "acted" (a round); `emotion_eval.py --how felt|acted` scores them
   apart. TRAINING_EMOTION.md step 2 rewritten with a plan to 6 Nov.
 - Turned on in the laptop's settings.local.toml (`[emotion] enabled = true`).
+
+## 2026-11-02: The stand-in model: saving, the lookup, Kaggle runs, test before use
+
+Adhi verified his phone on Kaggle (GPU and internet in notebooks), so the
+research part he described on 1 Nov is built, all four parts, with the
+training itself his (`train_student`):
+
+1. **Saving** (`standin/pairs.py`): each plain reply with its question, only
+   when it stays true (no tools; not about the time, today, the latest, news
+   or weather; not a PC command). Text only, `data/standin/pairs.jsonl`,
+   gitignored. The newest 15% are never uploaded: they're the test.
+2. **Version 1, the lookup** (`standin/lookup.py`): the nearest past question
+   by multilingual-e5-small (cosine 0.9), or a TF-IDF of letters (0.88) until
+   e5 has downloaded. Jarvis answers from it when no model can be reached, or
+   when none has started after 6 s and there's a close match, and says which
+   ("The connection's slow, so this is from what I said before.").
+   0.88, not 0.7: in the tests "what is heat capacity" scored 0.83 against
+   "what is a capacitor" by letters, which would have been a wrong answer.
+3. **Kaggle runs** (`standin/kaggle_run.py`, `scripts/train_standin.py`,
+   `kaggle/standin/train_standin.py`): a private dataset, a private GPU script
+   (check mode, or train with Adhi's `train_student`), status polled, the
+   output downloaded. Automatic when Jarvis closes (`auto_train`), with 50 new
+   pairs and at most once in 20 hours, and not before `train_student` exists.
+4. **Test before use** (`standin/evaluate.py`): each stand-in answers the
+   held-out questions as Jarvis would (declining when not close), scored by
+   meaning against the big model's real answers: coverage, quality, overall.
+   A new model is used only if its overall beats what's in use by 0.01;
+   `docs/standin_results.md` gets the table.
+
+Tested with a stand-in for Kaggle's API (what's uploaded and how privately,
+the mode, a failed run, the automatic rules) and a tiny real chat model for
+the loading and the test. Guide: `docs/TRAINING_STANDIN.md`.

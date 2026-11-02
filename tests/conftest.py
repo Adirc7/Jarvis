@@ -61,6 +61,9 @@ def settings(tmp_path):
     s.raw["tools"]["matlab"] = False                  # nor run MATLAB or Octave
     s.raw.setdefault("window", {})["enabled"] = False # nor open the window
     s.raw.setdefault("general", {})["log_dir"] = str(tmp_path / "logs")
+    # the stand-in's pairs and models in the test's own folder, and no e5 download
+    s.raw.setdefault("standin", {}).update(data_dir=str(tmp_path / "standin"), model_dir=str(tmp_path / "models"),
+                                           encoder="tfidf", auto_train=False)
     return s
 
 

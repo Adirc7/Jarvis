@@ -224,6 +224,24 @@ allowed = ["logical", "balanced", "supportive"]
 # doesn't change every turn.
 rechoose_every = 5
 
+[standin]
+# Your stand-in model (src/jarvis/standin/, docs/TRAINING_STANDIN.md). When no language model can be
+# reached, or none has started answering after after_s on a weak connection, it answers instead and says
+# so. It learns from the questions you asked and the answers the models gave: only timeless ones (no news,
+# weather, the time or PC actions), text only, kept in data/standin/pairs.jsonl on this computer.
+save = false                # keep those pairs (off until you choose to)
+answer = true               # answer from them when the models can't
+after_s = 6.0               # a weak connection: no first word after this long, and a close match: it answers
+encoder = "intfloat/multilingual-e5-small"   # "tfidf": the fallback, no download
+# Training your student on Kaggle's free GPU (scripts/train_standin.py; KAGGLE_API_TOKEN in .env):
+auto_train = false          # after Jarvis closes, when min_new_pairs new pairs came since the last run
+min_new_pairs = 50
+every_hours = 20            # at most one automatic run in this many hours (Kaggle's GPU hours are weekly)
+held_out = 0.15             # the newest pairs, never uploaded: the test a new model must pass before use
+kaggle_dataset = "jarvis-standin-pairs"      # private, in your Kaggle account
+kaggle_kernel = "jarvis-standin-training"    # private
+timeout_min = 90
+
 [emotion]
 # How you sound (src/jarvis/perception/emotion.py, docs/TRAINING_EMOTION.md):
 # a speech emotion model hears the same push-to-talk audio as Whisper, at the

@@ -21,6 +21,7 @@ data/generated/
 data/gestures/
 # Your /mood labels with the emotion model's features (no audio); stay on the laptop
 data/emotion/
+data/standin/
 # Data prepared for the intent model (scripts/make_intent_sets.py); rebuild any time.
 # Not mine.jsonl: your own training sentences are source data, kept in git so every PC has them.
 data/intent/*

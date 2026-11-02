@@ -22,6 +22,8 @@ reaches the model and a cancelled reply is never saved.
 from __future__ import annotations
 
 import asyncio
+import contextlib
+import json
 import re
 import threading
 import time
@@ -29,6 +31,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from .agent.llm import FallbackLLM, LLMUnavailable, ToolCall, configured_providers
@@ -222,6 +225,23 @@ def markdown_tables(text: str) -> list[list[list[str]]]:
     return tables
 
 
+class StandInInstead(Exception):
+    """A weak connection: the stand-in answers this turn instead of the language model."""
+
+    def __init__(self, reply):
+        super().__init__("stand-in")
+        self.reply = reply
+
+
+def _standin_state(state_dir: Path) -> dict:
+    """What scripts/train_standin.py last did (state/standin.json)."""
+    try:
+        data = json.loads((Path(state_dir) / "standin.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
 def _script_slips(reply: str) -> dict:
     """For the turn log: letters of another Indic script inside Sinhala or Tamil text ("खेළ"), if any."""
     for code, (low, high) in (("si", (0x0D80, 0x0DFF)), ("ta", (0x0B80, 0x0BFF))):
@@ -356,6 +376,8 @@ class App(LessonMode):
             self.ears = None
             out(f"[emotion] couldn't load ({type(exc).__name__}: {exc}); carrying on without it.")
         self._emotion_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="emotion")
+        self.standin = self._make_standin()
+        self._standin_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="standin")
         self.heard = None                      # the last Heard, for /mood and the window
         self._heard_at = 0.0
         self._hearing_n = 0                    # which utterance a late guess belongs to
@@ -748,9 +770,15 @@ class App(LessonMode):
 
         try:
             reply = await self.sink.stream(
-                words_only(self.llm.stream_text(messages, token=token, route=model_route, lang=lang.code,
-                                                **extra)), lang, token, turn)
+                words_only(self._standin_race(self.llm.stream_text(messages, token=token, route=model_route,
+                                                                   lang=lang.code, **extra), text)),
+                lang, token, turn)
+        except StandInInstead as instead:            # a weak connection: nothing after [standin] after_s
+            return await self._standin_reply(instead.reply, "slow", text, lang, token, turn, decision.route)
         except LLMUnavailable as exc:
+            backup = await self._standin_answer(text)
+            if backup is not None:
+                return await self._standin_reply(backup, "unreachable", text, lang, token, turn, decision.route)
             await self.sink.say(LLM_UNAVAILABLE, self.lang.languages.get("en", lang), token)
             turn.finish(kind="llm_unavailable", failures=exc.failures, route=decision.route)
             return LLM_UNAVAILABLE
@@ -774,9 +802,141 @@ class App(LessonMode):
         if self.memory.enabled and self.settings.get("memory.keep_conversation", True):
             self.memory.set_recent(self.history[-HISTORY_TURNS * 2:])
             self.memory.save()
+        if self.standin is not None and self.standin.save and not token.cancelled:
+            self._standin_executor.submit(self.standin.add, text, reply, route=decision.route, lang=lang.code,
+                                          provider=self.llm.last_provider or "",
+                                          session=str(getattr(self.telemetry, "session_id", "") or ""))
         turn.finish(kind="chat", provider=self.llm.last_provider, route=decision.route, language=lang.code,
                     chars=len(reply), cancelled=token.cancelled, **_script_slips(reply))
         return reply
+
+    # ---- your stand-in model (standin/, docs/TRAINING_STANDIN.md) --------------------------------
+    def _make_standin(self):
+        if not (self.settings.get("standin.save", False) or self.settings.get("standin.answer", True)):
+            return None
+        from .standin import StandIn
+        return StandIn(self.settings.path("standin.data_dir", "data/standin"),
+                       self.settings.path("standin.model_dir", "models/standin"),
+                       str(self.settings.get("standin.encoder", "tfidf")),
+                       self.settings.get("standin.min_similarity"), self.settings.get("standin.student_min_similarity"),
+                       save=bool(self.settings.get("standin.save", False)))
+
+    def _prepare_standin(self) -> None:
+        try:
+            said = self.standin.prepare()
+        except Exception as exc:  # noqa: BLE001 - no stand-in is no reason not to talk
+            self.out(f"[stand-in] couldn't load ({type(exc).__name__}: {str(exc)[:120]}); carrying on without it.")
+            self.standin = None
+            return
+        if self.standin.lookup is not None and (self.standin.lookup.pairs or self.standin.save):
+            self.out(f"Stand-in ready: {said}." + (f" ({self.standin.problem})" if self.standin.problem else ""))
+
+    def _standin_ready(self) -> bool:
+        return (self.standin is not None and self.standin.lookup is not None
+                and bool(self.settings.get("standin.answer", True)))
+
+    async def _standin_answer(self, question: str):
+        if not self._standin_ready():
+            return None
+        try:
+            return await asyncio.get_running_loop().run_in_executor(self._standin_executor, self.standin.answer,
+                                                                    question)
+        except Exception as exc:  # noqa: BLE001
+            self.telemetry.log("standin_error", error=f"{type(exc).__name__}: {exc}"[:200])
+            return None
+
+    async def _standin_race(self, pieces, question: str):
+        """The model's reply as it streams; on a weak connection (nothing after [standin] after_s) the
+        stand-in's answer instead, when it has a close one (StandInInstead). Otherwise it keeps waiting."""
+        after = float(self.settings.get("standin.after_s", 6.0) or 0)
+        it = pieces.__aiter__()
+        if after <= 0 or not self._standin_ready():
+            async for piece in it:
+                yield piece
+            return
+        first = asyncio.ensure_future(it.__anext__())
+        done, _ = await asyncio.wait({first}, timeout=after)
+        if not done:
+            backup = asyncio.ensure_future(self._standin_answer(question))
+            await asyncio.wait({first, backup}, return_when=asyncio.FIRST_COMPLETED)
+            if not first.done() and backup.result() is not None:
+                first.cancel()
+                with contextlib.suppress(BaseException):
+                    await first
+                with contextlib.suppress(BaseException):
+                    await it.aclose()
+                raise StandInInstead(backup.result())
+            if not backup.done():
+                backup.cancel()
+        try:
+            piece = await first
+        except StopAsyncIteration:
+            return
+        yield piece
+        async for piece in it:
+            yield piece
+
+    async def _standin_reply(self, reply, why: str, question: str, lang, token: CancelToken, turn: Turn,
+                             route: str) -> str:
+        """Say the stand-in's answer, and that it is one: never passed off as the language model's."""
+        source = "my own small model" if reply.how == "student" else "what I said before"
+        lead = (f"The connection's slow, so this is from {source}." if why == "slow"
+                else f"I can't reach the language models, so this is from {source}.")
+        self.state.mode = Mode.SPEAKING
+        try:
+            await self.sink.say(lead, self.lang.languages.get("en", lang), token)
+
+            async def once():
+                yield reply.text
+            said = await self.sink.stream(once(), lang, token, turn)
+        finally:
+            if self.state.mode in (Mode.THINKING, Mode.SPEAKING):
+                self.state.mode = Mode.IDLE
+        text = f"{lead} {said or reply.text}"
+        if not token.cancelled:
+            self.history += [{"role": "user", "content": question}, {"role": "assistant", "content": text}]
+        self.telemetry.log("standin_answer", how=reply.how, why=why, score=round(reply.score, 3))
+        turn.finish(kind="standin", how=reply.how, why=why, score=round(reply.score, 3), route=route,
+                    language=lang.code)
+        return text
+
+    def _standin_command(self, arg: str) -> None:
+        """/standin: what the stand-in knows; /standin train: train your student on Kaggle now."""
+        from .standin.pairs import split
+        if arg == "train":
+            log = self._spawn_standin_training("--now")
+            self.out(f"[stand-in] training on Kaggle started in the background; its log: {log}" if log
+                     else "[stand-in] couldn't start the training script.")
+            return
+        if self.standin is None:
+            self.out("[stand-in] off: [standin] answer and save are both false.")
+            return
+        pairs = self.standin.log.read()
+        train, held = split(pairs, float(self.settings.get("standin.held_out", 0.15)))
+        state = _standin_state(self.settings.path("general.state_dir", "state"))
+        self.out(f"[stand-in] {self.standin.describe()}. Saved pairs: {len(pairs)} ({len(train)} to train on, "
+                 f"{len(held)} kept back to test). Saving is {'on' if self.standin.save else 'off'}; automatic "
+                 f"training is {'on' if self.settings.get('standin.auto_train', False) else 'off'}."
+                 + (f" Last Kaggle run: {state.get('last_result', '?')} ({state.get('last_run', '?')})."
+                    if state else " No Kaggle run yet: /standin train."))
+
+    def _spawn_standin_training(self, *args: str) -> Path | None:
+        """scripts/train_standin.py in its own process, which carries on after Jarvis closes."""
+        import subprocess
+        import sys
+        root = Path(__file__).resolve().parents[2]
+        script = root / "scripts" / "train_standin.py"
+        if not script.is_file():
+            return None
+        logs = Path(getattr(self.telemetry, "path", None) or root / "logs" / "x").parent
+        logs.mkdir(parents=True, exist_ok=True)
+        log = logs / f"standin-{datetime.now().strftime('%Y%m%d-%H%M%S')}.log"  # noqa: DTZ005
+        flags: dict[str, Any] = ({"creationflags": 0x00000008 | 0x00000200} if sys.platform == "win32"
+                                 else {"start_new_session": True})
+        with log.open("w", encoding="utf-8") as out:
+            subprocess.Popen([sys.executable, str(script), *args], cwd=str(root), stdout=out,
+                             stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, **flags)
+        return log
 
     def _history_for_model(self) -> list[dict]:
         """The recent conversation, within a budget. Groq's free tier allows 8,000 tokens a
@@ -1468,6 +1628,8 @@ class App(LessonMode):
             self._start_camera()
         moved_from = self._note_machine()
         self._start_window()
+        if self.standin is not None:
+            loop.run_in_executor(self._standin_executor, self._prepare_standin)    # never holds up the start
         self.telemetry.log("session_start", language=self.state.language, providers=names, mode=mode)
         try:
             await self.greet()
@@ -1496,6 +1658,8 @@ class App(LessonMode):
                 self._recorder_open = False
             self.sink.stop()
             self.presence.save()
+            if (self.standin is not None and self.standin.save and self.settings.get("standin.auto_train", False)):
+                self._spawn_standin_training("--auto")     # it checks whether there's enough new to learn from
             self.telemetry.log("session_end")
             self.out(f"\nLog saved to {self.telemetry.path}")
 
@@ -1694,6 +1858,8 @@ class App(LessonMode):
                 self.out(f"[empathy: {arg}]")
         elif cmd == "/mood":
             self._mood_command(arg.strip().lower())
+        elif cmd == "/standin":
+            self._standin_command(arg.strip().lower())
         elif cmd == "/name":
             if arg.strip():
                 self.memory.set_name(arg.strip())
