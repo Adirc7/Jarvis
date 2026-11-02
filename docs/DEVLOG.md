@@ -1668,3 +1668,9 @@ training itself his (`train_student`):
 Tested with a stand-in for Kaggle's API (what's uploaded and how privately,
 the mode, a failed run, the automatic rules) and a tiny real chat model for
 the loading and the test. Guide: `docs/TRAINING_STANDIN.md`.
+- 3 Nov, 03:40: first start on the laptop with the stand-in: "Stand-in ready:
+  the lookup, over 0 saved answers (e5)", the emotion model on the CPU, and the
+  Kaggle check passed (Tesla T4). His first words, "Good morning, Jarvis."
+  (it was 3:35 am; Jarvis: "It's late"), would have been saved, and replayed
+  at noon would be wrong. Greetings, thanks and the time (the quick route) are
+  no longer saved, and the rules apply to pairs saved earlier too.

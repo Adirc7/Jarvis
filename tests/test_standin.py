@@ -29,9 +29,13 @@ def test_only_timeless_answers_are_kept(tmp_path):
     assert log.add("will it rain tomorrow in Kaduwela", "Probably.") is None
     assert log.add("open notepad please", "Opened.", route="command") is None              # an action
     assert log.add("hi", "Hello.") is None and log.add("/mood calm", "x") is None
+    assert log.add("Good morning, Jarvis.", "Good morning, sir. It's late.", route="quick") is None
     assert keepable("explain time dilation", "...") and keepable("what is electric current", "...")
+    with log.path.open("a", encoding="utf-8") as f:                               # saved before a rule changed
+        f.write(json.dumps({"id": "x", "time": "t", "question": "Good morning, Jarvis.", "reply": "Morning.",
+                            "route": "quick"}) + "\n")
     [pair] = log.read()
-    assert pair.route == "teach" and json.loads(log.path.read_text())["question"].startswith("what is entropy")
+    assert pair.route == "teach" and json.loads(log.path.read_text().splitlines()[0])["question"].startswith("what is entropy")
 
 
 def test_the_newest_pairs_are_kept_back_for_the_test(tmp_path):

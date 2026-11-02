@@ -23,7 +23,9 @@ TIME_BOUND = re.compile(
     r"\b(what time|the time|time is it|date|today|tonight|tomorrow|yesterday|right now|latest|recent|news|"
     r"weather|forecast|prices?|scores?|currently|this (?:week|month|year)|ada|heta|iye)\b", re.IGNORECASE)
 # ("time" and "current" alone stay: time dilation and electric current are timeless)
-SKIP_ROUTES = {"command"}                 # "open notepad": an action, not an answer
+# "open notepad" is an action, not an answer; hello, thanks and the time (quick) depend on the moment
+# (3 Nov: "Good morning, Jarvis." got "It's late, sir": replayed at noon, wrong)
+SKIP_ROUTES = {"command", "quick"}
 MIN_QUESTION, MAX_REPLY = 6, 4000
 
 
@@ -75,7 +77,9 @@ class PairLog:
         for line in self.path.read_text(encoding="utf-8").splitlines():
             if line.strip():
                 row = json.loads(line)
-                pairs.append(Pair(**{k: row.get(k, "") for k in Pair.__dataclass_fields__}))
+                pair = Pair(**{k: row.get(k, "") for k in Pair.__dataclass_fields__})
+                if keepable(pair.question, pair.reply, pair.route):    # today's rules, also for older pairs
+                    pairs.append(pair)
         return pairs
 
 
