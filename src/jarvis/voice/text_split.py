@@ -43,7 +43,9 @@ _LATEX_WORDS = {
     "tau": "tau", "phi": "phi", "Phi": "Phi", "omega": "omega", "Omega": "Omega", "psi": "psi",
     "nabla": "del", "partial": "partial", "infty": "infinity", "sum": "the sum of",
     "int": "the integral of", "cdot": "times", "times": "times", "approx": "approximately",
-    "neq": "is not equal to", "leq": "is at most", "geq": "is at least", "to": "to",
+    "neq": "is not equal to", "leq": "is at most", "geq": "is at least", "le": "is at most",
+    "ge": "is at least", "to": "goes to", "propto": "is proportional to", "sim": "is about",
+    "ldots": "and so on", "dots": "and so on", "cdots": "and so on", "exp": "exp", "lim": "the limit",
     "rightarrow": "goes to", "Rightarrow": "so", "implies": "so", "pm": "plus or minus",
     "hbar": "h bar", "ln": "log", "log": "log", "sin": "sine", "cos": "cosine", "tan": "tangent",
 }
@@ -53,11 +55,23 @@ def latex_to_speech(math: str) -> str:
     r"""'\frac{8\pi G}{c^{4}}' -> '8 pi G over c to the power 4'. Good enough to hear, not exact."""
     m = math
     m = re.sub(r"\\(?:left|right|displaystyle|,|;|!|quad|qquad)", " ", m)
-    m = re.sub(r"\\text\{([^{}]*)\}", r" \1 ", m)
+    m = re.sub(r"\\(?:text|mathrm|mathbf|mathit|operatorname)\{([^{}]*)\}", r" \1 ", m)
+    m = re.sub(r"\\vec\{([^{}]*)\}", r" vector \1 ", m)
+    m = re.sub(r"\\(hat|dot|ddot|bar)\{([^{}]*)\}",
+               lambda x: f" {x.group(2)} {'double dot' if x.group(1) == 'ddot' else x.group(1)} ", m)
+    # limits first, so "\int_a^b f" is "the integral from a to b of f", not "a to the power b"
+    lim = r"\s*(\{[^{}]*\}|\\?\w+)"
+    m = re.sub(r"\\(int|sum|prod)\s*_" + lim + r"\s*\^" + lim,
+               lambda x: " {} from {} to {} of ".format({"int": "the integral", "sum": "the sum",
+                                                          "prod": "the product"}[x.group(1)],
+                                                         x.group(2).strip("{}"), x.group(3).strip("{}")), m)
+    m = re.sub(r"\\lim\s*_" + lim, lambda x: f" the limit as {x.group(1).strip('{}')} of ", m)
     for _ in range(4):   # innermost first: powers and subscripts, then fractions and roots
         m = re.sub(r"\^\{2\}|\^2(?!\d)", " squared ", m)
         m = re.sub(r"\^\{3\}|\^3(?!\d)", " cubed ", m)
+        m = re.sub(r"\^\{-([^{}]*)\}", r" to the power minus \1 ", m)
         m = re.sub(r"\^\{([^{}]*)\}", r" to the power \1 ", m)
+        m = re.sub(r"\^-(\w+)", r" to the power minus \1 ", m)
         m = re.sub(r"\^(\w)", r" to the power \1 ", m)
         m = re.sub(r"_\{([^{}]*)\}", r" \1 ", m)
         m = re.sub(r"_(\w)", r" \1 ", m)
@@ -70,12 +84,28 @@ def latex_to_speech(math: str) -> str:
     return " ".join(m.split())
 
 
+# LaTeX written without \( \) around it ("e^{-x}", "\sqrt{2}", "N^{-2}"): each piece said in words.
+_BARE_LATEX = re.compile(r"\\[A-Za-z]+(?:\{[^{}]*\})*|\S*[\^_]\{[^{}]*\}\S*|\b\w+\^-?\d+\b")
+# Left over after everything else: a span's lone \( or \), a stray backslash. Never said aloud.
+_LEFTOVER = re.compile(r"\\[()\[\]]|\\")
+
+
 def clean_for_speech(text: str) -> str:
     """Strip markdown and symbols that a TTS voice would read out literally."""
+    text = _MARKDOWN[0][0].sub(" ", text)    # code first: a $ or \ in code must not pair with the prose
     text = _MATH_SPANS.sub(lambda m: " " + latex_to_speech(next(g for g in m.groups() if g)) + " ", text)
+    text = _BARE_LATEX.sub(lambda m: " " + latex_to_speech(m.group(0)) + " ", text)
+    text = _LEFTOVER.sub(" ", text)
+    text = re.sub(r"(?<!\S)~(?=\s*[\w(])", " about ", text)     # "error ~ N squared": not "tilde"
     for pattern, repl in _MARKDOWN:
         text = pattern.sub(repl, text)
     return " ".join(text.split())
+
+
+def _open_maths(text: str) -> bool:
+    r"""Is a \( \), \[ \] or $$ $$ formula still open at the end of this text?"""
+    return (text.count("\\(") > text.count("\\)") or text.count("\\[") > text.count("\\]")
+            or text.count("$$") % 2 == 1)
 
 
 class SentenceChunker:
@@ -125,6 +155,14 @@ class SentenceChunker:
         if cut is None and len(self._buf) > self.max:
             cut = self._buf.rfind(" ", 0, self.max)
             cut = cut if cut > 0 else self.max
+        if cut is not None and _open_maths(self._buf[:cut]):
+            # the cut falls inside a formula: cut after it closes, or wait for the rest
+            closes = [i for i in (self._buf.find("\\)", cut), self._buf.find("\\]", cut), self._buf.find("$$", cut))
+                      if i >= 0]
+            if closes:
+                cut = min(closes) + 2
+            elif len(self._buf) < 1200:
+                return None
         if cut is None:
             return None
         chunk, self._buf = self._buf[:cut], self._buf[cut:].lstrip()

@@ -205,6 +205,33 @@ def test_latex_is_spoken_in_words():
     assert clean_for_speech(r"So $x^2 = 4$ here") == "So x squared equals 4 here"
 
 
+def test_the_voice_never_says_backslash():
+    # 1 Nov: "...confirming the \(N^{-2}\) behaviour." was read with its backslashes
+    said = clean_for_speech(r"confirming the \(N^{-2}\) behaviour.")
+    assert said == "confirming the N to the power minus 2 behaviour."
+    # maths written without \( \) around it, and stray pieces of a formula
+    assert clean_for_speech(r"it falls like N^{-2} and e^{-x}") == \
+        "it falls like N to the power minus 2 and e to the power minus x"
+    assert clean_for_speech(r"times \sqrt{2} and \frac{1}{2}") == "times the square root of 2 and 1 over 2"
+    assert clean_for_speech(r"a lone \( here \] and \\ there") == "a lone here and there"
+    assert clean_for_speech("error ~ N^-2") == "error about N to the power minus 2"
+    # limits are said as limits, not as powers
+    assert clean_for_speech(r"\(\int_a^b f(x)\,dx\)") == "the integral from a to b of f(x) dx"
+    assert clean_for_speech(r"\(\sum_{i=1}^{n} x_i\)") == "the sum from i equals 1 to n of x i"
+    assert "the limit as x goes to 0 of" in clean_for_speech(r"\(\lim_{x \to 0} \frac{\sin x}{x}\)")
+    assert clean_for_speech(r"\(f(a), \ldots, f(b)\)") == "f(a), and so on , f(b)"
+    # a $ inside code doesn't pair with one in the prose
+    assert clean_for_speech("```\ndisp('$x^2$')\n``` costs $5 and $10") == "costs $5 and $10"
+    for reply in [r"Hi there. So \(x^2 + y^2 = r^2\) is a circle.", r"The rule is \[a^2 + b^2 = c^2.\] Next."]:
+        for size in (1, 3, 7, 40):           # streamed in small pieces: never cut inside the formula
+            chunker, spoken = SentenceChunker(), []
+            for i in range(0, len(reply), size):
+                spoken += chunker.feed(reply[i:i + size])
+            spoken += chunker.flush()
+            assert all("\\" not in s and "{" not in s and "^" not in s for s in spoken), spoken
+            assert any("squared" in s for s in spoken)
+
+
 def test_honesty_about_current_events_is_in_the_prompt():
     from jarvis.persona import Persona
     prompt = Persona.load().system_prompt(language_instruction="Reply in English.", spoken=True, mode="balanced")

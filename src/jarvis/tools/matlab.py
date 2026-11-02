@@ -43,7 +43,7 @@ COMMAND_WORDS = {"hold", "grid", "axis", "format", "close", "clear", "clc", "leg
                  "more", "figure", "colorbar", "shading", "view", "drawnow", "global", "function", "end", "if",
                  "for", "while", "else", "elseif", "return", "break", "continue", "otherwise", "case", "switch",
                  "try", "catch", "colormap", "subplot", "persistent", "printf", "fprintf", "title", "xlabel",
-                 "ylabel", "zlabel", "rotate3d", "camlight", "lighting", "material"}
+                 "ylabel", "zlabel", "rotate3d", "camlight", "lighting", "material", "pkg"}
 RUN_NAME = re.compile(r"run-\d{8}-\d{6}(?:-\d{1,3})?")
 FIGURE_NAME = re.compile(r"figure[1-8]\.(?:png|svg)")
 # Functions that reach outside the run: the shell, files, the network, other languages, code built from text.
@@ -60,6 +60,16 @@ BLOCKED = (
 )
 _BLOCKED = re.compile(r"(?<![\w.])(" + "|".join(BLOCKED) + r")\b|(?<![\w.])(py|java|NET|COM|matlab\.io)\s*\."
                       r"|^\s*!", re.IGNORECASE | re.MULTILINE)
+# Loading or listing an Octave package that's already installed is fine (2 Nov: "pkg load statistics" for
+# ttest2 and tcdf was refused); installing one (pkg install, which downloads) stays blocked.
+_PKG_OK = re.compile(r"(?<![\w.])pkg[ \t]+(?:load|list|describe)\b[ \t\w-]*"
+                     r"|(?<![\w.])pkg\s*\(\s*(['\"])(?:load|list|describe)\1(?:\s*,\s*(['\"])[\w-]+\2)*\s*\)")
+_PKG_LOAD = re.compile(r"(?<![\w.])pkg[ \t]+load((?:[ \t]+[\w-]+)+)|(?<![\w.])pkg\s*\(\s*(['\"])load\2"
+                       r"((?:\s*,\s*['\"][\w-]+['\"])+)\s*\)")
+# Octave's own words when a function is in a package (2 Nov, Windows: "The 'tcdf' function belongs to the
+# statistics package from Octave Forge which you have installed but not loaded.")
+_IN_PACKAGE = re.compile(r"belongs to the ([\w-]+) package from Octave Forge which (you have installed but not "
+                         r"loaded|seems to not be installed)")
 # A quote after a name, a number, a closing bracket or another quote is a transpose (a'); otherwise it opens a string.
 _STRING = re.compile(r"""(?<![\w)\]}.'"])'(?:[^'\n]|'')*'|"(?:[^"\n]|"")*\"""")
 _BLOCK_COMMENT = re.compile(r"^\s*%\{.*?^\s*%\}", re.MULTILINE | re.DOTALL)
@@ -388,6 +398,7 @@ def _release(path: Path) -> tuple:
 def blocked(code: str) -> list[str]:
     """The functions in the code that could reach outside the run (strings and comments aside)."""
     text = _BLOCK_COMMENT.sub("", code)
+    text = _PKG_OK.sub(" ", text)                   # before strings go: pkg('load', 'statistics') is fine too
     text = _STRING.sub("''", text)
     text = _COMMENT.sub("", text)
     found = []
@@ -429,7 +440,10 @@ class MatlabTools:
              "with no initial conditions given, pick ones that show the behaviour (y(0) = 1, y'(0) = 0, never all "
              "zero) and print which. No files, "
              "internet, system commands, eval or input."
-             + (" It's GNU Octave: stick to core MATLAB, no toolboxes." if engine.kind == "octave" else "")),
+             + (" It's GNU Octave: core MATLAB plus the Octave Forge packages installed here. For statistics "
+                "(ttest2, tcdf, normpdf, normcdf, histfit) put pkg load statistics on the first line; never pkg "
+                "install. Welch's t-test is ttest2(a, b, 'Vartype', 'unequal')." if engine.kind == "octave"
+                else "")),
             {"type": "object", "properties": {
                 "title": {"type": "string", "minLength": 1, "maxLength": 120,
                           "description": "what the code does, in a few words"},
@@ -494,6 +508,9 @@ class MatlabTools:
                                 reasons=[f"uses {', '.join(found)}"])
             text = (f"Jarvis refused to run that code: it uses {', '.join(found)}, which could reach outside "
                     "the run (files, the system, the internet). Rewrite it without them: compute, print and plot only.")
+            if "pkg" in found:
+                text += (" Loading an installed package (pkg load statistics) is fine; installing one isn't. If a "
+                         "package is missing, the user can install it once from Octave's own window.")
             return Outcome("refused", "I won't run that code: it reaches outside its folder.", name,
                            Result(False, "refused", data={"for_model": text, "kind": "matlab"}),
                            reasons=[f"uses {', '.join(found)}"])
@@ -528,6 +545,30 @@ class MatlabTools:
         run = self._new_run()
         if self.engine.kind == "octave":
             code = "1;\n" + code                       # Octave: a script may define functions after this
+        else:                                         # MATLAB has no pkg: its toolboxes are always there
+            code = _PKG_LOAD.sub(lambda m: "% (" + m.group(0).strip() + ": Octave only)", code)
+        out, err, timed_out, seconds, returncode = self._execute(run, code)
+        loaded, missing = [], []
+        if self.engine.kind == "octave" and not timed_out:
+            for name, state in _IN_PACKAGE.findall(" ".join((err or "").split())):
+                (missing if state.startswith("seems") else loaded).append(name)
+            missing += re.findall(r"package ([\w-]+) is not installed", err or "")    # pkg load of a missing one
+            loaded, missing = list(dict.fromkeys(loaded)), list(dict.fromkeys(missing))
+            if loaded:
+                # installed, just not loaded: load it and run again (the same approved code, nothing new)
+                for old in run.glob("figure*.*"):
+                    old.unlink()
+                (run / "jarvis_figures.json").unlink(missing_ok=True)
+                code = "1;\n" + "".join(f"pkg load {name}\n" for name in loaded) + code.removeprefix("1;\n")
+                more, err, timed_out, extra, returncode = self._execute(run, code)
+                out, seconds = more, seconds + extra
+        errors = _errors(err or "", run, shifted=self.engine.kind == "octave")
+        if not errors and returncode not in (0, None) and not timed_out:
+            errors = [line for line in (err or "").splitlines() if line.strip()][-3:] or [f"exit code {returncode}"]
+        return self._report(run, code, title, out, errors, timed_out, seconds, loaded, missing)
+
+    def _execute(self, run: Path, code: str) -> tuple[str, str, bool, float, int | None]:
+        """Run the code once in its folder: what it printed, its errors, whether it was stopped, seconds."""
         (run / "jarvis_code.m").write_text(code, encoding="utf-8")
         (run / "jarvis_run.m").write_text(WRAPPER, encoding="utf-8")
         start = time.perf_counter()
@@ -545,13 +586,15 @@ class MatlabTools:
             timed_out = True
         seconds = time.perf_counter() - start
         try:
-            (run / "jarvis_log.txt").write_text(f"--- printed\n{out or ''}\n--- errors and warnings\n{err or ''}",
-                                                encoding="utf-8")
+            with (run / "jarvis_log.txt").open("a", encoding="utf-8") as log:
+                log.write(f"--- printed\n{out or ''}\n--- errors and warnings\n{err or ''}\n")
         except OSError:
             pass
-        errors = _errors(err or "", run, shifted=self.engine.kind == "octave")
-        if not errors and proc.returncode not in (0, None) and not timed_out:
-            errors = [line for line in (err or "").splitlines() if line.strip()][-3:] or [f"exit code {proc.returncode}"]
+        return out or "", err or "", timed_out, seconds, proc.returncode
+
+    def _report(self, run: Path, code: str, title: str, out: str, errors: list[str], timed_out: bool,
+                seconds: float, loaded: list[str], missing: list[str]) -> Result:
+        """Show the run on the board and tell the model what happened."""
         figures = sorted(p.name for p in run.glob("figure*.*") if FIGURE_NAME.fullmatch(p.name))
         drawn = [a for a in _figure_data(run) if not any(f.startswith(f"figure{a['figure']}.") for f in figures)]
         if drawn:
@@ -586,6 +629,13 @@ class MatlabTools:
             report.append(f"It was stopped after {self.timeout_s:.0f} seconds (too slow, or waiting for something).")
         if errors:
             report.append("Errors: " + " | ".join(errors)[:800])
+        if loaded:
+            report.append(f"Octave's {', '.join(loaded)} package was installed but not loaded, so Jarvis loaded it "
+                          "(pkg load) and ran the code again; that's the run above.")
+        if missing:
+            report.append(f"The {', '.join(missing)} package isn't installed in Octave on this laptop. Tell the user "
+                          "they can install it once from Octave's own window with: pkg install -forge "
+                          f"{missing[0]} ; or rewrite the code with core functions only.")
         ok = not timed_out and not (errors and not output and not n_figures)
         summary = ("Ran it; the output and figures are on the board." if ok
                    else "It didn't run cleanly; the error is on the board.")

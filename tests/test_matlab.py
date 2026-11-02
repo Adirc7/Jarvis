@@ -467,3 +467,50 @@ def test_plots_show_values_under_the_mouse():
     assert "|F| = ${fmt(Math.hypot(u, v))}" in page                                          # vector fields
     assert "return { spin: 0.15, pick };" in lesson and lesson.count("const pick = ray =>") == 2  # 3D surface, 3D curves
     assert "if (mouse) {" in lesson                                                          # lessons' graphs
+
+
+def test_an_installed_octave_package_is_loaded_and_installing_one_is_refused(tmp_path):
+    """2 Nov, Adhi: "it's you who have installed but not loaded, can you load it then?" (tcdf, ttest2)."""
+    assert blocked("pkg load statistics\n[h, p] = ttest2(a, b, 'Vartype', 'unequal');") == []
+    assert blocked("pkg('load', 'statistics'); pkg list") == []
+    assert blocked("pkg install -forge statistics") == ["pkg"]
+    assert blocked("pkg load statistics; system('dir')") == ["system"]      # a load doesn't hide what follows
+    assert blocked("pkg load statistics, system('dir')") == ["system"]
+    refused = tools(tmp_path)[0].call("run_matlab", json.dumps({"title": "t", "code": "pkg install -forge io"}))
+    assert refused.status == "refused" and "pkg load statistics) is fine" in refused.result.data["for_model"]
+
+    hint = ("JARVIS_ERROR: 'tcdf' undefined near line 4, column 5\n\nThe 'tcdf' function belongs to the statistics "
+            "package from Octave\nForge which you have installed but not loaded.  To load the package, run 'pkg "
+            "load statistics' from the Octave prompt.\n")
+
+    class Runs(FakeRun):
+        def __call__(self, command, cwd, **kwargs):
+            first = not self.commands
+            self.out, self.err = ("", hint) if first else ("p = 0.0312\n", "")
+            self.codes = getattr(self, "codes", []) + [(Path(cwd) / "jarvis_code.m").read_text()]
+            return super().__call__(command, cwd, **kwargs)
+
+    run = Runs(figures=1)
+    t, asked, boards = tools(tmp_path, run)
+    code = "a = randn(30,1); b = randn(40,1)*2 + 0.5;\np = tcdf(-2, 10);\nfprintf('p = %.4f\\n', p);"
+    out = t.call("run_matlab", json.dumps({"title": "Welch test", "code": code}))
+    assert out.status == "claimed" and len(asked) == 1 and len(run.commands) == 2       # one click, run again
+    assert run.codes[1] == "1;\npkg load statistics\n" + code
+    assert boards[-1]["steps"][0]["code"].startswith("pkg load statistics\n")           # the board shows the load
+    assert out.result.data["errors"] == [] and "loaded it (pkg load)" in out.result.data["for_model"]
+    log = (run.cwd / "jarvis_log.txt").read_text()
+    assert log.count("--- printed") == 2                                                 # both runs kept
+
+    missing = hint.replace("which you have installed but not loaded", "which seems to not be installed in your system")
+    t, _, _ = tools(tmp_path, FakeRun(out="", err=missing, figures=0))
+    out = t.call("run_matlab", json.dumps({"title": "t", "code": "x = tcdf(1, 2)"}))
+    assert out.status == "failed" and "pkg install -forge statistics" in out.result.data["for_model"]
+    t, _, _ = tools(tmp_path, FakeRun(out="", err="JARVIS_ERROR: package statistics is not installed\n", figures=0))
+    out = t.call("run_matlab", json.dumps({"title": "t", "code": "pkg load statistics\nx = tcdf(1, 2)"}))
+    assert "pkg install -forge statistics" in out.result.data["for_model"]
+
+    matlab = MatlabTools(tmp_path / "J2", Engine("matlab", Path("matlab.exe"), "MATLAB R2025b"),
+                         confirm=lambda *a: True, show_board=lambda b: True, popen=FakeRun())
+    matlab.call("run_matlab", json.dumps({"title": "t", "code": "pkg load statistics\nx = 1;"}))
+    ran = next((tmp_path / "J2" / "matlab").glob("run-*")) / "jarvis_code.m"
+    assert ran.read_text() == "% (pkg load statistics: Octave only)\nx = 1;"          # MATLAB has no pkg

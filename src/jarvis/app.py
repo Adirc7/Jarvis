@@ -162,8 +162,9 @@ ANSWER_NOTES = {
                "then walk through the plot using the measured features: how it starts, its shape, its peaks and "
                "how fast they shrink or grow, where it crosses zero, where it ends, with two or three key numbers "
                "woven in; then your own analysis: what it means and what changing a parameter would do. Describe "
-               "only what the measured data supports. If it failed or was refused, say why in one sentence and "
-               "offer to fix it."),
+               "only what the measured data supports. Say every formula in words, the way you'd say it aloud "
+               "(\"the error falls like N to the power minus 2\"), never as LaTeX or symbols. If it failed or "
+               "was refused, say why in one sentence and offer to fix it."),
     "maths": ("Teach like a good tutor: unless the user asked for the full answer, give a hint or the first step and "
               "ask them to try the next one. Every result you state must match SymPy's checked result; never call "
               "an unchecked result correct. Say maths the way it's spoken (\"x squared times sine x\"). What's on "

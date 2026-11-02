@@ -179,9 +179,25 @@ const safeUrl = u => /^https?:\/\//i.test(String(u || "")) ? u : null;
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls;
   if (text !== undefined) e.textContent = text; return e; }
 
+// A reply's \( \) and \[ \] maths drawn as maths in the captions (KaTeX), the rest as plain text.
+const MATH_IN_TEXT = /\\\((.+?)\\\)|\\\[(.+?)\\\]|\$\$(.+?)\$\$/gs;
+function withMaths(box, text) {
+  text = String(text || ""); box.textContent = "";
+  let last = 0;
+  for (const m of text.matchAll(MATH_IN_TEXT)) {
+    if (m.index > last) box.append(document.createTextNode(text.slice(last, m.index)));
+    const tex = m[1] || m[2] || m[3], span = el("span", "texin");
+    try { if (!window.katex) throw 0; katex.render(tex, span, { displayMode: false, throwOnError: false, trust: false }); }
+    catch (err) { span.textContent = tex; }                      // offline: the formula without its \( \)
+    box.append(span); last = m.index + m[0].length;
+  }
+  if (last < text.length) box.append(document.createTextNode(text.slice(last)));
+  return box;
+}
+
 function addTalk(who, text) {
   const box = $("talk"); if (box.querySelector(".empty")) box.textContent = "";
-  const item = el("div", "item"); item.append(el("div", "meta", who), el("div", "", text));
+  const item = el("div", "item"); item.append(el("div", "meta", who), withMaths(el("div", ""), text));
   box.prepend(item); while (box.children.length > 30) box.lastChild.remove();
 }
 function addAction(a) {
@@ -549,7 +565,7 @@ function onEvent(e) {
   else if (e.kind === "lesson_patch" && e.id === lessonId && window.JarvisLesson) JarvisLesson.patch(e.step, e.code);
   else if (e.kind === "state") showState(e.state);
   else if (e.kind === "you") { $("capYou").textContent = e.text; addTalk("You", e.text); }
-  else if (e.kind === "jarvis") { $("capJarvis").textContent = e.text; addTalk(e.speaker || "Jarvis", e.text); }
+  else if (e.kind === "jarvis") { withMaths($("capJarvis"), e.text); addTalk(e.speaker || "Jarvis", e.text); }
   else if (e.kind === "action") addAction(e);
 }
 

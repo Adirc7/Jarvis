@@ -1589,3 +1589,18 @@ his (docs/TRAINING_EMPATHY.md, docs/TRAINING_EMOTION.md):
   (0.8, 0) shows (0, 0.8); the saddle at (1.8, 0) shows 3.24; the Gaussian
   surface at (0.6, -0.2) shows 0.670 = e^-0.4; e^7 on the log axis shows 1096.6.
 
+- 2 Nov, 12:20: Jarvis said "backslash" in formulas ("...confirming the
+  \(N^{-2}\) behaviour."). The voice now never gets a backslash: maths with or
+  without \( \) is said in words (N to the power minus 2, the integral from a
+  to b of, the sum from i equals 1 to n of, the limit as x goes to 0 of, and so
+  on), a stray \( or \\ is dropped, and a streamed reply is never cut inside a
+  formula. The window's captions draw \( \) maths as maths (KaTeX), and the
+  MATLAB answer note asks for formulas in words.
+- 2 Nov, 12:40: Jarvis refused "pkg load statistics" (ttest2, tcdf) because
+  every pkg command was blocked, and told he must stick to core MATLAB. Loading
+  or listing an installed Octave package is allowed now; installing one still
+  isn't. When Octave says a function's package is installed but not loaded, he
+  loads it and runs the same code again under the same click; when it isn't
+  installed, he says how to install it once from Octave's own window
+  (pkg install -forge statistics). Told that Welch's t-test is
+  ttest2(a, b, 'Vartype', 'unequal'). On MATLAB a pkg load line is skipped.
