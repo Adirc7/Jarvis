@@ -278,7 +278,7 @@ def test_errors_are_read_whole_and_broken_strings_are_joined(tmp_path):
     run = tmp_path / "run-20261101-134223"
     err = ("warning: using the gnuplot graphics toolkit is discouraged\nJARVIS_ERROR: parse error near line 4, column 26 "
            f"in file {run}/jarvis_code.m\n\n  syntax error\n\n>>> ', x);\n         ^\n")
-    assert M._errors(err, run, shifted=True) == [
+    assert M._errors(err, run, shift=1) == [
         "parse error near line 3, column 26\n  syntax error\n>>> ', x);\n         ^"]
     # 1 Nov: the model wrote a real newline where it meant \n inside fprintf's quotes
     assert M.join_split_strings("x = 2;\nfprintf('x is %d\n', x);\ndisp('done')") == \
@@ -514,3 +514,40 @@ def test_an_installed_octave_package_is_loaded_and_installing_one_is_refused(tmp
     matlab.call("run_matlab", json.dumps({"title": "t", "code": "pkg load statistics\nx = 1;"}))
     ran = next((tmp_path / "J2" / "matlab").glob("run-*")) / "jarvis_code.m"
     assert ran.read_text() == "% (pkg load statistics: Octave only)\nx = 1;"          # MATLAB has no pkg
+
+
+def test_any_package_is_found_by_its_function_list():
+    """Octave names the package only for functions it knows; for the rest the wrapper looks in each installed
+    package's INDEX and says JARVIS_PACKAGE. Several at once, and nothing odd gets through as a name."""
+    out = "JARVIS_PACKAGE: signal\nJARVIS_PACKAGE: control\nJARVIS_PACKAGE: bad name; system\n"
+    err = ("The 'tcdf' function belongs to the statistics package from Octave Forge\nwhich you have installed but "
+           "not loaded.\nThe 'xlsread' function belongs to the io package from Octave Forge which seems to not be "
+           "installed in your system.")
+    assert M._packages_needed(out, err) == (["statistics", "signal", "control"], ["io"])
+    assert "JARVIS_PACKAGE" in M.WRAPPER and "packinfo" in M.WRAPPER
+
+
+@pytest.mark.skipif(shutil.which("octave-cli") is None or shutil.which("tar") is None,
+                    reason="GNU Octave isn't installed here")
+def test_real_octave_loads_every_package_the_code_needs(tmp_path, monkeypatch):
+    """Two small packages installed but not loaded; the code calls one function from each and has no pkg load."""
+    build = tmp_path / "build"
+    for name, fn, k in (("jdemo", "jdemo_twice", "2"), ("jdemo2", "jdemo_half", "0.5")):
+        (build / name / "inst").mkdir(parents=True)
+        (build / name / "DESCRIPTION").write_text(
+            f"Name: {name}\nVersion: 1.0.0\nDate: 2026-11-02\nAuthor: t\nMaintainer: t\nTitle: t\n"
+            "Description: A test package.\nCategories: Test\n")
+        (build / name / "COPYING").write_text("test")
+        (build / name / "inst" / f"{fn}.m").write_text(f"function y = {fn}(x)\n  y = {k} * x;\nend\n")
+        subprocess.run(["tar", "czf", f"{name}.tar.gz", name], cwd=build, check=True)
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    subprocess.run(["octave-cli", "--no-gui", "--quiet", "--norc", "--eval",
+                    "pkg install -local jdemo.tar.gz jdemo2.tar.gz"], cwd=build, check=True, capture_output=True)
+    t, asked, boards = tools(tmp_path, run=subprocess.Popen)
+    t.engine = M.find_engine("octave")
+    code = "y = jdemo_twice(3);\nz = jdemo_half(y);\nfprintf('%g %g\\n', y, z);\nw = no_such_function(1);"
+    out = t.call("run_matlab", json.dumps({"title": "packages", "code": code}))
+    data = out.result.data
+    assert len(asked) == 1 and "6 3" in data["for_model"] and "jdemo, jdemo2 packages were" in data["for_model"]
+    assert data["errors"] == ["'no_such_function' undefined near line 4, column 5"]   # line as written
+    assert boards[-1]["steps"][0]["code"].startswith("pkg load jdemo2\npkg load jdemo\n")

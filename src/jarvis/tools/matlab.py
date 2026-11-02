@@ -94,6 +94,23 @@ try
   jarvis_code
 catch jarvis_err
   fprintf(2, 'JARVIS_ERROR: %s\n', jarvis_err.message);
+  % A function that isn't there: which installed (not loaded) Octave package has it? Each package's
+  % packinfo/INDEX lists its functions; Jarvis loads that package and runs the code again.
+  jarvis_fn = regexp(jarvis_err.message, '''([A-Za-z]\w*)'' undefined', 'tokens', 'once');
+  if exist('OCTAVE_VERSION', 'builtin') && ~isempty(jarvis_fn)
+    try
+      jarvis_pl = pkg('list');
+      for jarvis_i = 1:numel(jarvis_pl)
+        jarvis_ix = fullfile(jarvis_pl{jarvis_i}.dir, 'packinfo', 'INDEX');
+        if ~jarvis_pl{jarvis_i}.loaded && exist(jarvis_ix, 'file')
+          if ~isempty(regexp(fileread(jarvis_ix), ['(^|\s)' jarvis_fn{1} '(\s|$)'], 'once'))
+            fprintf(1, 'JARVIS_PACKAGE: %s\n', jarvis_pl{jarvis_i}.name);
+          end
+        end
+      end
+    catch
+    end
+  end
 end
 jarvis_figs = findall(0, 'Type', 'figure');
 if exist('OCTAVE_VERSION', 'builtin')
@@ -260,7 +277,7 @@ for jarvis_k = 1:min(numel(jarvis_figs), MAX_FIGURES)
             jarvis_lab{2}, jarvis_lab{3});
     jarvis_lines = findall(jarvis_ax, 'type', 'line');
     jarvis_cn = 0;
-    for jarvis_j = 1:numel(jarvis_lines)
+    for jarvis_j = numel(jarvis_lines):-1:1         % newest first in the axes: curve 1 is the first plotted
       jarvis_l = jarvis_lines(jarvis_j);
       % only lines drawn straight on the axes: a quiver's arrows or a bar's baseline are measured elsewhere
       if ~isequal(get(jarvis_l, 'parent'), jarvis_ax) || jarvis_cn >= 3, continue; end
@@ -274,7 +291,7 @@ for jarvis_k = 1:min(numel(jarvis_figs), MAX_FIGURES)
       [jarvis_lo, jarvis_ilo] = min(jarvis_y); [jarvis_hi, jarvis_ihi] = max(jarvis_y);
       jarvis_name = get(jarvis_l, 'displayname');
       fprintf(['JARVIS_DATA:   curve %d%s (%d points): x from %.4g to %.4g; y starts at %.4g and ends at %.4g; ' ...
-               'lowest %.4g at x = %.4g; highest %.4g at x = %.4g\n'], jarvis_j, ...
+               'lowest %.4g at x = %.4g; highest %.4g at x = %.4g\n'], jarvis_cn, ...
               char(repmat([' "' jarvis_name '"'], 1, ~isempty(jarvis_name))), numel(jarvis_y), jarvis_x(1), jarvis_x(end), jarvis_y(1), jarvis_y(end), ...
               jarvis_lo, jarvis_x(jarvis_ilo), jarvis_hi, jarvis_x(jarvis_ihi));
       jarvis_zc = find(jarvis_y(1:end-1) .* jarvis_y(2:end) < 0);
@@ -440,10 +457,10 @@ class MatlabTools:
              "with no initial conditions given, pick ones that show the behaviour (y(0) = 1, y'(0) = 0, never all "
              "zero) and print which. No files, "
              "internet, system commands, eval or input."
-             + (" It's GNU Octave: core MATLAB plus the Octave Forge packages installed here. For statistics "
-                "(ttest2, tcdf, normpdf, normcdf, histfit) put pkg load statistics on the first line; never pkg "
-                "install. Welch's t-test is ttest2(a, b, 'Vartype', 'unequal')." if engine.kind == "octave"
-                else "")),
+             + (" It's GNU Octave: core MATLAB plus the Octave Forge packages installed here (statistics, "
+                "signal, control, optim, image and others): load what the code needs on the first lines, like "
+                "pkg load statistics, and if one is missed Jarvis loads it himself; never pkg install. Welch's "
+                "t-test is ttest2(a, b, 'Vartype', 'unequal')." if engine.kind == "octave" else "")),
             {"type": "object", "properties": {
                 "title": {"type": "string", "minLength": 1, "maxLength": 120,
                           "description": "what the code does, in a few words"},
@@ -548,21 +565,26 @@ class MatlabTools:
         else:                                         # MATLAB has no pkg: its toolboxes are always there
             code = _PKG_LOAD.sub(lambda m: "% (" + m.group(0).strip() + ": Octave only)", code)
         out, err, timed_out, seconds, returncode = self._execute(run, code)
-        loaded, missing = [], []
-        if self.engine.kind == "octave" and not timed_out:
-            for name, state in _IN_PACKAGE.findall(" ".join((err or "").split())):
-                (missing if state.startswith("seems") else loaded).append(name)
-            missing += re.findall(r"package ([\w-]+) is not installed", err or "")    # pkg load of a missing one
-            loaded, missing = list(dict.fromkeys(loaded)), list(dict.fromkeys(missing))
-            if loaded:
-                # installed, just not loaded: load it and run again (the same approved code, nothing new)
-                for old in run.glob("figure*.*"):
-                    old.unlink()
-                (run / "jarvis_figures.json").unlink(missing_ok=True)
-                code = "1;\n" + "".join(f"pkg load {name}\n" for name in loaded) + code.removeprefix("1;\n")
-                more, err, timed_out, extra, returncode = self._execute(run, code)
-                out, seconds = more, seconds + extra
-        errors = _errors(err or "", run, shifted=self.engine.kind == "octave")
+        loaded: list[str] = []
+        missing: list[str] = []
+        for _ in range(3):        # one package at a time: code may need several (statistics, then signal)
+            if self.engine.kind != "octave" or timed_out:
+                break
+            new, gone = _packages_needed(out, err)
+            new = [name for name in new if name not in loaded]
+            missing = list(dict.fromkeys(missing + gone))
+            if not new:
+                break
+            # installed, just not loaded: load it and run again (the same approved code, nothing new)
+            loaded += new
+            for old in run.glob("figure*.*"):
+                old.unlink()
+            (run / "jarvis_figures.json").unlink(missing_ok=True)
+            code = "1;\n" + "".join(f"pkg load {name}\n" for name in new) + code.removeprefix("1;\n")
+            out, err, timed_out, extra, returncode = self._execute(run, code)
+            seconds += extra
+        # line numbers as the model wrote them: Octave's code has "1;" and any pkg load Jarvis added on top
+        errors = _errors(err or "", run, shift=1 + len(loaded) if self.engine.kind == "octave" else 0)
         if not errors and returncode not in (0, None) and not timed_out:
             errors = [line for line in (err or "").splitlines() if line.strip()][-3:] or [f"exit code {returncode}"]
         return self._report(run, code, title, out, errors, timed_out, seconds, loaded, missing)
@@ -605,7 +627,8 @@ class MatlabTools:
             problems = []
         measured = [ln.split("JARVIS_DATA:", 1)[1].rstrip() for ln in (out or "").splitlines()
                     if ln.startswith("JARVIS_DATA:")] + _measure_more(_figure_data(run))
-        output = _clean("\n".join(ln for ln in (out or "").splitlines() if not ln.startswith("JARVIS_DATA:")))
+        output = _clean("\n".join(ln for ln in (out or "").splitlines()
+                                  if not ln.startswith(("JARVIS_DATA:", "JARVIS_PACKAGE:"))))
         steps = [{"text": f"{self.engine.name} code ({seconds:.0f} s)", "code": code.removeprefix("1;\n")[:6000]}]
         if output:
             steps.append({"text": "Output", "code": output})
@@ -630,8 +653,9 @@ class MatlabTools:
         if errors:
             report.append("Errors: " + " | ".join(errors)[:800])
         if loaded:
-            report.append(f"Octave's {', '.join(loaded)} package was installed but not loaded, so Jarvis loaded it "
-                          "(pkg load) and ran the code again; that's the run above.")
+            report.append(f"Octave's {', '.join(loaded)} package{'s were' if len(loaded) > 1 else ' was'} installed "
+                          f"but not loaded, so Jarvis loaded {'them' if len(loaded) > 1 else 'it'} (pkg load) and ran the code "
+                          "again; that's the run above.")
         if missing:
             report.append(f"The {', '.join(missing)} package isn't installed in Octave on this laptop. Tell the user "
                           "they can install it once from Octave's own window with: pkg install -forge "
@@ -769,7 +793,19 @@ def _measure_more(figures: list[dict]) -> list[str]:
     return lines
 
 
-def _errors(err: str, run: Path, shifted: bool) -> list[str]:
+def _packages_needed(out: str, err: str) -> tuple[list[str], list[str]]:
+    """From one Octave run: the installed packages to load (Octave's own hint, or the wrapper finding the
+    undefined function in a package's INDEX), and the ones that aren't installed at all."""
+    load, missing = [], []
+    for name, state in _IN_PACKAGE.findall(" ".join((err or "").split())):
+        (missing if state.startswith("seems") else load).append(name)
+    load += [ln.split(":", 1)[1].strip() for ln in (out or "").splitlines() if ln.startswith("JARVIS_PACKAGE:")]
+    missing += re.findall(r"package ([\w-]+) is not installed", err or "")         # pkg load of a missing one
+    load = [n for n in dict.fromkeys(load) if re.fullmatch(r"[\w-]+", n)]
+    return load, [n for n in dict.fromkeys(missing) if n not in load]
+
+
+def _errors(err: str, run: Path, shift: int = 0) -> list[str]:
     """Each error the wrapper reported, with the lines after it (Octave's parse errors run over several),
     the run folder's path left out, and line numbers as the model wrote them (Octave's code starts with "1;")."""
     errors: list[str] = []
@@ -777,8 +813,8 @@ def _errors(err: str, run: Path, shifted: bool) -> list[str]:
         lines = [ln.rstrip() for ln in block.strip().splitlines() if ln.strip()]
         text = "\n".join(ln for ln in lines if not ln.startswith("warning:"))[:600]
         text = re.sub(r"\s*(?:of |in )?(?:file )?\S*jarvis_code\.m", "", text.replace(str(run), ""))
-        if shifted:
-            text = re.sub(r"\bline (\d+)", lambda m: f"line {max(1, int(m.group(1)) - 1)}", text)
+        if shift:
+            text = re.sub(r"\bline (\d+)", lambda m: f"line {max(1, int(m.group(1)) - shift)}", text)
         errors.append(text.strip())
     return [e for e in errors if e]
 

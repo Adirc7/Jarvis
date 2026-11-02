@@ -1604,3 +1604,13 @@ his (docs/TRAINING_EMPATHY.md, docs/TRAINING_EMOTION.md):
   installed, he says how to install it once from Octave's own window
   (pkg install -forge statistics). Told that Welch's t-test is
   ttest2(a, b, 'Vartype', 'unequal'). On MATLAB a pkg load line is skipped.
+- 2 Nov, 13:10: Adhi: every package, not only statistics. Octave names the
+  package only for functions on its own list; for any other function it just
+  says "'xyz' undefined". Now the wrapper then looks through every installed,
+  not-loaded package's function list (packinfo/INDEX) and Jarvis loads the one
+  that has it and runs again, up to three packages for one piece of code, all
+  under the one click. Checked with real Octave and two test packages whose
+  functions Octave doesn't know: both found and loaded, a truly unknown
+  function still reported. Error line numbers stay as written even with the
+  added pkg load lines, and measured curves are now numbered in the order they
+  were plotted (Octave lists them newest first).
