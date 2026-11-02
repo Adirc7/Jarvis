@@ -23,6 +23,7 @@ No audio is kept: /mood stores the features and your label, nothing else.
 from __future__ import annotations
 
 import json
+import random
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -36,6 +37,32 @@ BASELINE = "superb/wav2vec2-base-superb-er"
 SAID_AS = {"neu": "calm", "hap": "happy", "ang": "upset", "sad": "sad"}     # the baseline's labels, said plainly
 MOODS = ("calm", "happy", "rushed", "frustrated", "confused", "tired", "sad", "upset", "excited")
 MAX_SECONDS = 10.0                  # longer utterances: the first 10 s (it's about tone, not content)
+
+# A recording round (/mood round): the same sentences said in every voice, so the classifier learns how
+# you sound, not what you said (emotional speech sets like CREMA-D and RAVDESS do the same).
+ROUND_MOODS = ("calm", "frustrated", "rushed", "confused")
+PROMPTS = (
+    "Can you explain that part again?",
+    "Open my notes for the physics lab.",
+    "How long is it until the deadline?",
+    "Play some music on YouTube.",
+    "What's the weather tomorrow in Kaduwela?",
+    "I still don't understand this integral.",
+    "Set a timer for twenty five minutes.",
+    "Show me the graph of that function.",
+    "Why did it give that answer?",
+    "Read me the latest news.",
+    "Let's try the next question.",
+    "Okay, I think I've got it now.",
+    "Where did I save the report?",
+    "Run the code one more time.",
+    "Meka aye explain karanna puluwanda?",
+    "Mata meka therenne naha.",
+    "YouTube eke sindu tikak danna.",
+    "Deadline ekata thawa kochchara welawa thiyenawada?",
+    "Ilanga prashne balamu.",
+    "Hari, dan mata therenawa.",
+)
 
 
 @dataclass
@@ -124,18 +151,80 @@ def _load_pretrained(model_id: str, device: str) -> tuple[Any, Any, str]:
     return extractor, model, where
 
 
-def save_label(folder: Path, heard: Heard, mood: str, session: str, now: datetime | None = None) -> Path:
-    """/mood <label>: your label for the last thing you said, with its features (no audio)."""
+@dataclass
+class LabelRound:
+    """A recording round: each sentence said in each voice, a few sentences at a time per voice, every
+    take labelled as it's said (how="acted"). /mood round starts one, /mood undo drops a bad take."""
+    items: list[tuple[str, str]]
+    done: int = 0
+    counts: dict[str, int] = field(default_factory=dict)
+
+    @classmethod
+    def plan(cls, moods: tuple[str, ...] | list[str] = ROUND_MOODS, sentences: int = 8, block: int = 4,
+             rng: random.Random | None = None) -> LabelRound:
+        chosen = (rng or random.Random()).sample(PROMPTS, min(sentences, len(PROMPTS)))
+        items = []
+        for i in range(0, len(chosen), block):      # 4 sentences calm, the same 4 frustrated, ... then the next 4
+            items += [(mood, s) for mood in moods for s in chosen[i:i + block]]
+        return cls(items)
+
+    @property
+    def current(self) -> tuple[str, str] | None:
+        return self.items[self.done] if self.done < len(self.items) else None
+
+    def took(self, mood: str) -> None:
+        self.counts[mood] = self.counts.get(mood, 0) + 1
+        self.done += 1
+
+    def undo(self) -> None:
+        if self.done:
+            self.done -= 1
+            mood = self.items[self.done][0]
+            self.counts[mood] = max(0, self.counts.get(mood, 0) - 1)
+
+    def board(self) -> dict:
+        """What the window shows: the sentence to say, in which voice, and how far the round is."""
+        so_far = " · ".join(f"{m} {n}" for m, n in self.counts.items() if n) or "none yet"
+        if self.current is None:
+            return {"title": "Emotion labels: round done", "plots": [], "from": "emotion", "steps": [
+                {"text": f"{self.done} takes labelled ({so_far}), saved without audio to data/emotion/labels.jsonl."},
+                {"text": "For the next round, restart Jarvis first so it counts as a new session, ideally at another "
+                         "time of day: the test must hear your voice on a day it didn't learn from."}]}
+        mood, sentence = self.current
+        return {"title": "Emotion labels: recording round", "plots": [], "from": "emotion", "steps": [
+            {"text": f"Say this in a {mood.upper()} voice: hold the key, speak, let go.", "code": sentence},
+            {"text": f"Take {self.done + 1} of {len(self.items)}. This round so far: {so_far}."},
+            {"text": "Say it the way that feeling really sounds for you, not a cartoon of it. A bad take: "
+                     "/mood undo. Stop any time: /mood stop."}]}
+
+
+def save_label(folder: Path, heard: Heard, mood: str, session: str, now: datetime | None = None,
+               how: str = "felt") -> Path:
+    """/mood <label>: your label for the last thing you said, with its features (no audio). how: "felt" when
+    you label how you really sounded, "acted" for a recording round's takes."""
     if heard.features is None:
         raise ValueError("no features to label")
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / "labels.jsonl"
     row = {"time": (now or datetime.now()).isoformat(timespec="seconds"),  # noqa: DTZ005 - local, like the logs
            "session": session, "label": mood, "heard": heard.label, "heard_confidence": heard.confidence,
-           "level": heard.level, "scores": heard.scores, "baseline": heard.baseline, "features": heard.features}
+           "level": heard.level, "scores": heard.scores, "baseline": heard.baseline, "features": heard.features,
+           "how": how}
     with path.open("a", encoding="utf-8") as f:
         f.write(json.dumps(row) + "\n")
     return path
+
+
+def remove_last_label(folder: Path) -> dict | None:
+    """/mood undo: drop the last label (a bad take). Returns it, or None when there's none."""
+    path = folder / "labels.jsonl"
+    if not path.is_file():
+        return None
+    lines = [ln for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    if not lines:
+        return None
+    path.write_text("".join(ln + "\n" for ln in lines[:-1]), encoding="utf-8")
+    return json.loads(lines[-1])
 
 
 def read_labels(path: Path) -> list[dict]:
@@ -144,4 +233,5 @@ def read_labels(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-__all__ = ["BASELINE", "MOODS", "EmotionEars", "Heard", "read_labels", "save_label"]
+__all__ = ["BASELINE", "MOODS", "PROMPTS", "ROUND_MOODS", "EmotionEars", "Heard", "LabelRound", "read_labels",
+           "remove_last_label", "save_label"]

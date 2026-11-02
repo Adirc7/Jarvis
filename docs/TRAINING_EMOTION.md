@@ -56,6 +56,9 @@ Start Jarvis. The first start downloads the model (about 380 MB) and prints
 "Emotion model ready on cuda (the ready-made model)". It needs about 400 MB
 of the GPU; with Whisper and Kokoro there that's fine on the RTX 4050 (6 GB).
 If memory is short, `device = "cpu"` (slower, about 0.3 s an utterance).
+The laptop's PyTorch is the CPU build for now (installed for the Tamil
+voice), so there it says "ready on cpu": fine for collecting labels and
+for your classifier, which is tiny.
 
 ## Step 1: try the baseline
 
@@ -66,23 +69,59 @@ Notice where it's wrong: that's your motivation section.
 
 ## Step 2: collect your labels
 
-After something you said, type `/mood <label>`: `calm`, `happy`, `rushed`,
-`frustrated`, `confused`, `tired`, `sad`, `upset` or `excited`. It saves that
-utterance's 768 features, the baseline's scores, your label and the session,
-to `data/emotion/labels.jsonl` (gitignored; no audio, ever).
+Two ways, and the report keeps them apart (each label is saved with `how`):
 
-- Aim for at least 30 per label you want, over **at least 5 sessions** on
-  different days (your voice changes with the day; the test must see that).
-- Label honestly what you felt, not what you hoped it heard. Unsure? Don't
+**A recording round (acted, fast).** Type `/mood round` (in the window's box
+or the console). The board shows a sentence and the voice to say it in:
+calm, frustrated, rushed, confused by default, or name your own
+(`/mood round calm tired rushed`). Hold the key, say it, let go: the take is
+labelled and the next sentence appears. Jarvis doesn't answer during a
+round. The same sentences come in every voice (four sentences calm, the same
+four frustrated, and so on), so the classifier has to learn how you sound,
+not what you said; that's how emotional speech sets like CREMA-D and RAVDESS
+are recorded. One round is 32 takes, about 5 minutes. A bad take:
+`/mood undo`. Stop early: `/mood stop` (the takes so far are kept).
+
+**Labelling real moments (felt, slow, more honest).** After something you
+said in normal use, type `/mood <label>`: `calm`, `happy`, `rushed`,
+`frustrated`, `confused`, `tired`, `sad`, `upset` or `excited`. Label what you
+felt, not what you hoped it heard; unsure, don't label.
+
+`/mood count` puts the totals on the board: per label, felt and acted, over
+how many sessions, and what's missing.
+
+Each label saves that utterance's 768 features, the baseline's scores, your
+label, `how` and the session to `data/emotion/labels.jsonl` (gitignored; no
+audio, ever).
+
+- **Every label in every session.** A session is one run of Jarvis. If all
+  your frustrated takes come from Monday night and all the calm ones from
+  Tuesday morning, the classifier can learn the day (the room, the mic, how
+  tired you were) instead of the feeling, and still score well. A round
+  records every label, so one round per session keeps this right.
+- **At least 4 sessions**, restarting Jarvis between them, at different times
+  of day, ideally on different days: the test session must be one it never
+  learned from.
+- About 30 or more per label: 4 sessions of two rounds each gives 64 per
   label.
 - Others' voices only with their written consent, and ask the supervisor
   whether a formal study needs ethics approval.
+- On the laptop PyTorch runs on the CPU (about 0.3-0.6 s a take), so the
+  guess often comes after Jarvis has started answering in normal use. That's
+  fine: it's never waited for, and `/mood` labels it when it arrives, never
+  the utterance before. In a round each take waits for its features.
+
+**With the deadline (6 Nov):** two rounds per session, one session in the
+morning and one at night, from 2 to 4 Nov, gives 6 sessions and about 96
+takes per label; train on 5 November, test on the newest session.
 
 ## Step 3: train level 2
 
 Write `scripts/train_emotion_level2.py`. What it must do:
 
 1. Read `data/emotion/labels.jsonl` (`jarvis.perception.emotion.read_labels`).
+   Decide whether you train on acted takes, felt labels or both, and say so
+   in the report (`r["how"]`).
 2. Choose test sessions: hold out the newest one or two **whole sessions**.
    Never split utterances of one session between train and test: they sound
    alike, and the score would flatter you.
@@ -136,7 +175,11 @@ groups = [r["session"] for r in train]
 ```
 uv run python scripts/emotion_eval.py                                 # the baseline on your labels
 uv run python scripts/emotion_eval.py models/emotion/emotion.joblib   # yours, on sessions it didn't train on
+uv run python scripts/emotion_eval.py models/emotion/emotion.joblib --how felt   # only real moments
 ```
+
+Trained on acted takes, the interesting test is `--how felt`: does a model
+that learned from acting hear your real frustration?
 
 It prints and writes `docs/emotion_results.md`: accuracy, **macro-F1**
 (every label counts the same, however rare), F1 per label, and the **false

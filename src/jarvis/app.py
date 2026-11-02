@@ -358,6 +358,8 @@ class App(LessonMode):
         self._emotion_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="emotion")
         self.heard = None                      # the last Heard, for /mood and the window
         self._heard_at = 0.0
+        self._hearing_n = 0                    # which utterance a late guess belongs to
+        self._round = None                     # a /mood round being recorded (perception/emotion.LabelRound)
         self._heard_this_turn = None           # the hint for the reply being made now
         self._turn_lock = asyncio.Lock()      # one request at a time, in the order they came
         self._recorder_open = False
@@ -528,23 +530,67 @@ class App(LessonMode):
             return reply
 
     async def _take_heard(self, hearing):
-        """The emotion model's guess, if it's ready soon after Whisper (it never holds up a reply)."""
+        """The emotion model's guess, if it's ready soon after Whisper (it never holds up a reply).
+
+        A late guess (2 Nov: the laptop's PyTorch runs on the CPU) still arrives for /mood, but it isn't
+        waited for; until it does, /mood has nothing to label, so it can never label the utterance before."""
         if hearing is None:
             return None
-        try:
-            heard = await asyncio.wait_for(hearing, float(self.settings.get("emotion.wait_s", 0.5)))
-        except TimeoutError:
+        self._hearing_n += 1
+        n = self._hearing_n
+        self.heard = None
+        done, _ = await asyncio.wait({hearing}, timeout=float(self.settings.get("emotion.wait_s", 0.5)))
+        if not done:
             self.telemetry.log("emotion_late")
+
+            def late(future) -> None:
+                if n == self._hearing_n and not future.cancelled() and future.exception() is None:
+                    self._keep_heard(future.result())
+            hearing.add_done_callback(late)
             return None
+        try:
+            heard = hearing.result()
         except Exception as exc:  # noqa: BLE001 - the model failed: say so once, then go on without it
             self.telemetry.log("emotion_error", error=f"{type(exc).__name__}: {exc}"[:200])
             self.out(f"[emotion] the model failed ({type(exc).__name__}); carrying on without it.")
             self.ears = None
             return None
+        self._keep_heard(heard)
+        return heard
+
+    def _keep_heard(self, heard) -> None:
         self.heard, self._heard_at = heard, time.monotonic()
         self.telemetry.log("emotion", label=heard.label, confidence=round(heard.confidence, 3), level=heard.level,
                            ms=heard.ms)
-        return heard
+
+    async def _label_take(self, hearing, text: str, turn: Turn) -> None:
+        """One take of a /mood round: labelled with the voice that was asked for; Jarvis doesn't answer."""
+        from .perception.emotion import save_label
+        mood, _ = self._round.current
+        self.out(f"You [take, {mood}]: {text}")
+        self._show("you", text=text, source="voice")
+        self._hearing_n += 1
+        try:
+            heard = await asyncio.wait_for(hearing, 60)            # a take needs its features: wait for them
+        except Exception as exc:  # noqa: BLE001 - slow or failed: that take isn't kept
+            self.out(f"[emotion] couldn't hear that take ({type(exc).__name__}); say it again.")
+            self.state.mode = Mode.IDLE
+            turn.finish(kind="emotion_take", error=type(exc).__name__)
+            return None
+        self._keep_heard(heard)
+        save_label(self.settings.path("emotion.labels_dir", "data/emotion"), heard, mood,
+                   str(getattr(self.telemetry, "session_id", "") or ""), how="acted")
+        self._round.took(mood)
+        self.telemetry.log("emotion_label", label=mood, heard=heard.label, how="acted")
+        self.out(f"[emotion] take {self._round.done} labelled {mood} (it heard {heard.label} {heard.confidence:.0%})")
+        self._board_from_tool(self._round.board())
+        if self._round.current is None:
+            self.out(f"[emotion] round done: {self._round.done} takes. Restart Jarvis before the next round "
+                     "(a new session).")
+            self._round = None
+        self.state.mode = Mode.IDLE
+        turn.finish(kind="emotion_take", label=mood)
+        return None
 
     def _emotion_note(self) -> str:
         heard = self._heard_this_turn
@@ -1224,6 +1270,8 @@ class App(LessonMode):
             self.state.mode = Mode.IDLE
             turn.finish(kind="empty")
             return None
+        if self._round is not None and hearing is not None:
+            return await self._label_take(hearing, result.text, turn)
         heard = self.lang.languages[result.language].name
         note = f", p={result.detected_probability}" if result.detected_probability is not None else ""
         if result.unclear:
@@ -1530,10 +1578,15 @@ class App(LessonMode):
                     self._quit.set()
 
     def _mood_command(self, mood: str) -> None:
-        """/mood: what the emotion model heard last; /mood <label>: your label for it (features only)."""
+        """/mood: what the emotion model heard last; /mood <label>: your label for it (features only).
+        /mood round [labels]: a recording round; /mood undo, /mood stop, /mood count (docs/TRAINING_EMOTION.md)."""
         from .perception.emotion import MOODS, save_label
         if self.ears is None:
             self.out("[emotion] off: set [emotion] enabled = true (docs/TRAINING_EMOTION.md).")
+            return
+        word, _, rest = mood.partition(" ")
+        if word in ("round", "undo", "stop", "count"):
+            self._mood_round_command(word, rest.split())
             return
         recent = self.heard is not None and time.monotonic() - self._heard_at <= 600
         if not mood:
@@ -1541,15 +1594,53 @@ class App(LessonMode):
                      if recent else "[emotion] nothing heard in the last 10 minutes.")
             return
         if mood not in MOODS:
-            self.out(f"[emotion] labels: {', '.join(MOODS)}")
+            self.out(f"[emotion] labels: {', '.join(MOODS)}. Also: /mood round, /mood undo, /mood stop, /mood count.")
             return
         if not recent:
             self.out("[emotion] say something first (push-to-talk), then label it.")
             return
         path = save_label(self.settings.path("emotion.labels_dir", "data/emotion"), self.heard, mood,
                           str(getattr(self.telemetry, "session_id", "") or ""))
-        self.telemetry.log("emotion_label", label=mood, heard=self.heard.label)
+        self.telemetry.log("emotion_label", label=mood, heard=self.heard.label, how="felt")
         self.out(f"[emotion] labelled your last utterance {mood} (it heard {self.heard.label}); saved to {path}")
+
+    def _mood_round_command(self, word: str, args: list[str]) -> None:
+        from .perception.emotion import MOODS, ROUND_MOODS, LabelRound, read_labels, remove_last_label
+        folder = self.settings.path("emotion.labels_dir", "data/emotion")
+        if word == "round":
+            unknown = [a for a in args if a not in MOODS]
+            moods = list(dict.fromkeys(args)) or list(ROUND_MOODS)
+            if unknown or len(moods) < 2:
+                self.out(f"[emotion] a round needs two or more of: {', '.join(MOODS)} (default: "
+                         f"{' '.join(ROUND_MOODS)}).")
+                return
+            self._round = LabelRound.plan(moods)
+            self.out(f"[emotion] recording round: {len(self._round.items)} takes in {', '.join(moods)} voices; "
+                     "the sentence to say is on the board. Jarvis won't answer what you say until it ends "
+                     "(/mood stop ends it early).")
+            self._board_from_tool(self._round.board())
+        elif word == "stop":
+            if self._round is None:
+                self.out("[emotion] no round is running.")
+                return
+            self._round.items = self._round.items[:self._round.done]
+            self._board_from_tool(self._round.board())
+            self.out(f"[emotion] round stopped after {self._round.done} takes; they're kept.")
+            self._round = None
+        elif word == "undo":
+            row = remove_last_label(folder)
+            if row is None:
+                self.out("[emotion] no labels to undo.")
+                return
+            if self._round is not None and row.get("how") == "acted":
+                self._round.undo()
+                self._board_from_tool(self._round.board())
+            self.out(f"[emotion] removed the last label ({row.get('label')}, {row.get('how', 'felt')}).")
+        else:
+            rows = read_labels(folder / "labels.jsonl")
+            self._board_from_tool(_label_counts_board(rows))
+            self.out(f"[emotion] {len(rows)} labels in {len({r.get('session') for r in rows})} sessions; "
+                     "the counts are on the board.")
 
     def _learn_from(self, text: str) -> None:
         """Keep what the user tells Jarvis to remember (only what they said)."""
@@ -1651,3 +1742,25 @@ class App(LessonMode):
             self.out("Commands: /lang <code>, /empathy <mode>, /name <name>, /remember <fact>, /memory, /forget, "
                      "/mute, /stop, /camera on|off, /status, /quit")
         return True
+
+
+def _label_counts_board(rows: list[dict]) -> dict:
+    """/mood count: how many labels per feeling (felt and acted), over how many sessions, and what's missing."""
+    from collections import Counter
+    sessions = sorted({str(r.get("session")) for r in rows})
+    steps = []
+    for mood, n in Counter(r["label"] for r in rows).most_common():
+        acted = sum(1 for r in rows if r["label"] == mood and r.get("how") == "acted")
+        where = len({r.get("session") for r in rows if r["label"] == mood})
+        steps.append({"text": f"{mood}: {n} ({n - acted} felt, {acted} acted) in {where} of {len(sessions)} "
+                              f"session{'s' if len(sessions) != 1 else ''}" + ("" if n >= 30 else f"; {30 - n} to go")})
+    labels = {r["label"] for r in rows}
+    thin = [s for s in sessions if len({r["label"] for r in rows if str(r.get("session")) == s}) < len(labels)]
+    advice = ["Aim for 30 or more per label, over at least 4 sessions (restart Jarvis between them, different "
+              "times of day)."]
+    if thin and len(labels) > 1:
+        advice.append(f"{len(thin)} session(s) don't have every label: record each label in every session, or the "
+                      "classifier can learn the day instead of the feeling.")
+    return {"title": "Your emotion labels", "plots": [], "from": "emotion",
+            "steps": (steps or [{"text": "No labels yet: /mood round starts a recording round."}])
+            + [{"text": " ".join(advice)}]}

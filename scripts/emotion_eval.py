@@ -74,15 +74,20 @@ def main(argv=None) -> int:
     ap.add_argument("model", nargs="?", help="your saved classifier (models/emotion/emotion.joblib)")
     ap.add_argument("--labels", default=str(ROOT / "data" / "emotion" / "labels.jsonl"))
     ap.add_argument("--min-confidence", type=float, default=0.6)
+    ap.add_argument("--how", choices=("all", "felt", "acted"), default="all",
+                    help="only labels you felt (/mood <label>) or only a round's acted takes (/mood round)")
     ap.add_argument("--out", default=str(ROOT / "docs" / "emotion_results.md"))
     args = ap.parse_args(argv)
     rows = read(Path(args.labels))
+    if args.how != "all":
+        rows = [r for r in rows if r.get("how", "felt") == args.how]
     if not rows:
         print(f"No labels yet in {args.labels}. In Jarvis (with [emotion] enabled = true): say something, then "
               "/mood <label> (docs/TRAINING_EMOTION.md, step 2).")
         return 1
     print(f"{len(rows)} labelled utterances in {len({r.get('session') for r in rows})} sessions: "
-          + ", ".join(f"{k} {v}" for k, v in Counter(r["label"] for r in rows).most_common()))
+          + ", ".join(f"{k} {v}" for k, v in Counter(r["label"] for r in rows).most_common())
+          + f" ({sum(r.get('how', 'felt') == 'acted' for r in rows)} acted in rounds)")
     test = rows
     lines = ["| model | n | accuracy | macro-F1 | false alarms (calm) | F1 per label |", "|---|---|---|---|---|---|"]
     if args.model:

@@ -1614,3 +1614,25 @@ his (docs/TRAINING_EMPATHY.md, docs/TRAINING_EMOTION.md):
   function still reported. Error line numbers stay as written even with the
   added pkg load lines, and measured curves are now numbered in the order they
   were plotted (Octave lists them newest first).
+
+## 2026-11-02: Starting the emotion model: recording rounds
+
+Adhi is starting M5 (his ML part: the labels and the classifier). Before he
+collects anything, two fixes to the frame:
+
+- The laptop's PyTorch is the CPU build, so the emotion guess often arrives
+  after the 0.5 s Jarvis waits. It used to be dropped and `/mood` then
+  labelled the utterance *before*, silently, with the wrong features. Now the
+  late guess still arrives for `/mood` (never for the reply), and until it
+  does `/mood` has nothing to label.
+- `/mood round` records labels fast: the board shows a sentence and the voice
+  to say it in (calm, frustrated, rushed, confused by default), and each take
+  is labelled as it's said, without an answer from Jarvis. The same sentences
+  in every voice, four at a time per voice, so the classifier must learn the
+  sound, not the words (as CREMA-D and RAVDESS are recorded). `/mood undo`,
+  `/mood stop`, `/mood count` (totals on the board, and a warning when a
+  session lacks a label: the classifier could learn the day instead of the
+  feeling). Each label is saved with `how`: "felt" (`/mood <label>` in real
+  use) or "acted" (a round); `emotion_eval.py --how felt|acted` scores them
+  apart. TRAINING_EMOTION.md step 2 rewritten with a plan to 6 Nov.
+- Turned on in the laptop's settings.local.toml (`[emotion] enabled = true`).

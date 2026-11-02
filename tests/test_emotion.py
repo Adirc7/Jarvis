@@ -61,7 +61,7 @@ def test_labels_keep_features_and_never_audio(tmp_path):
     [row] = read_labels(path)
     assert row["label"] == "frustrated" and row["features"] == [0.1, 0.2] and row["session"] == "s1"
     assert set(row) == {"time", "session", "label", "heard", "heard_confidence", "level", "scores", "baseline",
-                        "features"}
+                        "features", "how"} and row["how"] == "felt"
     with pytest.raises(ValueError):
         save_label(tmp_path, Heard("calm", 0.9), "calm", "s1")              # no features: nothing to keep
 
@@ -164,3 +164,56 @@ def test_the_evaluation_compares_yours_with_the_baseline(tmp_path):
     assert "| baseline (wav2vec2-base-superb-er) | 15 | 67% |" in report      # it can't say "confused"
     assert "| yours (emotion.joblib) | 15 | 100% | 1.00 | 0% |" in report
     assert ev.main(["--labels", str(tmp_path / "none.jsonl")]) == 1
+    assert ev.main(["--labels", str(labels), "--how", "acted", "--out", str(tmp_path / "r2.md")]) == 1   # none acted
+    assert ev.main(["--labels", str(labels), "--how", "felt", "--out", str(tmp_path / "r2.md")]) == 0     # old rows: felt
+
+
+async def test_a_late_guess_is_labelled_for_its_own_utterance_never_the_one_before(settings, tmp_path):
+    """2 Nov: on the laptop's CPU the guess can come after the reply; /mood must not label the last one."""
+    import asyncio
+    settings.raw.setdefault("emotion", {}).update(wait_s=0.05, labels_dir=str(tmp_path / "emotion"))
+    app = voice_app(settings, FakeEars(Heard("calm", 0.9, {"calm": 0.9}, [1.0, 1.0])))
+    await app.voice_turn(np.zeros(16000, np.float32), 1.0)
+    assert app.heard.features == [1.0, 1.0]
+    app.ears = FakeEars(Heard("upset", 0.8, {"upset": 0.8}, [2.0, 2.0]), delay=0.4)
+    lines = []
+    app.out = lambda *a, **k: lines.append(" ".join(map(str, a)))
+    await app.voice_turn(np.zeros(16000, np.float32), 1.0)
+    await app._command("/mood frustrated")
+    assert "say something first" in lines[-1]                        # not the calm one before
+    await asyncio.sleep(0.6)
+    await app._command("/mood frustrated")
+    [row] = read_labels(tmp_path / "emotion" / "labels.jsonl")
+    assert row["features"] == [2.0, 2.0] and row["label"] == "frustrated"
+
+
+async def test_a_recording_round_labels_each_take_and_jarvis_stays_quiet(settings, tmp_path):
+    from jarvis.perception.emotion import PROMPTS, LabelRound
+    settings.raw.setdefault("emotion", {})["labels_dir"] = str(tmp_path / "emotion")
+    app = voice_app(settings, FakeEars(Heard("upset", 0.7, {"upset": 0.7}, [0.5, 0.25]), delay=0.2))
+    boards, lines = [], []
+    app._board_from_tool = lambda b: boards.append(b) or True
+    app.out = lambda *a, **k: lines.append(" ".join(map(str, a)))
+    await app._command("/mood round calm grumpy")
+    assert "two or more of" in lines[-1] and app._round is None
+    await app._command("/mood round calm frustrated")
+    plan = app._round.items
+    assert len(plan) == 16 and [m for m, _ in plan[:8]] == ["calm"] * 4 + ["frustrated"] * 4
+    assert [s for _, s in plan[:4]] == [s for _, s in plan[4:8]] and all(s in PROMPTS for _, s in plan)
+    assert "CALM voice" in boards[-1]["steps"][0]["text"] and boards[-1]["steps"][0]["code"] == plan[0][1]
+    for _ in range(5):
+        assert await app.voice_turn(np.zeros(16000, np.float32), 1.0) is None     # no reply in a round
+    rows = read_labels(tmp_path / "emotion" / "labels.jsonl")
+    assert [r["label"] for r in rows] == ["calm"] * 4 + ["frustrated"] and {r["how"] for r in rows} == {"acted"}
+    assert app.llm.providers[0].client.last_messages is None                    # the LLM was never asked
+    await app._command("/mood undo")
+    assert len(read_labels(tmp_path / "emotion" / "labels.jsonl")) == 4 and app._round.done == 4
+    await app._command("/mood stop")
+    assert app._round is None and boards[-1]["title"] == "Emotion labels: round done"
+    await app._command("/mood count")
+    said = " ".join(st["text"] for st in boards[-1]["steps"])
+    assert "calm: 4 (0 felt, 4 acted) in 1 of 1 session; 26 to go" in said
+    whole = LabelRound.plan(["calm", "rushed"], sentences=3, block=2)
+    for _ in whole.items:
+        whole.took(whole.current[0])
+    assert whole.current is None and whole.counts == {"calm": 3, "rushed": 3}
