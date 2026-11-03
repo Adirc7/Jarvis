@@ -22,7 +22,7 @@ Dims = tuple[int, int, int, int, int, int]          # L, M, T, I, K (temperature
 NONE: Dims = (0, 0, 0, 0, 0, 0)
 
 
-def _d(L=0, M=0, T=0, I=0, K=0, N=0) -> Dims:  # noqa: E741 - the dimension's own letters
+def _d(L=0, M=0, T=0, I=0, K=0, N=0) -> Dims:
     return (L, M, T, I, K, N)
 
 

@@ -373,3 +373,38 @@ async def test_every_plan_is_kept_to_look_at(settings, tmp_path):
     assert len(kept) == 1 and kept[0].name.endswith("a-car-accelerate-cruise-brake-with-abs.json")
     data = json.loads(kept[0].read_text(encoding="utf-8"))
     assert data["question"] == CAR_TEXT and data["plan"] == plan and data["answers"]["c"]["shown"] == "33.33"
+
+
+def test_collisions_rotation_heat_engines_induction_doppler_and_interference():
+    from jarvis.knowledge.problem_views import view_facts
+
+    def facts(spec):
+        v, notes = view_of(spec)
+        assert notes == [], notes
+        return {label: value for value, unit, label in view_facts(v)}
+    f = facts({"collision": {"m1": 2, "u1": 3, "m2": 1, "u2": 0, "type": "elastic"}})
+    assert f["first body after"] == pytest.approx(1) and f["second body after"] == pytest.approx(4)
+    assert f["kinetic energy lost"] == pytest.approx(0)
+    f = facts({"collision": {"m1": 2, "u1": 3, "m2": 1, "type": "perfectly_inelastic"}})
+    assert f["second body after"] == pytest.approx(2) and f["kinetic energy lost"] == pytest.approx(3)
+    f = facts({"rotation": {"mode": "roll", "shape": "solid_sphere", "angle": 30, "L": 2}})
+    assert f["acceleration down the slope"] == pytest.approx(9.81 * 0.5 / 1.4)      # a = g sin(theta) / (1 + 2/5)
+    f = facts({"rotation": {"mode": "spin", "I": 0.5, "torque": 2, "t1": 4}})
+    assert f["angular speed at the end"] == pytest.approx(16) and f["angle turned"] == pytest.approx(32)
+    carnot = facts({"pv": {"gas": {"n": 1, "gamma": 1.4}, "start": {"P": 2e5, "T": 600}, "steps": [
+        {"process": "isothermal", "to": {"V": 0.0499}}, {"process": "adiabatic", "to": {"V": 0.0499 * 2 ** 2.5}},
+        {"process": "isothermal", "to": {"V": 0.02494 * 2 ** 2.5}},
+        {"process": "adiabatic", "to": {"V": 0.02494}}]}})
+    assert carnot["efficiency"] == pytest.approx(1 - 300 / 600, abs=2e-3)           # Carnot: 1 - Tc/Th
+    f = facts({"induction": {"mode": "flux", "N": 100, "B": 0.2, "A": 0.01, "omega": 50, "t1": 0.3}})
+    assert f["largest emf"] == pytest.approx(10, abs=0.01)                          # N B A omega
+    f = facts({"induction": {"mode": "rod", "B": 0.5, "L": 0.2, "v": 3, "R": 2}})
+    assert f["emf"] == pytest.approx(0.3) and f["force on the rod"] == pytest.approx(0.015)
+    f = facts({"doppler": {"f": 440, "v_source": 30}})
+    assert f["frequency approaching"] == pytest.approx(440 * 343 / 313)
+    f = facts({"interference": {"kind": "double_slit", "wavelength": 6.5e-7, "d": 2.5e-4, "L": 1.5}})
+    assert f["fringe spacing"] == pytest.approx(3.9e-3)                             # lambda L / d
+    f = facts({"interference": {"kind": "grating", "wavelength": 5.89e-7, "d": 1 / 600e3, "N": 50}})
+    assert f["highest order"] == 2 and f["angle of the first bright fringe"] == pytest.approx(20.7, abs=0.05)
+    _, notes = view_of({"doppler": {"f": 440, "v_source": 400}})
+    assert "shock wave" in notes[0]

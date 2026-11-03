@@ -558,9 +558,264 @@ def _feynman(spec: dict, n) -> dict:
             "title": str(spec.get("title") or "")[:60]}
 
 
+# ---- collisions, rotation, heat engines, induction, Doppler, interference ---------------------------------
+def _collision(spec: dict, n) -> dict:
+    m1, m2, u1, u2 = n(spec.get("m1")), n(spec.get("m2")), n(spec.get("u1")), n(spec.get("u2"), 0.0)
+    if m1 <= 0 or m2 <= 0:
+        raise ProblemError("both masses must be positive")
+    kind = str(spec.get("type") or "")
+    e = {"elastic": 1.0, "perfectly_inelastic": 0.0}.get(kind, n(spec.get("e"), 1.0 if kind != "inelastic" else 0.5))
+    if not 0 <= e <= 1:
+        raise ProblemError("the coefficient of restitution is between 0 and 1")
+    if u1 <= u2:
+        raise ProblemError("they never meet: the first must be faster than the second, towards it")
+    total = m1 * u1 + m2 * u2
+    v1 = (total - m2 * e * (u1 - u2)) / (m1 + m2)
+    v2 = (total + m1 * e * (u1 - u2)) / (m1 + m2)
+    ke0, ke1 = 0.5 * m1 * u1 ** 2 + 0.5 * m2 * u2 ** 2, 0.5 * m1 * v1 ** 2 + 0.5 * m2 * v2 ** 2
+    facts = [[v1, "m/s", "first body after"], [v2, "m/s", "second body after"], [total, "kg m/s", "total momentum"],
+             [ke0, "J", "kinetic energy before"], [ke1, "J", "kinetic energy after"], [ke0 - ke1, "J", "kinetic energy lost"],
+             [m1 * (v1 - u1), "kg m/s", "impulse on the first body"], [e, "", "coefficient of restitution"]]
+    return {"kind": "collision", "m1": m1, "m2": m2, "u1": u1, "u2": u2, "v1": v1, "v2": v2, "e": e, "p": total,
+            "ke0": ke0, "ke1": ke1, "shown": f"v1 = {show_number(v1)} m/s, v2 = {show_number(v2)} m/s", "facts": facts}
+
+
+SHAPES = {"solid_sphere": (0.4, "solid sphere"), "hollow_sphere": (2 / 3, "hollow sphere"),
+          "solid_cylinder": (0.5, "solid cylinder"), "hoop": (1.0, "hoop (ring)"), "box": (0.0, "sliding box")}
+
+
+def _rotation(spec: dict, n) -> dict:
+    mode = str(spec.get("mode") or "spin")
+    if mode == "roll":
+        th, L, g = n(spec.get("angle")), n(spec.get("L")), n(spec.get("g"), 9.81)
+        if not 0 < th < 90 or L <= 0:
+            raise ProblemError("a slope of 0 to 90 degrees and a positive length")
+        shape = str(spec.get("shape") or "solid_sphere")
+        names = list(SHAPES) if spec.get("race") else [shape if shape in SHAPES else "solid_sphere"]
+        runners = []
+        for name in names:
+            k, label = SHAPES[name]
+            a = g * math.sin(math.radians(th)) / (1 + k)
+            t = math.sqrt(2 * L / a)
+            runners.append({"shape": name, "label": label, "k": k, "a": a, "t": t, "v": a * t})
+        r0 = runners[[r["shape"] for r in runners].index(shape)] if shape in names else runners[0]
+        facts = [[r0["a"], "m/s^2", "acceleration down the slope"], [r0["v"], "m/s", "speed at the bottom"],
+                 [r0["t"], "s", "time to the bottom"]]
+        return {"kind": "rotation", "mode": "roll", "angle": th, "L": L, "runners": runners, "facts": facts,
+                "T": max(r["t"] for r in runners)}
+    inertia, torque = n(spec.get("I")), n(spec.get("torque"), 0.0)
+    if inertia <= 0:
+        raise ProblemError("the moment of inertia must be positive")
+    w0, T = n(spec.get("w0"), 0.0), n(spec.get("t1"), 5.0)
+    alpha = torque / inertia
+    w1, th1 = w0 + alpha * T, w0 * T + alpha * T * T / 2
+    facts = [[alpha, "rad/s^2", "angular acceleration"], [w1, "rad/s", "angular speed at the end"],
+             [th1, "rad", "angle turned"], [th1 / (2 * math.pi), "", "turns"], [0.5 * inertia * w1 ** 2, "J", "rotational kinetic energy"],
+             [inertia * w1, "kg m^2/s", "angular momentum"]]
+    return {"kind": "rotation", "mode": "spin", "I": inertia, "torque": torque, "alpha": alpha, "w0": w0, "T": T,
+            "facts": facts}
+
+
+def _pv(spec: dict, n) -> dict:
+    R = 8.314462618
+    gas = spec.get("gas") if isinstance(spec.get("gas"), dict) else {}
+    nmol = n(gas.get("n"), 1.0)
+    gamma = n(gas.get("gamma"), 1.4)
+    cv = R / (gamma - 1)
+    st = spec.get("start") if isinstance(spec.get("start"), dict) else {}
+    P = n(st.get("P"), 0.0) or None
+    V = n(st.get("V"), 0.0) or None
+    T = n(st.get("T"), 0.0) or None
+    if P and V:
+        T = P * V / (nmol * R)
+    elif P and T:
+        V = nmol * R * T / P
+    elif V and T:
+        P = nmol * R * T / V
+    else:
+        raise ProblemError("the starting state needs two of P, V and T")
+    states = [{"P": P, "V": V, "T": T}]
+    legs = []
+    steps = list((spec.get("steps") or [])[:8])
+    if spec.get("close") and steps:
+        steps.append({"process": "close"})
+    for leg in steps:
+        if not isinstance(leg, dict):
+            continue
+        proc = str(leg.get("process") or "")
+        to = leg.get("to") if isinstance(leg.get("to"), dict) else {}
+        P0, V0, T0 = states[-1]["P"], states[-1]["V"], states[-1]["T"]
+        if proc == "close":
+            P1, V1, T1 = states[0]["P"], states[0]["V"], states[0]["T"]
+            proc = "isochoric" if abs(V1 - V0) < 1e-12 * V0 else "isobaric" if abs(P1 - P0) < 1e-9 * P0 else "straight"
+        elif proc == "isothermal":
+            T1 = T0
+            V1 = n(to.get("V"), 0.0) or nmol * R * T0 / n(to.get("P"))
+            P1 = nmol * R * T1 / V1
+        elif proc == "adiabatic":
+            if to.get("V") not in (None, ""):
+                V1 = n(to["V"])
+                P1 = P0 * (V0 / V1) ** gamma
+            else:
+                P1 = n(to.get("P"))
+                V1 = V0 * (P0 / P1) ** (1 / gamma)
+            T1 = P1 * V1 / (nmol * R)
+        elif proc == "isobaric":
+            P1 = P0
+            V1 = n(to.get("V"), 0.0) or nmol * R * n(to.get("T")) / P0
+            T1 = P1 * V1 / (nmol * R)
+        elif proc == "isochoric":
+            V1 = V0
+            P1 = n(to.get("P"), 0.0) or nmol * R * n(to.get("T")) / V0
+            T1 = P1 * V1 / (nmol * R)
+        else:
+            raise ProblemError("a process: isothermal, adiabatic, isobaric or isochoric")
+        if min(P1, V1, T1) <= 0:
+            raise ProblemError("a state with no pressure, volume or temperature")
+        dU = nmol * cv * (T1 - T0)
+        if proc == "isothermal":
+            W = nmol * R * T0 * math.log(V1 / V0)
+        elif proc == "adiabatic":
+            W = -dU
+        elif proc == "isobaric":
+            W = P0 * (V1 - V0)
+        elif proc == "isochoric":
+            W = 0.0
+        else:
+            W = (P0 + P1) / 2 * (V1 - V0)
+        pts = []
+        for i in range(41):
+            f = i / 40
+            v = V0 + (V1 - V0) * f
+            if proc == "isothermal":
+                p = nmol * R * T0 / v
+            elif proc == "adiabatic":
+                p = P0 * (V0 / v) ** gamma
+            elif proc == "isochoric":
+                p = P0 + (P1 - P0) * f
+            else:
+                p = P0 + (P1 - P0) * f
+            pts.append([v, p])
+        legs.append({"process": proc, "W": W, "Q": dU + W, "dU": dU, "points": pts})
+        states.append({"P": P1, "V": V1, "T": T1})
+    w_net = sum(lg["W"] for lg in legs)
+    q_in = sum(lg["Q"] for lg in legs if lg["Q"] > 0)
+    eff = w_net / q_in if q_in > 0 else None
+    facts = [[w_net, "J", "net work by the gas"], [q_in, "J", "heat taken in"]]
+    if eff is not None:
+        facts.append([eff, "", "efficiency"])
+    for i, (lg, st1) in enumerate(zip(legs, states[1:], strict=False)):
+        facts += [[lg["W"], "J", f"work in step {i + 1}"], [lg["Q"], "J", f"heat in step {i + 1}"],
+                  [lg["dU"], "J", f"change in internal energy in step {i + 1}"], [st1["T"], "K", f"temperature after step {i + 1}"],
+                  [st1["P"], "Pa", f"pressure after step {i + 1}"], [st1["V"], "m^3", f"volume after step {i + 1}"]]
+    return {"kind": "pv", "states": states, "legs": legs, "n": nmol, "gamma": gamma, "W_net": w_net, "Q_in": q_in,
+            "efficiency": eff, "facts": facts}
+
+
+def _induction(spec: dict, n) -> dict:
+    import sympy
+    mode = str(spec.get("mode") or "flux")
+    if mode == "rod":
+        B, L, v, R = n(spec.get("B")), n(spec.get("L")), n(spec.get("v")), n(spec.get("R"), 0.0)
+        emf = B * L * v
+        I = emf / R if R > 0 else None
+        facts = [[emf, "V", "emf"]]
+        if I is not None:
+            facts += [[I, "A", "current"], [B * I * L, "N", "force on the rod"], [I * I * R, "W", "power"]]
+        return {"kind": "induction", "mode": "rod", "B": B, "L": L, "v": v, "R": R, "emf": emf, "I": I, "facts": facts}
+    t = sympy.Symbol("t")
+    turns = n(spec.get("N"), 1.0)
+    if spec.get("omega") not in (None, ""):
+        flux = _parse(f"({spec.get('B', 1)})*({spec.get('A', 1)})*cos(({spec['omega']})*t)", n.values)
+    else:
+        flux = _parse(str(spec.get("flux") or f"({spec.get('B', 0)})*({spec.get('A', 1)})"), n.values)
+    if isinstance(flux, sympy.Basic) and flux.free_symbols - {t}:
+        raise ProblemError("the flux may only depend on t and the problem's values")
+    emf = -turns * sympy.diff(flux, t)
+    T = n(spec.get("t1"), 1.0)
+    fphi, femf = sympy.lambdify(t, flux, modules=["math"]), sympy.lambdify(t, emf, modules=["math"])
+    ts = [T * i / 300 for i in range(301)]
+    phis, emfs = [float(fphi(x)) for x in ts], [float(femf(x)) for x in ts]
+    R = n(spec.get("R"), 0.0)
+    peak = max(abs(e) for e in emfs)
+    facts = [[peak, "V", "largest emf"], [max(abs(p) for p in phis), "Wb", "largest flux"],
+             [emfs[0], "V", "emf at the start"], [abs(emfs[-1]), "V", "emf at the end"]]
+    if R > 0:
+        facts.append([peak / R, "A", "largest current"])
+    return {"kind": "induction", "mode": "flux", "N": turns, "t": ts, "flux": phis, "emf": emfs, "R": R,
+            "emf_tex": sympy.latex(emf), "rotating": spec.get("omega") not in (None, ""), "T": T, "facts": facts}
+
+
+def _doppler(spec: dict, n) -> dict:
+    f0 = n(spec.get("f"))
+    if f0 <= 0:
+        raise ProblemError("the frequency must be positive")
+    if spec.get("light"):
+        beta = n(spec.get("beta"))
+        if not -1 < beta < 1:
+            raise ProblemError("|beta| < 1")
+        toward, away = f0 * math.sqrt((1 + beta) / (1 - beta)), f0 * math.sqrt((1 - beta) / (1 + beta))
+        c = 2.99792458e8
+        facts = [[toward, "Hz", "frequency approaching"], [away, "Hz", "frequency receding"],
+                 [c / toward, "m", "wavelength approaching"], [c / away, "m", "wavelength receding"]]
+        return {"kind": "doppler", "light": True, "f": f0, "beta": beta, "v": c, "vs": beta * c, "vo": 0.0,
+                "toward": toward, "away": away, "facts": facts}
+    v, vs, vo = n(spec.get("v_sound"), 343.0), n(spec.get("v_source"), 0.0), n(spec.get("v_observer"), 0.0)
+    if abs(vs) >= v:
+        raise ProblemError("the source is at or above the speed of sound: a shock wave, not a Doppler shift")
+    toward = f0 * (v + vo) / (v - vs)                 # source and observer moving towards each other
+    away = f0 * (v - vo) / (v + vs)
+    facts = [[toward, "Hz", "frequency approaching"], [away, "Hz", "frequency receding"],
+             [(v - vs) / f0, "m", "wavelength in front of the source"], [(v + vs) / f0, "m", "wavelength behind the source"],
+             [toward - away, "Hz", "the change as it passes"]]
+    return {"kind": "doppler", "light": False, "f": f0, "v": v, "vs": vs, "vo": vo, "toward": toward, "away": away,
+            "facts": facts}
+
+
+def _interference(spec: dict, n) -> dict:
+    kind = str(spec.get("kind") or "double_slit")
+    lam, L = n(spec.get("wavelength")), n(spec.get("L"), 1.0)
+    d, a, N = n(spec.get("d"), 0.0), n(spec.get("a"), 0.0), int(n(spec.get("N"), 2))
+    if lam <= 0 or L <= 0 or (kind != "single_slit" and d <= 0) or (kind == "single_slit" and a <= 0):
+        raise ProblemError("a wavelength, a screen distance, and the slits' spacing (or a single slit's width)")
+    if kind == "grating":
+        N = max(2, min(N, 400))
+    spacing = lam * L / d if d else None
+    Y = 3.2 * (spacing if spacing else lam * L / a)
+    if a and kind != "single_slit":
+        Y = max(Y, 1.2 * lam * L / a)
+    pts = []
+    for i in range(601):
+        y = -Y + 2 * Y * i / 600
+        s = y / math.hypot(y, L)
+        env = 1.0
+        if a:
+            b = math.pi * a * s / lam
+            env = (math.sin(b) / b) ** 2 if abs(b) > 1e-12 else 1.0
+        if kind == "single_slit":
+            inten = env
+        elif kind == "double_slit":
+            inten = env * math.cos(math.pi * d * s / lam) ** 2
+        else:
+            ph = math.pi * d * s / lam
+            den = math.sin(ph)
+            inten = env * ((math.sin(N * ph) / (N * den)) ** 2 if abs(den) > 1e-12 else 1.0)
+        pts.append([y, inten])
+    facts = []
+    if spacing:
+        facts += [[spacing, "m", "fringe spacing"], [math.degrees(math.asin(min(1, lam / d))), "deg", "angle of the first bright fringe"],
+                  [math.floor(d / lam), "", "highest order"]]
+    if a:
+        facts += [[2 * lam * L / a, "m", "width of the central maximum"], [math.degrees(math.asin(min(1, lam / a))), "deg",
+                                                                            "angle of the first dark fringe of one slit"]]
+    return {"kind": "interference", "pattern": kind, "wavelength": lam, "L": L, "d": d, "a": a, "N": N, "Y": Y,
+            "curve": pts, "spacing": spacing, "colour": _colour_of(lam), "nm": lam * 1e9, "facts": facts}
+
+
 MORE_BUILDERS = {"quantum": _quantum, "qcircuit": _qcircuit, "minkowski": _minkowski, "black_hole": _black_hole,
                  "matrix": _matrix, "distribution": _distribution, "montecarlo": _montecarlo, "field": _field,
-                 "molecule": _molecule, "feynman": _feynman}
+                 "molecule": _molecule, "feynman": _feynman, "collision": _collision, "rotation": _rotation, "pv": _pv,
+                 "induction": _induction, "doppler": _doppler, "interference": _interference}
 
 MORE_CATALOG = """  {"quantum": {"system": "box", "L": "L", "m": "m", "n": [1, 2, 3], "superpose": [1, 2]}}   levels, wavefunctions
      and |psi|^2 (m defaults to the electron's); "oscillator" with "omega"; "barrier" with "V0" and "E" in eV and
@@ -584,7 +839,22 @@ MORE_CATALOG = """  {"quantum": {"system": "box", "L": "L", "m": "m", "n": [1, 2
      {"field": {"slope": "x - y", "solutions": [[0, 1], [0, -1]]}} a slope field with solution curves (RK4)
   {"molecule": {"name": "caffeine"}}   the molecule in 3D (PubChem); any common name
   {"feynman": {"lines": [{"from": [0, 0], "to": [0.4, 0.5], "type": "fermion|antifermion|photon|gluon|boson|scalar",
-     "label": "e-"}], "time": "right"}}   points in a 0-1 box"""
+     "label": "e-"}], "time": "right"}}   points in a 0-1 box
+  {"collision": {"m1": 2, "u1": 3, "m2": 1, "u2": 0, "type": "elastic|inelastic|perfectly_inelastic", "e": 0.5}}
+     a 1D collision: velocities after, momentum and kinetic energy before and after
+  {"rotation": {"mode": "spin", "I": 0.5, "torque": 2, "w0": 0, "t1": 4}}   a wheel turned by a torque; or
+     {"rotation": {"mode": "roll", "shape": "solid_sphere|hollow_sphere|solid_cylinder|hoop", "angle": 30, "L": 2,
+     "race": true}} rolling down a slope (race: all shapes at once)
+  {"pv": {"gas": {"n": 1, "gamma": 1.4}, "start": {"P": 1e5, "V": 0.0224}, "steps": [{"process": "isothermal",
+     "to": {"V": 0.0448}}, {"process": "adiabatic", "to": {"V": 0.06}}, {"process": "isobaric", "to": {"V": 0.03}}],
+     "close": true}}   a PV diagram (SI units): each step's work, heat and change in internal energy; efficiency
+  {"induction": {"mode": "flux", "N": 100, "B": 0.2, "A": 0.01, "omega": 50, "t1": 0.3, "R": 10}}   a coil turning
+     in a field (or "flux": "expr in t"): flux and emf = -N dPhi/dt; or {"induction": {"mode": "rod", "B": 0.5,
+     "L": 0.2, "v": 3, "R": 2}} a rod sliding on rails
+  {"doppler": {"f": 440, "v_sound": 343, "v_source": 30, "v_observer": 0}}   moving wavefronts, the pitch ahead and
+     behind; or {"doppler": {"f": 5e14, "light": true, "beta": 0.1}} for light
+  {"interference": {"kind": "double_slit|single_slit|grating", "wavelength": 6.5e-7, "d": 2.5e-4, "a": 5e-5,
+     "L": 1.5, "N": 500}}   waves from the slits and the pattern on the screen: fringe spacing, orders"""
 
 
 __all__ = ["MORE_BUILDERS", "MORE_CATALOG", "fetch_sdf", "parse_sdf"]

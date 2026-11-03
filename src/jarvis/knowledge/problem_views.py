@@ -550,7 +550,10 @@ def _lesson(spec: dict, problem: Problem) -> dict:
 
 BUILDERS = {"motion": _motion, "graph": _graph, "forces": _forces, "circuit": _circuit, "kinetics": _kinetics,
             "titration": _titration, "energy_profile": _energy, "ice": _ice}
-from .problem_views_more import MORE_BUILDERS, MORE_CATALOG  # noqa: E402 - after _Num and the builders above
+from .problem_views_more import (
+    MORE_BUILDERS,
+    MORE_CATALOG,
+)
 
 BUILDERS.update(MORE_BUILDERS)
 

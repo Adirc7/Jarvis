@@ -763,10 +763,153 @@ window.JarvisProblem = (function () {
       text(ctx, v.title || "Feynman diagram", 14, 16, C.text, 13, "left", "600"); text(ctx, v.time === "up" ? "time ↑" : "time →", w - 14, h - 14, C.muted, 12, "right");
     } };
   }
+  function collisionView(v) {
+    const tc = 2, T = 5, gap = 4;                                       // they meet at t = 2 s of the drawing
+    return { timed: true, T, draw(ctx, w, h, dt, t, hl) {
+      const before = t < tc, pos = (u, x0) => x0 + u * Math.min(t, tc), x1c = 0, x2c = 0;
+      const x1 = before ? (t - tc) * v.u1 : (t - tc) * v.v1, x2 = before ? (t - tc) * v.u2 : (t - tc) * v.v2;
+      const span = Math.max(Math.abs(v.u1), Math.abs(v.u2), Math.abs(v.v1), Math.abs(v.v2), 0.5) * (T - tc) * 1.3;
+      const X = x => w / 2 + x / span * (w / 2 - 70), ty = h * 0.34, s1 = 40 + 20 * Math.cbrt(v.m1 / Math.max(v.m1, v.m2)), s2 = 40 + 20 * Math.cbrt(v.m2 / Math.max(v.m1, v.m2));
+      ctx.fillStyle = "#0b1622"; ctx.fillRect(0, ty, w, 10);
+      ctx.fillStyle = C.cyan; ctx.fillRect(X(x1) - s1, ty - s1, s1, s1); ctx.fillStyle = C.amber; ctx.fillRect(X(x2), ty - s2, s2, s2);
+      text(ctx, `${fmt(v.m1)} kg`, X(x1) - s1 / 2, ty - s1 / 2, C.bg, 12, "center", "600"); text(ctx, `${fmt(v.m2)} kg`, X(x2) + s2 / 2, ty - s2 / 2, C.bg, 12, "center", "600");
+      const va = before ? v.u1 : v.v1, vb = before ? v.u2 : v.v2;
+      if (Math.abs(va) > 1e-9) arrow(ctx, X(x1) - s1 / 2, ty - s1 - 14, X(x1) - s1 / 2 + va / span * 120, ty - s1 - 14, C.cyan, 2.2, 8);
+      if (Math.abs(vb) > 1e-9) arrow(ctx, X(x2) + s2 / 2, ty - s2 - 14, X(x2) + s2 / 2 + vb / span * 120, ty - s2 - 14, C.amber, 2.2, 8);
+      text(ctx, `${fmt(va)} m/s`, X(x1) - s1 / 2, ty - s1 - 30, C.cyan, 12, "center"); text(ctx, `${fmt(vb)} m/s`, X(x2) + s2 / 2, ty - s2 - 30, C.amber, 12, "center");
+      if (Math.abs(t - tc) < 0.12) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; ctx.beginPath(); ctx.moveTo(X(0) + Math.cos(a) * 10, ty - 30 + Math.sin(a) * 10); ctx.lineTo(X(0) + Math.cos(a) * 22, ty - 30 + Math.sin(a) * 22); ctx.stroke(); } }
+      // momentum and energy, before and after
+      const bars = [["momentum", before ? [v.m1 * v.u1, v.m2 * v.u2] : [v.m1 * v.v1, v.m2 * v.v2], "kg·m/s"], ["kinetic energy", before ? [0.5 * v.m1 * v.u1 ** 2, 0.5 * v.m2 * v.u2 ** 2] : [0.5 * v.m1 * v.v1 ** 2, 0.5 * v.m2 * v.v2 ** 2], "J"]];
+      const top = Math.max(Math.abs(v.p), v.ke0) * 1.1 || 1, by = h * 0.55, bh = h - by - 40;
+      bars.forEach(([name, [a, b], u], k) => { const x0 = 60 + k * (w / 2), bw = 50, Y0 = by + bh / 2, Hs = bh / 2 / top;
+        ctx.fillStyle = C.cyan; ctx.fillRect(x0, Y0 - Math.max(0, a) * Hs, bw, Math.abs(a) * Hs); ctx.fillStyle = C.amber; ctx.fillRect(x0, Y0 - Math.max(0, a) * Hs - Math.max(0, b) * Hs, bw, Math.abs(b) * Hs);
+        ctx.strokeStyle = C.line; ctx.beginPath(); ctx.moveTo(x0 - 10, Y0); ctx.lineTo(x0 + bw + 10, Y0); ctx.stroke();
+        text(ctx, `${name}: ${fmt(a + b)} ${u}`, x0 + bw + 18, Y0 - (a + b) * Hs / 2, C.text, 13, "left", "600"); });
+      text(ctx, `${before ? "before" : "after"} · e = ${fmt(v.e)}${v.e === 1 ? " (elastic)" : v.e === 0 ? " (they stick)" : ""} · ${v.shown} · kinetic energy lost ${fmt(v.ke0 - v.ke1)} J`, 14, 16, C.text, 13, "left", "600");
+    } };
+  }
+  function rotationView(v) {
+    if (v.mode === "roll") {
+      const cols = [C.cyan, C.amber, C.green, C.pink, C.muted];
+      return { timed: true, T: v.T * 1.05, draw(ctx, w, h, dt, t) {
+        const th = v.angle * Math.PI / 180, x0 = 70, y0 = 60, len = Math.min((w - 140) / Math.cos(th), (h - 120) / Math.sin(th));
+        const xe = x0 + len * Math.cos(th), ye = y0 + len * Math.sin(th);
+        ctx.fillStyle = "#0b1622"; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(xe, ye); ctx.lineTo(x0, ye); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = "#2a5878"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(xe, ye); ctx.stroke();
+        text(ctx, `${fmt(v.angle)}°`, xe - 50, ye - 10, C.muted, 12);
+        v.runners.forEach((r, i) => { const s = Math.min(v.L, 0.5 * r.a * t * t) / v.L, R = 14, off = (i - (v.runners.length - 1) / 2) * 0;
+          const cx = x0 + s * len * Math.cos(th) + Math.sin(th) * R, cy = y0 + s * len * Math.sin(th) - Math.cos(th) * R - i * 0;
+          ctx.save(); ctx.globalAlpha = v.runners.length > 1 ? 0.85 : 1; ctx.translate(cx + i * 0, cy - i * 0.5);
+          const turned = s * v.L / (R / 60);
+          ctx.rotate(r.k ? turned : 0); ctx.strokeStyle = cols[i]; ctx.lineWidth = r.shape === "hoop" || r.shape === "hollow_sphere" ? 4 : 2;
+          if (r.shape === "box") { ctx.fillStyle = cols[i]; ctx.fillRect(-R, -R, 2 * R, 2 * R); } else { ctx.beginPath(); ctx.arc(0, 0, R, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(R, 0); ctx.stroke(); }
+          ctx.restore();
+          text(ctx, `${r.label}: a = ${fmt(r.a)} m/s², bottom in ${fmt(r.t)} s at ${fmt(r.v)} m/s`, 14, 16 + i * 16, cols[i], 12, "left", i ? "" : "600"); });
+        text(ctx, `t = ${fmt(t)} s · the more of its mass is far from the axis, the more energy goes into spinning, the slower it rolls`, 14, h - 14, C.muted, 11);
+      } };
+    }
+    let th = 0;
+    return { timed: true, T: v.T, draw(ctx, w, h, dt, t) {
+      const omega = v.w0 + v.alpha * t, angle = v.w0 * t + v.alpha * t * t / 2, cx = w * 0.25, cy = h * 0.5, R = Math.min(w * 0.18, h * 0.32);
+      ctx.strokeStyle = C.cyan; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke();
+      for (let k = 0; k < 6; k++) { const a = angle + k * Math.PI / 3; ctx.strokeStyle = "#2a6f8f"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); ctx.stroke(); }
+      ctx.fillStyle = C.amber; ctx.beginPath(); ctx.arc(cx + Math.cos(angle) * R, cy + Math.sin(angle) * R, 7, 0, 7); ctx.fill();
+      if (v.torque) { ctx.strokeStyle = C.pink; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(cx, cy, R + 18, -0.6, 0.9); ctx.stroke(); arrow(ctx, cx + Math.cos(0.7) * (R + 18), cy + Math.sin(0.7) * (R + 18), cx + Math.cos(0.95) * (R + 18), cy + Math.sin(0.95) * (R + 18), C.pink, 2.5, 9);
+        text(ctx, `τ = ${fmt(v.torque)} N·m`, cx + R + 26, cy - 10, C.pink, 12, "left", "600"); }
+      const r1 = { x: w * 0.55, y: 34, w: w * 0.4, h: h * 0.36 }, r2 = { x: w * 0.55, y: h * 0.56, w: w * 0.4, h: h * 0.34 };
+      const om = [], an = []; for (let k = 0; k <= 200; k++) { const tt = v.T * k / 200; om.push([tt, v.w0 + v.alpha * tt]); an.push([tt, v.w0 * tt + v.alpha * tt * tt / 2]); }
+      const w1 = Math.max(...om.map(q => Math.abs(q[1])), 1), a1 = Math.max(...an.map(q => Math.abs(q[1])), 1);
+      let g = axes(ctx, r1, [0, v.T], [Math.min(0, ...om.map(q => q[1])), w1 * 1.1], "", "ω (rad/s)"); curve(ctx, om, g.X, g.Y, "#2a6f8f", 1.4); curve(ctx, om, g.X, g.Y, C.cyan, 2.4, t);
+      g = axes(ctx, r2, [0, v.T], [Math.min(0, ...an.map(q => q[1])), a1 * 1.1], "t (s)", "θ (rad)"); curve(ctx, an, g.X, g.Y, "#2a6f8f", 1.4); curve(ctx, an, g.X, g.Y, C.amber, 2.4, t);
+      text(ctx, `I = ${fmt(v.I)} kg·m² · α = τ/I = ${fmt(v.alpha)} rad/s² · t = ${fmt(t)} s · ω = ${fmt(omega)} rad/s · θ = ${fmt(angle)} rad`, 14, 16, C.text, 12, "left", "600");
+    } };
+  }
+  function pvView(v) {
+    const cols = [C.cyan, C.amber, C.green, C.pink, C.violet, C.teal];
+    const all = v.legs.flatMap(l => l.points), V = all.map(p => p[0]), P = all.map(p => p[1]);
+    return { timed: true, T: v.legs.length, unit: "steps", draw(ctx, w, h, dt, t, hl) {
+      const r = { x: 70, y: 34, w: w * 0.56, h: h - 80 }, vr = [Math.min(...V) * 0.9, Math.max(...V) * 1.05], pr = [0, Math.max(...P) * 1.1];
+      const { X, Y } = axes(ctx, r, vr.map(x => x), pr, "V (m³)", "P (Pa)");
+      if (v.legs.length > 2 && Math.abs(v.W_net) > 0) { ctx.fillStyle = C.amber + "22"; ctx.beginPath(); all.forEach((p, i) => i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1]))); ctx.closePath(); ctx.fill(); }
+      v.legs.forEach((l, i) => { const lit = hl.step === undefined || hl.step === i + 1; curve(ctx, l.points, X, Y, lit ? cols[i % cols.length] : "#2a4258", lit ? 2.6 : 1.6);
+        const m = l.points[20]; text(ctx, `${i + 1} ${l.process}`, X(m[0]) + 6, Y(m[1]) - 10, cols[i % cols.length], 11); });
+      v.states.forEach((s, i) => { ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(X(s.V), Y(s.P), 4, 0, 7); ctx.fill(); text(ctx, `${"ABCDEFGH"[i % 8]} ${fmt(s.T)} K`, X(s.V) + 7, Y(s.P) + 12, C.muted, 11); });
+      const k = Math.min(v.legs.length - 1, Math.floor(t)), f = t - k, pt = v.legs[k] && v.legs[k].points[Math.min(40, Math.round(f * 40))];
+      if (pt) { ctx.fillStyle = C.amber; ctx.beginPath(); ctx.arc(X(pt[0]), Y(pt[1]), 6, 0, 7); ctx.fill(); }
+      const tx = r.x + r.w + 30; text(ctx, "step     W by gas     Q in      ΔU", tx, 44, C.muted, 12);
+      v.legs.forEach((l, i) => text(ctx, `${i + 1} ${l.process.slice(0, 5).padEnd(6)} ${fmt(l.W).padStart(8)} J ${fmt(l.Q).padStart(8)} J ${fmt(l.dU).padStart(8)} J`, tx, 66 + i * 20, hl.step === i + 1 ? "#fff" : cols[i % cols.length], 12));
+      text(ctx, `net work ${fmt(v.W_net)} J · heat in ${fmt(v.Q_in)} J${v.efficiency != null ? ` · efficiency ${fmt(v.efficiency * 100)}%` : ""}`, tx, 76 + v.legs.length * 20, C.text, 13, "left", "600");
+      text(ctx, `${fmt(v.n)} mol, γ = ${fmt(v.gamma)} · the shaded area is the net work`, 14, 16, C.text, 12, "left", "600");
+    } };
+  }
+  function inductionView(v) {
+    if (v.mode === "rod") {
+      return { timed: true, T: 4, draw(ctx, w, h, dt, t) {
+        const top = h * 0.25, bot = h * 0.65, x0 = 80, xr = x0 + 60 + ((t * 40) % (w - 260));
+        ctx.fillStyle = C.muted; for (let i = 0; i < 9; i++) for (let j = 0; j < 4; j++) text(ctx, "×", x0 + 30 + i * (w - 200) / 8, top + 20 + j * (bot - top - 40) / 3, "#3a6f93", 16, "center");
+        ctx.strokeStyle = "#8fa7ba"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x0, top); ctx.lineTo(w - 60, top); ctx.moveTo(x0, bot); ctx.lineTo(w - 60, bot); ctx.moveTo(x0, top); ctx.lineTo(x0, bot); ctx.stroke();
+        ctx.strokeStyle = C.amber; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(xr, top - 6); ctx.lineTo(xr, bot + 6); ctx.stroke();
+        arrow(ctx, xr + 10, (top + bot) / 2, xr + 70, (top + bot) / 2, C.amber, 2.4, 9); text(ctx, `v = ${fmt(v.v)} m/s`, xr + 76, (top + bot) / 2, C.amber, 12);
+        if (v.I) { ctx.strokeStyle = C.green; ctx.lineWidth = 2; ctx.setLineDash([6, 8]); ctx.lineDashOffset = -t * 30; ctx.beginPath(); ctx.moveTo(xr, bot - 8); ctx.lineTo(xr, top + 8); ctx.lineTo(x0 + 8, top + 8); ctx.lineTo(x0 + 8, bot - 8); ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+          arrow(ctx, xr - 16, (top + bot) / 2, xr - 70, (top + bot) / 2, C.pink, 2.4, 9); text(ctx, `F = BIL = ${fmt(v.B * v.I * v.L)} N`, xr - 76, (top + bot) / 2 - 16, C.pink, 12, "right"); }
+        text(ctx, `B = ${fmt(v.B)} T (into the page) · L = ${fmt(v.L)} m · emf = BLv = ${fmt(v.emf)} V${v.I ? ` · I = ${fmt(v.I)} A` : ""}`, 14, 16, C.text, 13, "left", "600");
+        text(ctx, "Lenz's law: the current's force opposes the motion", 14, h - 14, C.muted, 11);
+      } };
+    }
+    return { timed: true, T: v.T, draw(ctx, w, h, dt, t) {
+      const k = Math.min(v.t.length - 1, Math.round(t / v.T * (v.t.length - 1))), cx = w * 0.2, cy = h * 0.5, R = Math.min(w * 0.13, h * 0.3);
+      for (let i = -3; i <= 3; i++) arrow(ctx, cx - R * 1.7, cy + i * R * 0.28, cx + R * 1.7, cy + i * R * 0.28, "#2a5878", 1.2, 6);
+      const phiMax = Math.max(...v.flux.map(Math.abs)) || 1, frac = v.flux[k] / phiMax;
+      ctx.strokeStyle = C.amber; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(cx, cy, R * Math.max(0.05, Math.abs(frac)), R, 0, 0, 7); ctx.stroke();
+      text(ctx, `${fmt(v.N)} turns`, cx, cy + R + 16, C.amber, 12, "center");
+      const r1 = { x: w * 0.42, y: 34, w: w * 0.52, h: h * 0.36 }, r2 = { x: w * 0.42, y: h * 0.56, w: w * 0.52, h: h * 0.34 };
+      const F = v.t.map((x, i) => [x, v.flux[i]]), E = v.t.map((x, i) => [x, v.emf[i]]), fm = phiMax, em = Math.max(...v.emf.map(Math.abs)) || 1;
+      let g = axes(ctx, r1, [0, v.T], [-fm * 1.1, fm * 1.1], "", "Φ (Wb)"); curve(ctx, F, g.X, g.Y, "#2a6f8f", 1.4); curve(ctx, F, g.X, g.Y, C.amber, 2.4, t);
+      g = axes(ctx, r2, [0, v.T], [-em * 1.1, em * 1.1], "t (s)", "emf (V)"); curve(ctx, E, g.X, g.Y, "#2a6f8f", 1.4); curve(ctx, E, g.X, g.Y, C.cyan, 2.4, t);
+      text(ctx, `emf = −N dΦ/dt: biggest where the flux changes fastest · now ${fmt(v.emf[k])} V${v.R ? `, ${fmt(v.emf[k] / v.R)} A` : ""}`, 14, 16, C.text, 12, "left", "600");
+    } };
+  }
+  function dopplerView(v) {
+    const fronts = []; let clock = 0, emitted = 0;
+    return { timed: false, draw(ctx, w, h, dt, t, hl) {
+      clock += dt; const speedPx = 90, period = 0.35, vsPx = speedPx * v.vs / v.v, cy = h * 0.5;
+      let sx = w * 0.2 + ((clock * vsPx) % (w * 0.6));
+      if (clock - emitted > period) { fronts.push({ x: sx, t: clock }); emitted = clock; }
+      while (fronts.length > 40) fronts.shift();
+      ctx.lineWidth = 1.5; for (const f of fronts) { const r = (clock - f.t) * speedPx; ctx.strokeStyle = `rgba(77,225,255,${Math.max(0, 1 - r / (w * 0.7))})`; ctx.beginPath(); ctx.arc(f.x, cy, r, 0, 7); ctx.stroke(); }
+      ctx.fillStyle = C.amber; ctx.beginPath(); ctx.arc(sx, cy, 8, 0, 7); ctx.fill(); arrow(ctx, sx, cy - 20, sx + 40 * Math.sign(v.vs || 1), cy - 20, C.amber, 2, 8);
+      ctx.fillStyle = C.green; ctx.beginPath(); ctx.arc(w - 40, cy, 8, 0, 7); ctx.fill(); ctx.fillStyle = C.pink; ctx.beginPath(); ctx.arc(40, cy, 8, 0, 7); ctx.fill();
+      text(ctx, `ahead: ${fmt(v.toward)} Hz`, w - 40, cy + 26, C.green, 13, "right", "600"); text(ctx, `behind: ${fmt(v.away)} Hz`, 40, cy + 26, C.pink, 13, "left", "600");
+      text(ctx, v.light ? `light at ${fmt(v.beta)}c: f' = f √((1 ± β)/(1 ∓ β)), source ${fmt(v.f)} Hz` :
+        `source ${fmt(v.f)} Hz moving at ${fmt(v.vs)} m/s, sound ${fmt(v.v)} m/s: f' = f (v ± v_o)/(v ∓ v_s)`, 14, 16, C.text, 13, "left", "600");
+      text(ctx, "the waves bunch up ahead (higher pitch) and spread out behind (lower)", 14, h - 14, C.muted, 11);
+    } };
+  }
+  function interferenceView(v) {
+    const col = { violet: "#a070ff", blue: "#4d7dff", green: "#56e07a", yellow: "#ffe45c", orange: "#ffa040", red: "#ff4d4d" }[v.colour] || C.cyan;
+    let ph = 0;
+    return { timed: false, draw(ctx, w, h, dt) {
+      ph += dt * 4; const sx = w * 0.12, scr = w * 0.55, cy = h / 2, slits = v.pattern === "single_slit" ? [0] : v.pattern === "double_slit" ? [-1, 1] : [-2, -1, 0, 1, 2];
+      ctx.fillStyle = "#1a2c40"; ctx.fillRect(sx - 4, 20, 8, h - 40);
+      slits.forEach(k => { const y = cy + k * 30; ctx.fillStyle = C.bg; ctx.fillRect(sx - 4, y - 6, 8, 12);
+        ctx.save(); ctx.beginPath(); ctx.rect(sx, 0, scr - sx, h); ctx.clip();
+        for (let r = (ph * 6) % 24; r < scr; r += 24) { ctx.strokeStyle = col + "55"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(sx, y, r, -Math.PI / 2, Math.PI / 2); ctx.stroke(); } ctx.restore(); });
+      for (let r = (ph * 6) % 24; r < sx; r += 24) { ctx.strokeStyle = col + "55"; ctx.beginPath(); ctx.moveTo(sx - r, 20); ctx.lineTo(sx - r, h - 20); ctx.stroke(); }
+      ctx.strokeStyle = C.text; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(scr, 20); ctx.lineTo(scr, h - 20); ctx.stroke();
+      v.curve.forEach(([y, I], i) => { if (i % 2) return; const py = cy - y / v.Y * (h / 2 - 24); ctx.fillStyle = col; ctx.globalAlpha = Math.min(1, I); ctx.fillRect(scr - 10, py - 1, 20, 3); ctx.globalAlpha = 1; });
+      const gx = scr + 30, gw = w - gx - 20; ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath();
+      v.curve.forEach(([y, I], i) => { const py = cy - y / v.Y * (h / 2 - 24), px = gx + I * gw; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }); ctx.stroke();
+      text(ctx, "intensity →", gx + gw, h - 10, C.muted, 11, "right");
+      if (v.spacing) { const py0 = cy, py1 = cy - v.spacing / v.Y * (h / 2 - 24); ctx.strokeStyle = C.amber; ctx.beginPath(); ctx.moveTo(gx - 6, py0); ctx.lineTo(gx - 6, py1); ctx.stroke(); text(ctx, `Δy = ${fmt(v.spacing * 1000)} mm`, gx - 10, (py0 + py1) / 2, C.amber, 12, "right", "600"); }
+      text(ctx, `${v.pattern.replace("_", " ")} · λ = ${fmt(v.nm)} nm (${v.colour})${v.d ? ` · d = ${fmt(v.d * 1e3)} mm` : ""}${v.a ? ` · a = ${fmt(v.a * 1e3)} mm` : ""} · L = ${fmt(v.L)} m`, 14, 16, C.text, 12, "left", "600");
+    } };
+  }
   const VIEWS = { motion: motionView, path: pathView, graph: graphView, forces: forcesView, circuit: circuitView,
     kinetics: kineticsView, titration: titrationView, energy_profile: energyView, ice: iceView, quantum: quantumView,
     qcircuit: qcircuitView, minkowski: minkowskiView, black_hole: blackHoleView, matrix: matrixView,
-    distribution: distributionView, montecarlo: montecarloView, field: fieldView, molecule: moleculeView, feynman: feynmanView };
+    distribution: distributionView, montecarlo: montecarloView, field: fieldView, molecule: moleculeView, feynman: feynmanView,
+    collision: collisionView, rotation: rotationView, pv: pvView, induction: inductionView, doppler: dopplerView,
+    interference: interferenceView };
 
   // ======================= the problem =======================
   function open(box, data, opts = {}) {

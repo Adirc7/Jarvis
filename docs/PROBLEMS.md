@@ -83,6 +83,12 @@ sheet with several questions: pick one in the window.
 | field | a vector field with moving particles (div and curl worked out), or a slope field with RK4 curves | (−y, x): div 0, curl 2; y' = y follows eˣ |
 | molecule | any molecule in 3D from PubChem, turned with the mouse (kept on disk after once) | water: H2O, 2 bonds |
 | feynman | fermions, photons, gluons, W, Z, Higgs lines, with time's direction | |
+| collision | two bodies meeting, momentum and kinetic energy bars before and after | elastic 2 kg at 3 m/s on 1 kg: 1 and 4 m/s |
+| rotation | a wheel under a torque (ω-t, θ-t), or shapes rolling down a slope, racing | solid sphere on 30°: a = g sinθ / 1.4 |
+| pv | a PV diagram of any steps (isothermal, adiabatic, isobaric, isochoric): work, heat, ΔU, efficiency | Carnot 600 K / 300 K: 50% |
+| induction | a coil turning in a field (flux and emf = −N dΦ/dt), or a rod sliding on rails (Lenz) | N B A ω = 10 V; BLv |
+| doppler | moving wavefronts, the pitch ahead and behind; light too | 440 Hz at 30 m/s: 482 Hz ahead |
+| interference | waves from one slit, two slits or a grating and the pattern on the screen | λL/d = 3.9 mm; 600 lines/mm: 2 orders, 20.7° |
 
 For ideas with no exact simulation (string theory's extra dimensions, say),
 the plan uses the lessons' tested visuals: Mermaid diagrams, 3D surfaces,

@@ -1851,3 +1851,10 @@ window server: every number matches SymPy, every button reaches Jarvis.
   itself (an animation braking half as hard is caught), and every plan kept
   in state/problems. No false alarms on the four samples; equilibrium
   constants are left unchecked (chemistry's unitless convention).
+- 3 Nov, 21:50: The views that were missing: collisions (momentum and energy
+  bars), rotation (a torque on a wheel, or shapes racing down a slope), PV
+  diagrams of any cycle (work, heat, internal energy, efficiency), induction
+  (a turning coil, a sliding rod), Doppler (sound and light), interference
+  (one slit, two, a grating). Each lists the numbers it works out, so the
+  answers are checked against it too; each checked against textbook values
+  (a Carnot cycle between 600 and 300 K comes out at 50%).
