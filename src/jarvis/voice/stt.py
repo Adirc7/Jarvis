@@ -36,6 +36,23 @@ class TranscriptResult:
     unclear: str | None = None         # why the text looks like nonsense (voice/clarity.py)
 
 
+def among_ours(detected: str | None, prob: float | None, all_probs, ours: set[str]) -> tuple[str | None, float | None]:
+    """Whisper's guess when it isn't one of Jarvis's languages: the likeliest of ours, and its share of them.
+
+    Whisper small hears Sinhala as Malayalam, Hindi, Bengali... (3 Nov: 21 of 31 turns in one session
+    weren't "en"; 3 were "si", at 13-50%), so a Sinhala question was written out as English nonsense.
+    Only Jarvis's own languages are possible here, so a guess outside them is mapped back to them.
+    """
+    if not all_probs or detected in ours:
+        return detected, prob
+    probs = {code: float(p) for code, p in all_probs if code in ours}
+    total = sum(probs.values())
+    if total <= 0:
+        return detected, prob
+    best = max(probs, key=probs.get)
+    return best, probs[best] / total
+
+
 def _mean_logprob(segments: list[Any]) -> float | None:
     """Average log-probability over all segments, weighted by their token counts."""
     pairs = [(s.avg_logprob, len(getattr(s, "tokens", None) or [0])) for s in segments
@@ -76,6 +93,7 @@ class Transcriber:
         self._cpu_loader = cpu_loader or (None if loader else (lambda name: load_whisper(name, "cpu")))
         self.on_cpu = False
         self._models: dict[str, Any] = {}
+        self._missing: set[str] = set()          # languages whose own model folder isn't there
 
     def _model_name(self, lang: Language | None) -> str:
         default = self._settings.get("stt.model", "small")
@@ -83,8 +101,18 @@ class Transcriber:
             return default
         # A local folder (converted fine-tune) or a model name faster-whisper knows.
         path = Path(lang.stt_model)
+        local = path.is_absolute() or lang.stt_model.startswith(("models/", "models\\", "./"))
         path = path if path.is_absolute() else PROJECT_ROOT / path
-        return str(path) if path.exists() else lang.stt_model
+        if path.exists():
+            return str(path)
+        if local:          # not downloaded on this computer (docs/LANGUAGES.md): the default, not a failed download
+            if lang.code not in self._missing:
+                self._missing.add(lang.code)
+                self._tel.log("stt_model_missing", language=lang.code, path=str(path))
+                print(f"[stt] {lang.name}'s speech model isn't at {path}; using Whisper {default} "
+                      "(docs/LANGUAGES.md says how to get it).")
+            return default
+        return lang.stt_model
 
     def model(self, lang: Language | None = None):
         name = self._model_name(lang)
@@ -92,6 +120,17 @@ class Transcriber:
             with self._tel.span("stt_load", model=name):
                 self._models[name] = self._loader(name)
         return self._models[name]
+
+    def prepare(self, lang: Language) -> None:
+        """Load and run once the model for `lang`, after a switch to it (a 3 GB Sinhala model takes seconds)."""
+        silence = np.zeros(16000, np.float32)
+        try:
+            segments, _ = self.model(lang).transcribe(silence, language=lang.whisper_code, beam_size=1,
+                                                      vad_filter=False, max_new_tokens=4, without_timestamps=True)
+            for _ in segments:
+                pass
+        except Exception as exc:  # noqa: BLE001 - the real request reports its own error
+            self._tel.log("stt_prepare_failed", model=self._model_name(lang), error=f"{type(exc).__name__}: {exc}"[:200])
 
     def _detects_language(self) -> bool:
         return bool(self._settings.get("stt.detect_language", True)) and len(self._lm.languages) > 1
@@ -142,9 +181,13 @@ class Transcriber:
 
     def _transcribe(self, audio: np.ndarray) -> TranscriptResult:
         start = time.perf_counter()
-        detected, prob = None, None
+        detected, prob, heard_as = None, None, None
         if self._detects_language():
-            detected, prob, _ = self.model(None).detect_language(audio)
+            detected, prob, all_probs = self.model(None).detect_language(audio)
+            heard_as = (detected, round(float(prob), 3)) if prob is not None else (detected, None)
+            if self._settings.get("stt.only_my_languages", True):
+                ours = {lang.whisper_code for lang in self._lm.languages.values()}
+                detected, prob = among_ours(detected, prob, all_probs, ours)
         target_code = self._lm.needs_retranscribe(detected, prob) or self._lm.current.code
         target = self._lm.languages[target_code]
         segments, _info = self.model(target).transcribe(
@@ -178,5 +221,6 @@ class Transcriber:
                       probability=result.detected_probability, retranscribed=result.retranscribed,
                       audio_s=round(len(audio) / 16000, 2), chars=len(text),
                       logprob=result.avg_logprob, compression=round(compression_ratio(text), 2),
-                      unclear=unclear)
+                      unclear=unclear, model=Path(self._model_name(target)).name,
+                      heard_as=heard_as if heard_as and heard_as[0] != detected else None)
         return result

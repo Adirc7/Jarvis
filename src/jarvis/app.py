@@ -484,6 +484,10 @@ class App(LessonMode, ExploreMode, ProblemMode):
             prepare = getattr(self.sink, "prepare_fillers", None)
             if prepare is not None:   # get the new language's fillers ready in the background
                 self.bus.loop.run_in_executor(None, prepare, self.lang.current)
+            ears = getattr(self.transcriber, "prepare", None)
+            if ears is not None and getattr(self, "_stt_executor", None) is not None:
+                # its own speech model (Sinhala's), loaded now rather than on the first question
+                self.bus.loop.run_in_executor(self._stt_executor, ears, self.lang.current)
 
     def system_prompt(self) -> str:
         prompt = self.persona.system_prompt(

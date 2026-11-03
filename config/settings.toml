@@ -50,6 +50,10 @@ detect_language = true
 # probability, Jarvis re-transcribes in that language before checking for a
 # switch command. This is how "switch to English" still works in Sinhala mode.
 retranscribe_threshold = 0.80
+# Whisper small guesses Sinhala as Malayalam, Hindi, Bengali... (3 Nov). Only
+# Jarvis's languages are possible, so a guess outside them becomes the likeliest
+# of them, with its share of them as the probability above.
+only_my_languages = true
 # When a transcript looks wrong, Whisper tries again at these "temperatures"
 # (more randomness each time). Its default is six tries, which took 6.5-7 s on
 # Sinhala it can't write (21 Oct); two tries is enough for the nonsense check.

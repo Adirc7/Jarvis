@@ -1902,3 +1902,11 @@ window server: every number matches SymPy, every button reaches Jarvis.
   on this computer), so the answer is true whichever model it is. Whisper's
   English prompt now has Groq, Ollama, Gemini and OpenRouter ("Groq" was
   heard as "Kroak" and "Rock").
+- 4 Nov, 01:45: Friday couldn't hear Sinhala: Whisper small wrote every
+  Sinhala question as "වවවවවව..." (rightly rejected as unclear), and in English
+  mode it guessed Sinhala as Malayalam, Hindi, Bengali (21 of 31 turns on
+  3 Nov weren't "en"), so it never switched. Now Sinhala has its own speech
+  model, Whisper large-v3 fine-tuned on Sinhala (models/whisper-si-large-v3,
+  3 GB, loaded on a switch to Sinhala; the default if it isn't downloaded),
+  and a guess outside English, Sinhala and Tamil is mapped to the likeliest
+  of the three. To measure: 20 Sinhala sentences with their text (LANGUAGES.md).

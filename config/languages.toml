@@ -61,8 +61,13 @@ same_session = ["I'm here, {address}.", "Yes, {address}?"]
 name = "Sinhala"
 native_name = "සිංහල"
 whisper_code = "si"
-# Base Whisper is weak at Sinhala. A fine-tune works better: docs/LANGUAGES.md
-stt_model = "default"
+# Base Whisper can't write Sinhala: on 4 Nov "small" wrote only "වවවවවව..." for
+# every Sinhala question. This is Whisper large-v3 fine-tuned on Sinhala
+# (kasunw/whisper-large-v3-sinhala, Apache-2.0, as CTranslate2 by itsskofficial):
+# about 35% of letters wrong where large-v3 gets nearly all wrong. 3 GB, about
+# 1.5 GB of graphics memory, loaded when Jarvis switches to Sinhala. Download:
+# docs/LANGUAGES.md. If the folder isn't there, Jarvis uses [stt] model.
+stt_model = "models/whisper-si-large-v3"
 # In Sinhala the assistant is Friday (ෆ්‍රයිඩේ), with Kokoro's British woman's
 # voice Emma; in English it's Jarvis (Adhi's choice, 21 Oct, after listening).
 # Kokoro reads the Sinhala pronunciation that eSpeak makes; it was never

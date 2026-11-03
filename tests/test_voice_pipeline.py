@@ -136,6 +136,49 @@ def test_low_confidence_detection_keeps_active_language(settings):
     assert r.language == "si"
 
 
+class GuessingWhisper(FakeWhisper):
+    """detect_language with Whisper's whole list, as faster-whisper gives it."""
+
+    def __init__(self, all_probs, texts):
+        super().__init__(detected=all_probs[0], texts=texts)
+        self.all_probs = all_probs
+
+    def detect_language(self, audio):
+        self.detect_calls += 1
+        return self.all_probs[0][0], self.all_probs[0][1], self.all_probs
+
+
+def test_sinhala_heard_as_malayalam_is_sinhala_here(settings):
+    """3 Nov: Whisper small heard Sinhala as Malayalam, Hindi, Bengali..., so it was written out as English."""
+    from jarvis.voice.stt import among_ours
+    heard = [("ml", 0.41), ("si", 0.30), ("hi", 0.17), ("en", 0.04), ("ta", 0.02)]
+    assert among_ours("ml", 0.41, heard, {"en", "si", "ta"}) == ("si", 0.30 / 0.36)
+    assert among_ours("en", 0.9, heard, {"en", "si", "ta"}) == ("en", 0.9)          # one of ours: as it was
+    w = GuessingWhisper(heard, texts={"si": "සිතියම පෙන්නන්න", "en": "On Sanity"})
+    r = Transcriber(settings, LanguageManager(settings.languages, "en"), loader=lambda n: w).transcribe(AUDIO)
+    assert r.language == "si" and r.retranscribed and r.text == "සිතියම පෙන්නන්න"
+    unsure = [("ml", 0.4), ("si", 0.2), ("en", 0.15), ("ta", 0.05)]                 # si only half of ours
+    w = GuessingWhisper(unsure, texts={"si": "x", "en": "hello"})
+    r = Transcriber(settings, LanguageManager(settings.languages, "en"), loader=lambda n: w).transcribe(AUDIO)
+    assert r.language == "en"
+
+
+def test_a_language_s_own_model_is_used_when_it_is_there(settings, tmp_path, monkeypatch):
+    from jarvis.voice import stt
+    loads = []
+    w = FakeWhisper(detected=("si", 0.9), texts={"si": "ආයුබෝවන්"})
+    lm = LanguageManager(settings.languages, "si")
+    assert lm.current.stt_model == "models/whisper-si-large-v3"
+    monkeypatch.setattr(stt, "PROJECT_ROOT", tmp_path)
+    t = Transcriber(settings, lm, loader=lambda n: loads.append(n) or w)
+    t.transcribe(AUDIO)                                        # not downloaded here: Whisper small, no failed fetch
+    assert loads == [settings.get("stt.model")]
+    (tmp_path / "models" / "whisper-si-large-v3").mkdir(parents=True)
+    t = Transcriber(settings, lm, loader=lambda n: loads.append(n) or w)
+    t.prepare(lm.current)                                      # after a switch to Sinhala: loaded before it's needed
+    assert loads[-1] == str(tmp_path / "models" / "whisper-si-large-v3")
+
+
 def test_models_are_cached_per_name(settings):
     loads = []
     w = FakeWhisper(texts={"en": "hi"})

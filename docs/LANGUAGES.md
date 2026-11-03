@@ -62,7 +62,32 @@ as a fallback.
 the fine-tune at 62% WER / 15% CER, measured on only 10 samples, so treat those
 numbers as a hint, not a result. Measure it yourself (below).
 
-## Using a fine-tuned Sinhala Whisper with faster-whisper
+## Sinhala speech: a Whisper trained on Sinhala
+
+Base Whisper can't write Sinhala: on 4 Nov "small" wrote only "වවවවවව..." for
+every Sinhala question (Jarvis rightly said he couldn't make it out). In
+Sinhala, Jarvis now listens with `models/whisper-si-large-v3`: Whisper
+large-v3 fine-tuned on Sinhala (`kasunw/whisper-large-v3-sinhala`,
+Apache-2.0), converted for faster-whisper by `itsskofficial`. Its author
+measured about 35% of letters wrong on Spoken Dakshina, where large-v3 gets
+almost all wrong, so it still misses words: the model usually understands
+anyway. It's about 3 GB on disk and 1.5 GB of graphics memory, loaded when
+Jarvis switches to Sinhala. Download it once, from the Jarvis folder:
+
+```
+set HF_HOME=D:\hf-cache
+uv run python -c "from huggingface_hub import snapshot_download; snapshot_download('itsskofficial/livewhisper-si-large-v3', local_dir='models/whisper-si-large-v3')"
+```
+
+Without the folder, Jarvis says so at start and uses `[stt] model`.
+
+Whisper small also guesses Sinhala as Malayalam, Hindi or Bengali; only
+English, Sinhala and Tamil are possible for Jarvis, so such a guess is mapped
+to the likeliest of the three (`[stt] only_my_languages`), and Sinhala spoken
+in English mode switches to Friday when it's clearly Sinhala (80% of the
+three). Saying "Friday" or "සිංහලෙන් කතා කරන්න" always switches.
+
+## Using another fine-tuned Sinhala Whisper with faster-whisper
 
 faster-whisper needs models in CTranslate2 format. Convert a Hugging Face
 fine-tune once (this needs `transformers` and `torch`, only for the conversion):
