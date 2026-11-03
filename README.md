@@ -134,6 +134,11 @@ Measurements: [docs/RESULTS.md](docs/RESULTS.md).
 - **Moves with you to a new PC**: `uv run jarvis --carry-out` packs his
   memory, your notes and your trained model into one file; setup on the new
   PC offers to bring it in, and Jarvis greets you on the new computer.
+- **Take it apart with your hand**: "show me a car taken apart" (or a
+  motorcycle, or an engine) and his window shows it in 3D; open your hand to
+  take it apart, a fist to put it back, point and pinch at a part and Jarvis
+  explains it; two hands zoom, a peace sign shows the next model
+  ([how](docs/EXPLORE.md)).
 - **Double clap** (`[clap] enabled = true` or `/clap on`): clap twice and
   Jarvis says "Yes, sir?" and listens until you pause, without the key.
   Ignored while he speaks; it never confirms or cancels anything.

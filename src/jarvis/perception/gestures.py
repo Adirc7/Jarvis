@@ -103,6 +103,10 @@ class HandSeen:
     centre: tuple[float, float]        # middle of the palm (wrist and four knuckles)
     size: float                        # wrist to middle knuckle, same unit as centre
     side_score: float = 1.0            # how sure MediaPipe is of the side
+    # All 21 landmarks in pixels, and the picture's size: for the 3D explorer's hand controls
+    # (perception/hand_controls.py). Empty when made without them.
+    points: tuple[tuple[float, float], ...] = ()
+    frame: tuple[float, float] = (1.0, 1.0)
 
     @classmethod
     def from_points(cls, side: str, gesture: str, score: float, points: Sequence[Sequence[float]],
@@ -117,7 +121,8 @@ class HandSeen:
         cy = sum(points[i][1] for i in ids) / len(ids) * height
         size = math.dist((points[0][0] * width, points[0][1] * height),
                          (points[9][0] * width, points[9][1] * height))
-        return cls(side, gesture, score, (cx, cy), size, side_score)
+        pixels = tuple((float(x) * width, float(y) * height) for x, y, *_ in points)
+        return cls(side, gesture, score, (cx, cy), size, side_score, pixels, (float(width), float(height)))
 
 
 @dataclass(frozen=True)

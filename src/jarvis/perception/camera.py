@@ -117,6 +117,9 @@ class PalmCamera:
         self.fps = float(settings.get("gestures.fps", 15))
         self.error: str | None = None        # why it stopped or couldn't start, in plain words
         self.palms = 0
+        # Every result's hands, for whoever wants all of them (the 3D explorer's hand controls);
+        # called on MediaPipe's thread, so it must be quick and must not raise.
+        self.on_hands: Callable[[Sequence[HandSeen], int, int, int], None] | None = None
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         self._lock = threading.Lock()        # the trigger is used from MediaPipe's thread only, but be safe
@@ -202,6 +205,12 @@ class PalmCamera:
                 self.log("camera_close_failed", error=str(exc)[:200])
 
     def _on_hands(self, hands: Sequence[HandSeen], timestamp_ms: int, width: int, height: int) -> None:
+        listener = self.on_hands
+        if listener is not None:
+            try:
+                listener(hands, timestamp_ms, width, height)
+            except Exception as exc:  # noqa: BLE001 - runs on MediaPipe's thread; must not raise
+                self.log("camera_hands_failed", error=str(exc)[:200])
         try:
             with self._lock:
                 accepted = self.trigger.update(timestamp_ms / 1000, hands)

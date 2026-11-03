@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script defer src="/lesson.js"></script>
+<script defer src="/explore.js"></script>
 <style>
 :root { --bg:#03070d; --panel:#091522; --line:#12314a; --text:#eaf5ff; --muted:#8fa7ba; --cyan:#4de1ff;
         --amber:#ffb43b; --teal:#4ce2c4; --green:#64efb7; --red:#ff766f; --accent:var(--amber); }
@@ -37,6 +38,8 @@ main { display:grid; grid-template-columns:minmax(0,1fr) 360px; height:calc(100%
   max-width:40%; }
 #panel .bar .mode { color:var(--accent); font-size:11px; letter-spacing:2px; text-transform:uppercase; }
 #lesson { flex:1; display:flex; flex-direction:column; min-height:0; }
+#explore { flex:1; display:flex; min-height:0; }
+#explore[hidden] { display:none; }
 #lessonStage { flex:1; position:relative; min-height:240px; margin:12px 14px 0; background:var(--panel);
   border:1px solid var(--line); border-radius:12px; overflow:hidden; }
 #lessonStage .scenebox { position:absolute; inset:0; }
@@ -150,6 +153,7 @@ aside h2 { font-size:12px; font-weight:500; letter-spacing:2px; color:var(--cyan
         <button id="panelClose" type="button">Back to Jarvis</button></div>
       <iframe id="mapFrame" title="Map" hidden></iframe>
       <div id="board" hidden></div>
+      <div id="explore" hidden></div>
       <div id="lesson" hidden>
         <div id="lessonStage"></div>
         <div id="lessonFormula"></div>
@@ -258,17 +262,30 @@ function post(body) {
     headers: { "Content-Type": "application/json", "X-Jarvis-Token": TOKEN } }).catch(() => {});
 }
 function tellJarvis(kind) { post({ panel: kind }); }   // which panel shows: Jarvis offers map tools then
-const PANEL_NAMES = { map: "Map", board: "Board", lesson: "Lesson" };
+const PANEL_NAMES = { map: "Map", board: "Board", lesson: "Lesson", explore: "Explore" };
+// ---- the 3D explorer: take a model apart with your hand (explore.js) ----
+let exploreApi = null, exploreToken = 0;
+function stopExplore() { exploreToken++; if (exploreApi) { exploreApi.stop(); exploreApi = null; } }
+function startExplore(e) {
+  openPanel("explore"); stopExplore();
+  const mine = ++exploreToken;
+  if (!window.JarvisExplore || !e.model) return;
+  JarvisExplore.open($("explore"), e.model, { groups: e.groups, models: e.models, post })
+    .then(api => { if (mine === exploreToken) exploreApi = api; else api.stop(); })
+    .catch(err => { $("explore").textContent = "The 3D view couldn't start: " + err.message; });
+}
 function openPanel(kind) {
   if (panel === "lesson" && kind !== "lesson") leaveLesson();
   panel = kind; $("panel").hidden = false; $("panelName").textContent = PANEL_NAMES[kind] || "";
   $("mapFrame").hidden = kind !== "map"; $("board").hidden = kind !== "board"; $("mapOwn").hidden = kind !== "map";
   $("lesson").hidden = kind !== "lesson"; $("lessonCtl").hidden = kind !== "lesson";
+  $("explore").hidden = kind !== "explore"; if (kind !== "explore") stopExplore();
   if (kind !== "lesson") { $("lessonTitle").textContent = ""; $("lessonMode").textContent = ""; }
   tellJarvis(kind);
 }
 function closePanel() {
   if (panel === "lesson") leaveLesson();
+  stopExplore();
   panel = ""; $("panel").hidden = true; $("mapFrame").src = "about:blank"; tellJarvis("");
 }
 function showMap(url) {
@@ -563,6 +580,10 @@ function onEvent(e) {
   else if (e.kind === "lesson") startLesson(e, 0, true);
   else if (e.kind === "lesson_step") lessonStep(e);
   else if (e.kind === "lesson_patch" && e.id === lessonId && window.JarvisLesson) JarvisLesson.patch(e.step, e.code);
+  else if (e.kind === "explore") startExplore(e);
+  else if (e.kind === "explore_hand") { if (exploreApi && panel === "explore") exploreApi.hands(e); }
+  else if (e.kind === "explore_cmd") { if (exploreApi) exploreApi.command(e); }
+  else if (e.kind === "explore_close") { if (panel === "explore") closePanel(); }
   else if (e.kind === "state") showState(e.state);
   else if (e.kind === "you") { $("capYou").textContent = e.text; addTalk("You", e.text); }
   else if (e.kind === "jarvis") { withMaths($("capJarvis"), e.text); addTalk(e.speaker || "Jarvis", e.text); }

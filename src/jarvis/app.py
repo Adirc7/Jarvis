@@ -52,6 +52,7 @@ from .greeting import FULL, Greeter, Presence, fill, greeting_kind
 from .killswitch import HotkeyListener, Once
 from .language import LanguageManager, normalize, stray_letters
 from .lesson_mode import GROUP_NOTE as LESSON_NOTE
+from .explore_mode import ExploreMode
 from .lesson_mode import LESSON_SPEC, OFFER_NOTE, LessonMode
 from .memory import Memory, detect_fact, detect_name
 from .persona import Persona
@@ -261,7 +262,7 @@ class ToolSaid:
     text: str
 
 
-class App(LessonMode):
+class App(LessonMode, ExploreMode):
     def __init__(
         self,
         settings: Settings,
@@ -370,6 +371,8 @@ class App(LessonMode):
         self._hotkeys: HotkeyListener | None = None
         self._ptt = None
         self._clap = None                      # the double clap listener, when [clap] is on (D29)
+        self._explore = None                   # the 3D explorer, while it's open (explore_mode.py)
+        self._explore_hands = None
         self._stt_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="stt")
         # How you sound (perception/emotion.py), beside Whisper on the same audio; off until enabled.
         from .perception.emotion import EmotionEars
@@ -711,6 +714,10 @@ class App(LessonMode):
         lesson_reply = await self._lesson_turn(text, turn, token)
         if lesson_reply is not None:
             return lesson_reply
+        # "Show me a car taken apart", and while the 3D explorer is open: "put it back", "the gearbox?"
+        explore_reply = await self._explore_turn(text, source, turn, token)
+        if explore_reply is not None:
+            return explore_reply
 
         if self.web is not None:
             # Bing and YouTube by voice: decided by fixed rules, before the model.
@@ -1079,10 +1086,14 @@ class App(LessonMode):
         """From the window's page (on its server's thread): which panel it shows (the map, the board,
         a lesson, or none), a lesson button, or a lesson's sketch that failed to run."""
         panel = event.get("panel")
-        if panel in ("map", "board", "lesson", ""):
+        if panel in ("map", "board", "lesson", "explore", ""):
             self.panel = panel
             if panel != "lesson":
                 self._on_loop(self._pause_lesson, "panel")      # the lesson went out of sight: it waits
+            if panel != "explore" and self._explore is not None:
+                self._on_loop(self._explore_close)              # back to Jarvis: the camera goes off too
+        elif "explore" in event:
+            self._on_loop(self._explore_ui, event)
         elif "lesson" in event or "sketch_error" in event:
             self._on_loop(self._lesson_button, event)
 
@@ -1612,8 +1623,8 @@ class App(LessonMode):
     # ---- palm to pause (D29) ---------------------------------------------------
     def _on_gesture(self, ev: GestureEvent) -> None:
         """An accepted open palm: "hold on". It only stops or pauses; it never confirms anything."""
-        if ev.name != "open_palm":
-            return
+        if ev.name != "open_palm" or self._explore is not None:
+            return                                     # the 3D explorer owns the hand while it's open
         if self.sink.busy or self.state.mode == Mode.THINKING:
             # Like barge-in, not the kill switch: the reply stops and isn't
             # saved, and Jarvis stays ready for the next request.
@@ -1939,6 +1950,14 @@ class App(LessonMode):
             self._standin_command(arg.strip().lower())
         elif cmd == "/clap":
             self._clap_command(arg.strip().lower())
+        elif cmd == "/explore":
+            from .knowledge.explore_models import MODELS, model_for
+            word = arg.strip().lower()
+            if word in ("off", "close"):
+                self._explore_close()
+            else:
+                key = model_for(word or "car") or (word if word in MODELS else "sports_car")
+                self.out("Jarvis: " + self._explore_open(key))
         elif cmd == "/name":
             if arg.strip():
                 self.memory.set_name(arg.strip())

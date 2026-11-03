@@ -39,7 +39,9 @@ from urllib.parse import urlsplit
 PAGE = Path(__file__).with_name("index.html")
 ICON = Path(__file__).with_name("jarvis.ico")
 LESSON_JS = Path(__file__).with_name("lesson.js")
+EXPLORE_JS = Path(__file__).with_name("explore.js")
 LESSON_ACTIONS = ("next", "prev", "again", "play", "pause", "restart", "goto")
+EXPLORE_ACTIONS = ("pick", "model", "next", "close")
 
 
 def open_page(url: str, browser: str = "edge") -> None:
@@ -86,6 +88,11 @@ def _ui_event(body: Any) -> dict:
         if action == "goto":
             return {"lesson": action, "step": int(body.get("step", 0))}
         return {"lesson": action}
+    if "explore" in body:
+        action = str(body["explore"])
+        if action not in EXPLORE_ACTIONS:
+            raise ValueError("unknown explorer action")
+        return {"explore": action, "part": str(body.get("part", ""))[:40], "model": str(body.get("model", ""))[:40]}
     if "sketch_error" in body:
         return {"sketch_error": str(body["sketch_error"])[:300], "step": int(body.get("step", 0))}
     raise KeyError("panel")
@@ -201,6 +208,8 @@ class LiveView:
                         self._send(404, b"no such figure", "text/plain")
                 elif path == "/lesson.js":
                     self._send(200, LESSON_JS.read_bytes(), "text/javascript; charset=utf-8")
+                elif path == "/explore.js":
+                    self._send(200, EXPLORE_JS.read_bytes(), "text/javascript; charset=utf-8")
                 elif path == "/events":
                     self._events()
                 else:

@@ -1718,3 +1718,24 @@ a noise burst or low thumps (the desk tap), not while speaking, the rest
 after a pair; and in Jarvis, clap to answer. `scripts/clap_test.py` prints
 each sound's loudness and high share on the laptop's microphone, to choose
 `min_high_share` from his own claps and taps.
+
+## 2026-11-03: The 3D explorer: take it apart with your hand
+
+Adhi's idea (a webcam app where you explode a car with your hand): Jarvis's
+window shows a sports car (26 parts), a motorcycle (17) or a four-cylinder
+engine (14), built from shapes, our own. Open hand: apart (the fingertips'
+distance from the wrist, in hand sizes, mapped 1.15-1.9 to 0-1); fist:
+together; moving or twisting the open hand turns it, raising tilts it; point
+and pinch picks a part and Jarvis explains it from its description; two
+hands zoom; a peace sign held 0.6 s is the next model. Voice and mouse do the
+same. The camera's hand results now keep all 21 points, and the camera
+passes every result to whoever asks (`on_hands`). While the explorer is open
+it owns the hand: an open palm doesn't stop Jarvis.
+
+Found in the browser check: a fist's thumb rests on the index finger, so it
+counted as a pinch and the model never came back together; a pinch now needs
+the index reaching out (more than 1.25 hand sizes from the wrist). Apart, the
+car didn't fit the view: the camera now steps back as it comes apart.
+Checked in headless Chromium with made-up hands: an open hand takes the car
+to 98% apart, a fist back to 0%, pointing finds the cylinder head and a
+pinch picks it and tells Jarvis; no page errors. `docs/EXPLORE.md`.
