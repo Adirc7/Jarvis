@@ -690,10 +690,14 @@ def view_facts(data: dict) -> list[tuple[float, str, str]]:
     return [f for f in out if isinstance(f[0], int | float) and math.isfinite(f[0])]
 
 
-def cross_check(problem: Problem, rel: float = 0.01) -> None:
+CROSS_CHECK_TOLERANCE = 0.01       # an answer within 1% of the animation's own number matches it
+
+
+def cross_check(problem: Problem, rel: float = CROSS_CHECK_TOLERANCE) -> None:
     """Each part's answer against the views its steps show: it agrees when the animation worked out the same
     number itself; it doesn't when the animation has numbers of the same kind and none is this one."""
     from .dimensions import dims
+    from .problems import marks
     for part in problem.parts:
         ans = problem.answer_of(part)
         value = ans.get("value") if ans else None
@@ -707,11 +711,11 @@ def cross_check(problem: Problem, rel: float = 0.01) -> None:
         close = [f for f in same if abs(f[0] - value) <= max(abs(value) * rel, 1e-12)]
         hit = min(close, key=lambda f: abs(f[0] - value)) if close else None
         if hit is not None:
-            ans["view_check"] = {"ok": True, "said": f"the animation agrees: {hit[2]}"}
+            ans["view_check"] = {"ok": True, "said": marks("view_agrees", problem.lang, label=hit[2])}
         elif same:
             near = min(same, key=lambda f: abs(f[0] - value))
-            ans["view_check"] = {"ok": False, "said": f"the animation shows {show_number(near[0])} {near[1]} for "
-                                                     f"{near[2]}, not {ans.get('shown')}"}
+            ans["view_check"] = {"ok": False, "said": marks("view_differs", problem.lang, value=show_number(near[0]),
+                                                            unit=near[1], label=near[2], answer=ans.get("shown"))}
             problem.notes.append(f"({part.id}) the answer {ans.get('shown')} {unit} isn't what the animation works out "
                                  f"({show_number(near[0])} {near[1]}, {near[2]}): the view or the steps are set up wrong")
 

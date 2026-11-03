@@ -217,7 +217,7 @@ async def test_singlish_and_sinhala_drive_the_problem_too(settings):
     assert "So part c is 33.33" in await app.handle_text("mulu uththaraya pennanna")
     assert (await app.handle_text("kalin eka")).startswith("The time to stop is")
     # Sinhala script: Friday takes over, and the lines are Sinhala
-    assert (await app.handle_text("ඊළඟ පියවර")).endswith("ඉතින් c කොටසේ උත්තරය 33.33 metres.")
+    assert (await app.handle_text("ඊළඟ පියවර")).endswith("ඉතින් c කොටසේ උත්තරය 33.33 මීටර්.")
     assert app.lang.current.code == "si"
     assert (await app.handle_text("b කොටස")).startswith("b කොටස: the distance while accelerating.")
     assert "Split the motion into phases" in await app.handle_text("සාරාංශය කියන්න")
@@ -232,13 +232,20 @@ async def test_the_conversation_column_and_the_map_layer_by_voice(settings):
     assert kinds(events, "wide")[-1] == {"on": False}
     asked = []
     from types import SimpleNamespace as NS
-    app.info = NS(call=lambda name, args: asked.append((name, json.loads(args))) or NS(result=NS(summary="Showing the wind.")),
-                  names=lambda: set(), board=None)
+
+    def call(name, args):                  # the gate's Outcome, as InfoTools.call gives it
+        layer = json.loads(args)["layer"]
+        asked.append((name, json.loads(args)))
+        return NS(text=f"Showing the {layer}.", status="done",
+                  result=NS(summary=f"Showing the {layer}.", data={"say": ("map_layer", {"layer": layer})}))
+    app.info = NS(call=call, names=lambda: set(), board=None)
     app.panel = "map"
     assert await app.handle_text("sulanga pennanna") == "Showing the wind."
     assert asked[-1] == ("map_view", {"action": "layer", "layer": "wind"})
-    assert await app.handle_text("වලාකුළු පෙන්නන්න") == "Showing the wind."    # the stand-in's words
+    # In Sinhala script Friday answers, in Sinhala, with the layer's Sinhala name
+    assert await app.handle_text("වලාකුළු පෙන්නන්න") == "සිතියමේ වලාකුළු පෙන්නනවා."
     assert asked[-1][1]["layer"] == "clouds"
+    assert await app.handle_text("කතාබහ හංගන්න") == "කතාබහ හැංගුවා."
 
 
 # ---- the views of modern physics, quantum computing, linear algebra, statistics ------------------------------

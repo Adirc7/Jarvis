@@ -57,6 +57,7 @@ from .lesson_mode import LESSON_SPEC, OFFER_NOTE, LessonMode
 from .problem_mode import HAS_NUMBER, NOT_HERE, SOLVE_NOTE, SOLVE_SPEC, SOLVE_WORDS, ProblemMode
 from .memory import Memory, detect_fact, detect_name
 from .persona import Persona
+from .said import said
 from .state import CancelToken, Mode, SharedState
 from .telemetry import Telemetry, Turn
 from .tools.desk_phrases import words_for
@@ -136,9 +137,11 @@ CLOSE_PANEL = re.compile(
     r"\b(close|leave|exit|hide|get out of|go back|back to jarvis)\b|වහන්න|අයින් කරන්න", re.IGNORECASE)
 # The window's Conversation column, hidden for a bigger map or model, and shown again: by voice too
 HIDE_TALK = re.compile(r"\b(?:hide|close) (?:the )?(?:conversation|chat)\b|\b(?:conversation|chat) eka (?:hide karanna|"
-                       r"wahanna|ain karanna)\b|සංවාදය (?:වහන්න|හංගන්න)|conversation එක (?:හංගන්න|වහන්න)", re.IGNORECASE)
+                       r"wahanna|ain karanna)\b|\bkatha ?baha (?:hide karanna|hanganna|wahanna)\b|(?:සංවාදය|කතාබහ) (?:වහන්න|හංගන්න)|"
+                       r"conversation එක (?:හංගන්න|වහන්න)", re.IGNORECASE)
 SHOW_TALK = re.compile(r"\bshow (?:the )?(?:conversation|chat)\b|\b(?:conversation|chat) eka (?:aye |ayeth )?pennanna\b|"
-                       r"සංවාදය පෙන්නන්න|conversation එක පෙන්නන්න", re.IGNORECASE)
+                       r"\bkatha ?baha (?:aye |ayeth )?pennanna\b|(?:සංවාදය|කතාබහ) (?:ආයෙ |ආයෙත් )?පෙන්නන්න|conversation එක පෙන්නන්න",
+                       re.IGNORECASE)
 # A world weather map layer, by voice, while the map is open: "show the wind", "sulanga pennanna"
 MAP_LAYERS = {"temperature": r"temperature|heat|ushnathwaya|උෂ්ණත්ව", "clouds": r"cloud|walakulu|වලාකුළු",
               "rain": r"\brain|wahi|wessa|වැස්ස|වැසි", "wind": r"\bwind|sulan|sulanga|සුළඟ|සුළං",
@@ -208,19 +211,20 @@ MATLAB_ACTION = re.compile(r"\b(?:solve|plot|graph|draw|run|simulat\w*|comput\w*
 MATLAB_RUN_IT = re.compile(r"\b(?:run|execute|re-?run|again)\b|\b(?:plot|graph|draw|show)\s+(?:it|that|this|"
                            r"the (?:plot|graph|figure|result|output|code))\b", re.IGNORECASE)
 MATLAB_FIXED = {"en": "That had an error, so I've fixed the code on the board. Click Run again.",
-                "si": "ඒකේ error එකක් තිබුණා, කෝඩ් එක හදලා බෝඩ් එකේ දැම්මා. ආයෙත් Run ඔබන්න.",
+                "si": "ඒකේ එරර් එකක් තිබුණා, කෝඩ් එක හදලා බෝඩ් එකේ දැම්මා. ආයෙත් රන් බොත්තම ඔබන්න.",
                 "ta": "அதில் பிழை இருந்தது, குறியீட்டைச் சரிசெய்து பலகையில் வைத்தேன். மீண்டும் Run அழுத்துங்கள்."}
 MATLAB_RECENT_S = 10 * 60      # "run it again", "and with less damping?": still about the MATLAB job this long
 MATLAB_ASK = {"en": "The code's on the board. Click Run if it looks right.",
-              "si": "කෝඩ් එක බෝඩ් එකේ තියෙනවා. හරි නම් Run ඔබන්න.",
+              "si": "කෝඩ් එක බෝඩ් එකේ තියෙනවා. හරි නම් රන් බොත්තම ඔබන්න.",
               "ta": "குறியீடு பலகையில் உள்ளது. சரியாக இருந்தால் Run அழுத்துங்கள்."}
 RECENT_INFO_S = 15 * 60       # follow-ups ("tell me more about the second one") see the last fetch this long
 TIMER_DONE = {"en": "Time's up{label}, {address}.", "si": "වෙලාව හරි{label}.", "ta": "நேரம் முடிந்தது{label}."}
 DESK_WORDS = re.compile(
     r"\bopen\b|launch|start|volume|louder|quieter|mute|sound|screenshot|screen ?shot|timer|remind|minutes|"
     r"\bnote\b|write down|delete|remove|undo|sadde|wadi|adu|ටයිමර්|සද්ද|ශබ්ද|නෝට්|ඕපන්", re.IGNORECASE)
-LLM_UNAVAILABLE = "I can't reach any language model right now. Check the internet connection or start Ollama."
-REPLY_BROKE_OFF = "Sorry, the connection dropped in the middle of my answer. Please ask again."
+# In English; said in the language of the turn (said.py).
+LLM_UNAVAILABLE = said("llm_unavailable", "en")
+REPLY_BROKE_OFF = said("reply_broke_off", "en")
 
 
 _TABLE_RULE = re.compile(r"^\s*\|?\s*:?-{2,}:?\s*(?:\|\s*:?-{2,}:?\s*)+\|?\s*$")
@@ -359,7 +363,8 @@ class App(LessonMode, ExploreMode, ProblemMode):
         elif settings.get("tools.knowledge", True):
             self.info = InfoTools(settings.get("tools.jarvis_folder", "~/Documents/Jarvis"),
                                   ActionLog(settings.path("general.log_dir", "logs")), opener=self._open_map,
-                                  screen=self._screen)
+                                  screen=self._screen,
+                                  world_cache_minutes=float(settings.get("tools.world_weather_minutes", 60)))
         else:
             self.info = None
         # MATLAB or Octave (tools/matlab.py): the model's code runs after a click; the figures go on the board.
@@ -535,12 +540,12 @@ class App(LessonMode, ExploreMode, ProblemMode):
         return before
 
     async def _say_new_pc(self, before) -> None:
-        lang = self.lang.languages.get("en", self.lang.current)
-        where = (f"the {self.pc.gpu} runs my ears and voice" if self.pc.gpu else
-                 "no NVIDIA graphics card here, so I'll listen on the processor, a little slower")
-        memory = " Your memory came along." if (self.memory.name or self.memory.facts) else ""
-        await self.sink.say(f"New computer, {self.persona.address}: {self.pc.name}, moved from {before.name}; "
-                            f"{where}.{memory}", lang, self.state.token())
+        lang = self.lang.current
+        where = (said("new_computer_gpu", lang.code, gpu=self.pc.gpu) if self.pc.gpu else
+                 said("new_computer_cpu", lang.code))
+        memory = said("new_computer_memory", lang.code) if (self.memory.name or self.memory.facts) else ""
+        await self.sink.say(said("new_computer", lang.code, address=self.persona.address, name=self.pc.name,
+                                 before=before.name, where=where, memory=memory), lang, self.state.token())
 
     # ---- empathy mode ---------------------------------------------------
     def _apply_empathy_voice(self) -> None:
@@ -753,14 +758,15 @@ class App(LessonMode, ExploreMode, ProblemMode):
         if self.view is not None and short <= 8 and (HIDE_TALK.search(normalize(text)) or SHOW_TALK.search(normalize(text))):
             wide = bool(HIDE_TALK.search(normalize(text)))
             self._show("wide", on=wide)
-            said = "Hid the conversation." if wide else "Here's the conversation again."
-            return await self._tool_reply(text, ToolSaid("window_wide", said), turn, token)
+            line = said("hid_talk" if wide else "show_talk", self.lang.current.code)
+            return await self._tool_reply(text, ToolSaid("window_wide", line), turn, token)
         if self.panel == "map" and self.info is not None and short <= 5:
             layer = next((k for k, rx in MAP_LAYER_RX.items() if rx.search(normalize(text))), None)
             if layer is not None:
                 out = await asyncio.get_running_loop().run_in_executor(
                     None, lambda: self.info.call("map_view", json.dumps({"action": "layer", "layer": layer})))
-                return await self._tool_reply(text, ToolSaid("map_layer", out.result.summary), turn, token)
+                return await self._tool_reply(text, ToolSaid("map_layer", words_for(out, self.lang.current.code)),
+                                              turn, token)
         if self.panel and CLOSE_PANEL.search(text) and len(normalize(text).split()) <= 8:
             # "Leave the map", "back to Jarvis": the map or board in the window closes,
             # instead of the web tools' "go back" (30 Oct: "There's no page to go back to").
@@ -821,16 +827,18 @@ class App(LessonMode, ExploreMode, ProblemMode):
             backup = await self._standin_answer(text)
             if backup is not None:
                 return await self._standin_reply(backup, "unreachable", text, lang, token, turn, decision.route)
-            await self.sink.say(LLM_UNAVAILABLE, self.lang.languages.get("en", lang), token)
+            line = said("llm_unavailable", lang.code)
+            await self.sink.say(line, lang, token)
             turn.finish(kind="llm_unavailable", failures=exc.failures, route=decision.route)
-            return LLM_UNAVAILABLE
+            return line
         except Exception as exc:             # the provider dropped after the reply had started
             self.telemetry.log("llm_error", error=f"{type(exc).__name__}: {exc}"[:300],
                                provider=self.llm.last_provider)
             self.out(f"\n[the reply broke off: {type(exc).__name__}]")
-            await self.sink.say(REPLY_BROKE_OFF, self.lang.languages.get("en", lang), token)
+            line = said("reply_broke_off", lang.code)
+            await self.sink.say(line, lang, token)
             turn.finish(kind="llm_error", route=decision.route)
-            return REPLY_BROKE_OFF
+            return line
         finally:
             if self.state.mode in (Mode.THINKING, Mode.SPEAKING):
                 self.state.mode = Mode.IDLE
@@ -865,13 +873,13 @@ class App(LessonMode, ExploreMode, ProblemMode):
 
     def _prepare_standin(self) -> None:
         try:
-            said = self.standin.prepare()
+            ready = self.standin.prepare()
         except Exception as exc:  # noqa: BLE001 - no stand-in is no reason not to talk
             self.out(f"[stand-in] couldn't load ({type(exc).__name__}: {str(exc)[:120]}); carrying on without it.")
             self.standin = None
             return
         if self.standin.lookup is not None and (self.standin.lookup.pairs or self.standin.save):
-            self.out(f"Stand-in ready: {said}." + (f" ({self.standin.problem})" if self.standin.problem else ""))
+            self.out(f"Stand-in ready: {ready}." + (f" ({self.standin.problem})" if self.standin.problem else ""))
 
     def _standin_ready(self) -> bool:
         return (self.standin is not None and self.standin.lookup is not None
@@ -921,20 +929,19 @@ class App(LessonMode, ExploreMode, ProblemMode):
     async def _standin_reply(self, reply, why: str, question: str, lang, token: CancelToken, turn: Turn,
                              route: str) -> str:
         """Say the stand-in's answer, and that it is one: never passed off as the language model's."""
-        source = "my own small model" if reply.how == "student" else "what I said before"
-        lead = (f"The connection's slow, so this is from {source}." if why == "slow"
-                else f"I can't reach the language models, so this is from {source}.")
+        source = said("source_student" if reply.how == "student" else "source_saved", lang.code)
+        lead = said("standin_slow" if why == "slow" else "standin_unreachable", lang.code, source=source)
         self.state.mode = Mode.SPEAKING
         try:
-            await self.sink.say(lead, self.lang.languages.get("en", lang), token)
+            await self.sink.say(lead, lang, token)
 
             async def once():
                 yield reply.text
-            said = await self.sink.stream(once(), lang, token, turn)
+            spoken = await self.sink.stream(once(), lang, token, turn)
         finally:
             if self.state.mode in (Mode.THINKING, Mode.SPEAKING):
                 self.state.mode = Mode.IDLE
-        text = f"{lead} {said or reply.text}"
+        text = f"{lead} {spoken or reply.text}"
         if not token.cancelled:
             self.history += [{"role": "user", "content": question}, {"role": "assistant", "content": text}]
         self.telemetry.log("standin_answer", how=reply.how, why=why, score=round(reply.score, 3))
@@ -1052,13 +1059,13 @@ class App(LessonMode, ExploreMode, ProblemMode):
                 specs = [sp for sp in specs if sp["function"]["name"] not in dropped]
                 groups -= {"maths", "visual", "problem"}
         if groups:
-            said = {**GROUP_NOTES, "visual": LESSON_NOTE, "problem": SOLVE_NOTE,
+            group_notes = {**GROUP_NOTES, "visual": LESSON_NOTE, "problem": SOLVE_NOTE,
                     "matlab": (f"run_matlab to write and run MATLAB code ({self.matlab.engine.name if self.matlab else ''})"
                                " for MATLAB, numerical solutions and simulations; the user clicks to approve each "
                                "run, and the code, output and figures show on the board. Never say you ran or "
                                "plotted something unless run_matlab did it, and never read code aloud: it goes "
                                "in run_matlab")}
-            notes += ("\n\nKnowledge tools this turn: " + "; ".join(said[g] for g in sorted(groups))
+            notes += ("\n\nKnowledge tools this turn: " + "; ".join(group_notes[g] for g in sorted(groups))
                       + ". Several at once is fine.")
         return notes, specs, groups
 
@@ -1104,7 +1111,8 @@ class App(LessonMode, ExploreMode, ProblemMode):
         self._pause_lesson("closed")
         self._show("panel", action="close")
         self.panel = ""
-        return await self._tool_reply(text, ToolSaid(f"panel_close_{what}", f"Closed the {what}."), turn, token)
+        line = said(f"closed_{what}", self.lang.current.code)
+        return await self._tool_reply(text, ToolSaid(f"panel_close_{what}", line), turn, token)
 
     def _screen(self, kind: str, data: dict) -> bool:
         """For the tools (tools/info.py): show the board, or move the map, in the window.
@@ -1227,7 +1235,7 @@ class App(LessonMode, ExploreMode, ProblemMode):
                 self._show("action", tool=call.name, status=outcome.status, text=outcome.text)
             elif call.name == "go_back" and self.panel:     # "go back" with the map open: close the map
                 self._show("panel", action="close")
-                result, self.panel = ToolSaid("panel_close", "Closed it."), ""
+                result, self.panel = ToolSaid("panel_close", said("closed_it", lang.code)), ""
             elif self.web is not None:
                 result = await loop.run_in_executor(None, self.web.call, call.name, call.arguments, lang.code,
                                                     self.persona.address)
@@ -1377,9 +1385,10 @@ class App(LessonMode, ExploreMode, ProblemMode):
             reply = await self.sink.stream(self.llm.stream_text(messages, token=token, route=route, lang=lang.code,
                                                                 avoid=avoid), lang, token, turn)
         except LLMUnavailable as exc:
-            await self.sink.say(LLM_UNAVAILABLE, self.lang.languages.get("en", lang), token)
+            line = said("llm_unavailable", lang.code)
+            await self.sink.say(line, lang, token)
             turn.finish(kind="llm_unavailable", failures=exc.failures, route=route)
-            return LLM_UNAVAILABLE
+            return line
         finally:
             if self.state.mode in (Mode.THINKING, Mode.SPEAKING):
                 self.state.mode = Mode.IDLE

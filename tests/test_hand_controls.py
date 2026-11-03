@@ -221,5 +221,11 @@ async def test_the_explorer_in_singlish_and_sinhala(settings):
     assert await app.handle_text("ekathu karanna") == "Putting it back together."
     assert await app.handle_text("galawanna") == "Taking it apart."
     app._explore_close()
-    await app.handle_text("ත්‍රීවීල් එකක් ගලවලා පෙන්නන්න")
+    reply = await app.handle_text("ත්‍රීවීල් එකක් ගලවලා පෙන්නන්න")
     assert app._explore["model"] == "three_wheeler"
+    # Sinhala script: Friday answers, and her lines are Sinhala, not English (said.py)
+    assert app.lang.current.code == "si" and reply.startswith("ඔන්න three-wheeler (tuk-tuk) එක, ඇතුළත")
+    assert "Open your hand" not in reply and "අත හෙමින්" in reply
+    assert await app.handle_text("එකතු කරන්න") == "ආයෙත් එකතු කරනවා."
+    assert await app.handle_text("ගලවන්න") == "ගලවලා පෙන්නනවා."
+    assert await app.handle_text("3d එක වහන්න") == "ත්‍රීඩී මොඩල් එක වැහුවා."

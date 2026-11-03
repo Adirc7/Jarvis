@@ -19,6 +19,11 @@ Jarvis's window (or drop the file on the window, or paste a screenshot).
 | **Summary** / "summary" | the method in a few points |
 | "why do we square it?" | the model answers about the step on screen |
 
+The card, the marks and the spoken units follow the language the problem was
+asked in (ask Friday in Sinhala and it's all Sinhala). How close an answer must
+be (2%), how far practice numbers move (0.6 to 1.5 times) and how many plans
+are kept are `[problems]` in `config/settings.toml`.
+
 A photo is read by Gemini (the "vision" route in `config/settings.toml`); a
 PDF's text by pypdf (a scanned PDF needs a photo or screenshot instead). A
 sheet with several questions: pick one in the window.

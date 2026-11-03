@@ -97,3 +97,26 @@ handles that poorly in either mode. An option to try in Phase 1: Whisper's
 `task="translate"`, which turns any language into English text. Jarvis
 understands the request in English, and the LLM still replies in the active
 language.
+
+## Jarvis's own words in each language
+
+The model answers in the active language by itself; the lines Jarvis says
+without it are written out in each language (English, Friday's spoken
+Sinhala, Tamil), and a language with no line of its own gets the English one:
+
+| Lines | Where |
+|---|---|
+| greetings, switching, "I couldn't make that out", fillers | `config/languages.toml` |
+| the window, closed panels, the 3D explorer, a new computer, the models out of reach, the stand-in | `src/jarvis/said.py` |
+| the PC and knowledge tools, the map's layers | `src/jarvis/tools/desk_phrases.py` |
+| Bing and YouTube | `src/jarvis/tools/web.py` |
+| lessons | `src/jarvis/lesson_mode.py` (`WORDS`) |
+| worked problems: spoken lines, units, powers of ten | `src/jarvis/problem_mode.py` (`WORDS`, `UNIT_WORDS`, `POWERS`) |
+| worked problems: the marks and the animation's check | `src/jarvis/knowledge/problems.py` (`MARKS`) |
+| the worked problem's card in the window | `src/jarvis/ui/problem.js` (`WORDS`) |
+
+English words in a Sinhala line are written in Sinhala letters ("වින්ඩෝ එක",
+"ලේයර් එක"), as the voice reads Sinhala script. `tests/test_said.py` checks
+every line has an English one and that each translation fills in the same
+values. To add a language, add its lines next to the others (a missing one
+falls back to English, so nothing breaks while you do).

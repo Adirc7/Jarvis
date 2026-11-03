@@ -19,6 +19,7 @@ from typing import Any
 
 from .knowledge.explore_models import GROUPS, MODELS, ORDER, find_part, model_for
 from .language import normalize
+from .said import is_said, said
 
 OPEN_WORDS = re.compile(
     r"\b(apart|explod\w*|disassembl\w*|dismantl\w*|inside (?:of )?(?:a|an|the)\b|parts of|parts in|3d (?:model|view)|"
@@ -58,7 +59,7 @@ class ExploreMode:
         model = MODELS[ex["model"]]
         if CLOSE.search(t):
             self._explore_close()
-            return await self._explore_say("Closed the 3D view.", turn, token, "close")
+            return await self._explore_say(said("explore_closed", self.lang.current.code), turn, token, "close")
         if NEXT.search(t):
             return await self._explore_say(self._explore_open(_next(ex["model"])), turn, token, "next")
         named = model_for(t)
@@ -75,10 +76,12 @@ class ExploreMode:
             return ""
         if ASSEMBLE.search(t):
             self._show("explore_cmd", action="assemble")
-            return await self._explore_say("Putting it back together.", turn, token, "assemble")
+            return await self._explore_say(said("explore_assemble", self.lang.current.code), turn, token,
+                                           "assemble")
         if EXPLODE.search(t):
             self._show("explore_cmd", action="explode")
-            return await self._explore_say("Taking it apart.", turn, token, "explode")
+            return await self._explore_say(said("explore_explode", self.lang.current.code), turn, token,
+                                           "explode")
         return None
 
     def _explore_note(self) -> str:
@@ -120,12 +123,11 @@ class ExploreMode:
         self.panel = "explore"
         self._show("explore", model=model, groups=GROUPS, models=[[k, MODELS[k]["title"]] for k in ORDER])
         self.telemetry.log("explore", model=key, camera=camera_on)
-        how = ("Open your hand slowly to take it apart, make a fist to put it back, and point and pinch to pick "
-               "a part." if camera_on else
-               "The camera isn't on, so drag to turn it, use Take apart, and click a part.")
+        code = self.lang.current.code
+        how = said("explore_hands" if camera_on else "explore_mouse", code)
         like = model.get("like", "").split(",")[0].strip()
-        inside = f", built inside like a {like}" if like and not like.startswith(("a ", "most ")) else ""
-        return f"Here's the {model['title'].lower()}{inside}. {how}"
+        inside = said("explore_inside", code, like=like) if like and not like.startswith(("a ", "most ")) else ""
+        return f"{said('explore_here', code, title=model['title'].lower(), inside=inside)} {how}"
 
     def _explore_close(self) -> None:
         ex, self._explore = self._explore, None
@@ -189,7 +191,9 @@ class ExploreMode:
         turn = self.telemetry.turn(source="explorer")
         async with self._turn_lock:
             reply = await self._handle_text(question, "explorer", turn, token)
-        if not reply or reply.startswith("I can't reach"):
+        code = self.lang.current.code
+        standin = tuple(said("standin_unreachable", code, source=said(k, code)) for k in ("source_student", "source_saved"))
+        if not reply or is_said(reply, "llm_unavailable") or reply.startswith(standin):
             reply = part["desc"]                         # no model to ask: the part's own description
             await self.sink.say(reply, self.lang.current, token)
         if not token.cancelled:

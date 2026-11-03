@@ -10,6 +10,33 @@ window.JarvisProblem = (function () {
   const C = { bg: "#03070d", panel: "#091522", line: "#12314a", text: "#eaf5ff", muted: "#8fa7ba", cyan: "#4de1ff",
     amber: "#ffb43b", teal: "#4ce2c4", green: "#64efb7", red: "#ff766f", violet: "#b48cff", pink: "#ff7eb6" };
   const PHASE = [C.cyan, C.green, C.amber, C.violet, C.pink, C.teal];
+  // The card's own words, in the language the problem was asked in (data.lang); the problem's text is the model's.
+  const WORDS = {
+    en: { practice: " · practice", hint: "Hint", step: "Next step", back: "Back", solution: "Full solution",
+      hintLead: "Hint: ", unitsOff: "⚠ the units don't come out right: check the set-up", notChecked: "not checked",
+      notCheckedLead: "not checked: ", check: "Check my answer", answer: "Your answer", inUnit: " in ",
+      summary: "Summary", newNumbers: "Practice: new numbers", method: "The method", ideas: "Ideas: ",
+      sympy: "Every number here was worked out by SymPy; the animations are tested drawings.", units: "✓ units",
+      unitsBad: "⚠ units: check the set-up", choose: "Choose a part: start with a hint, or the next step",
+      chooseRight: "Choose a part on the right to start.", hide: "Hide panel ›", show: "‹ Panel",
+      noView: "This view can't be drawn." },
+    si: { practice: " · පුහුණුව", hint: "ඉඟියක්", step: "ඊළඟ පියවර", back: "ආපසු", solution: "සම්පූර්ණ විසඳුම",
+      hintLead: "ඉඟිය: ", unitsOff: "⚠ ඒකක හරියට එන්නේ නෑ: ගණන සකස් කරපු විදිය බලන්න", notChecked: "චෙක් කළේ නෑ",
+      notCheckedLead: "චෙක් කළේ නෑ: ", check: "මගේ උත්තරේ බලන්න", answer: "ඔයාගේ උත්තරේ", inUnit: ", ඒකකය ",
+      summary: "සාරාංශය", newNumbers: "පුහුණුව: අලුත් ඉලක්කම්", method: "ක්‍රමය", ideas: "අදහස්: ",
+      sympy: "මෙතන හැම ඉලක්කමක්ම SymPy එකෙන් හැදුවේ; ඇනිමේෂන් පරීක්ෂා කරපු ඒවා.", units: "✓ ඒකක",
+      unitsBad: "⚠ ඒකක: ගණන සකස් කරපු විදිය බලන්න", choose: "කොටසක් තෝරන්න: ඉඟියකින් හරි ඊළඟ පියවරෙන් හරි පටන් ගන්න",
+      chooseRight: "පටන් ගන්න දකුණු පැත්තෙන් කොටසක් තෝරන්න.", hide: "පැනලය හංගන්න ›", show: "‹ පැනලය",
+      noView: "මේ රූපය අඳින්න බෑ." },
+    ta: { practice: " · பயிற்சி", hint: "குறிப்பு", step: "அடுத்த படி", back: "பின்", solution: "முழு தீர்வு",
+      hintLead: "குறிப்பு: ", unitsOff: "⚠ அலகுகள் சரியாக வரவில்லை: அமைப்பைச் சரிபாருங்கள்", notChecked: "சரிபார்க்கவில்லை",
+      notCheckedLead: "சரிபார்க்கவில்லை: ", check: "என் விடையைச் சரிபார்", answer: "உங்கள் விடை", inUnit: ", அலகு ",
+      summary: "சுருக்கம்", newNumbers: "பயிற்சி: புதிய எண்கள்", method: "முறை", ideas: "கருத்துகள்: ",
+      sympy: "இங்குள்ள ஒவ்வொரு எண்ணும் SymPy மூலம் கணக்கிடப்பட்டது; அனிமேஷன்கள் சோதிக்கப்பட்டவை.", units: "✓ அலகுகள்",
+      unitsBad: "⚠ அலகுகள்: அமைப்பைச் சரிபாருங்கள்", choose: "ஒரு பகுதியைத் தேர்ந்தெடுங்கள்: குறிப்பு அல்லது அடுத்த படியுடன் தொடங்குங்கள்",
+      chooseRight: "தொடங்க வலதுபுறம் ஒரு பகுதியைத் தேர்ந்தெடுங்கள்.", hide: "பலகத்தை மறை ›", show: "‹ பலகம்",
+      noView: "இந்தக் காட்சியை வரைய முடியாது." },
+  };
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls;
     if (text !== undefined) e.textContent = text; return e; };
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -913,6 +940,7 @@ window.JarvisProblem = (function () {
 
   // ======================= the problem =======================
   function open(box, data, opts = {}) {
+    const W = Object.assign({}, WORDS.en, WORDS[data.lang] || {});
     styles();
     const post = opts.post || (() => {});
     box.textContent = "";
@@ -920,7 +948,7 @@ window.JarvisProblem = (function () {
     const viewBox = el("div", "pview"), ctl = el("div", "pctl"), mathBar = el("div", "pmath");
     stage.append(viewBox, ctl, mathBar); wrap.append(stage, side); box.append(wrap);
     // transport: play, the time slider, the speed
-    const play = el("button", "", "❚❚"), slider = el("input"), speed = el("button", "", "1×"), sideBtn = el("button", "", "Hide panel ›"), clock = el("span");
+    const play = el("button", "", "❚❚"), slider = el("input"), speed = el("button", "", "1×"), sideBtn = el("button", "", W.hide), clock = el("span");
     slider.type = "range"; slider.min = "0"; slider.max = "1000"; slider.value = "0";
     ctl.append(play, slider, clock, speed, sideBtn);
     let state = { part: "", shown: 0, hint: false, check: null }, viewName = "", api = null, current = null, hl = {};
@@ -928,7 +956,7 @@ window.JarvisProblem = (function () {
     play.addEventListener("click", () => { playing = !playing; stopAt = null; if (current && t >= current.T - 1e-9) t = 0; });
     slider.addEventListener("input", () => { if (current && current.timed) { t = current.T * slider.value / 1000; playing = false; stopAt = null; } });
     speed.addEventListener("click", () => { rate = rate === 1 ? 2 : rate === 2 ? 0.5 : 1; speed.textContent = rate + "×"; });
-    const setSide = full => { wrap.classList.toggle("full", full); sideBtn.textContent = full ? "‹ Panel" : "Hide panel ›";
+    const setSide = full => { wrap.classList.toggle("full", full); sideBtn.textContent = full ? W.show : W.hide;
       try { localStorage.setItem("jarvisProblemFull", full ? "1" : ""); } catch (err) {} };
     try { setSide(localStorage.getItem("jarvisProblemFull") === "1"); } catch (err) {}
     sideBtn.addEventListener("click", () => setSide(!wrap.classList.contains("full")));
@@ -939,13 +967,13 @@ window.JarvisProblem = (function () {
       if (name !== viewName) {
         viewName = name; if (api) api.stop(); api = null; current = null; if (lesson) { lesson.stop && lesson.stop(); lesson = null; }
         viewBox.textContent = "";
-        if (!spec) { viewBox.append(el("div", "ptag", "Choose a part on the right to start.")); ctl.hidden = true; return; }
+        if (!spec) { viewBox.append(el("div", "ptag", W.chooseRight)); ctl.hidden = true; return; }
         if (spec.kind === "lesson") {
           const inner = el("div", "pinner"); viewBox.append(inner); ctl.hidden = true;
           if (window.JarvisLesson && window.JarvisLesson.draw) lesson = window.JarvisLesson.draw(inner, spec.visual);
           return;
         }
-        const make = VIEWS[spec.kind]; if (!make) { viewBox.append(el("div", "ptag", "This view can't be drawn.")); return; }
+        const make = VIEWS[spec.kind]; if (!make) { viewBox.append(el("div", "ptag", W.noView)); return; }
         current = make(spec); t = 0; playing = true;
         api = canvasIn(viewBox, (ctx, w, h, dt) => {
           if (current.timed) {
@@ -971,7 +999,7 @@ window.JarvisProblem = (function () {
     // ---- the card ----
     function render() {
       side.textContent = "";
-      side.append(el("div", "subj", data.subject + (data.seed ? " · practice" : "")), el("h3", "", data.title));
+      side.append(el("div", "subj", data.subject + (data.seed ? W.practice : "")), el("h3", "", data.title));
       const st = el("div", "stmt"); st.textContent = data.statement; side.append(st);
       if (data.given.length) { const tb = el("table");
         for (const g of data.given) { const tr = el("tr"); tr.append(el("td", "s", g.symbol), el("td", "", g.name), el("td", "v", `${g.shown} ${g.unit || ""}`)); tb.append(tr); }
@@ -983,22 +1011,22 @@ window.JarvisProblem = (function () {
         head.addEventListener("click", () => post({ problem: "part", part: p.id }));
         const bd = el("div", "pb"), btns = el("div", "btns");
         const b = (label, action) => { const x = el("button", "", label); x.addEventListener("click", ev => { ev.stopPropagation(); post({ problem: action, part: p.id }); }); btns.append(x); };
-        b("Hint", "hint"); b("Next step", "step"); if (state.shown > 0) b("Back", "back"); b("Full solution", "solution");
+        b(W.hint, "hint"); b(W.step, "step"); if (state.shown > 0) b(W.back, "back"); b(W.solution, "solution");
         bd.append(btns);
-        if (on && state.hint && p.hint) bd.append(el("div", "hint", "Hint: " + p.hint));
+        if (on && state.hint && p.hint) bd.append(el("div", "hint", W.hintLead + p.hint));
         if (on) p.steps.slice(0, state.shown).forEach((s, i) => {
           const row = el("div", "st" + (i === state.shown - 1 ? " cur" : ""));
           if (s.goal) row.append(el("div", "g", `${i + 1}. ${s.goal}`));
           row.append(el("div", "say", s.say));
           if (s.latex) { const eq = el("div", "eq"); tex(eq, s.latex, true); row.append(eq); }
           if (s.result && s.result.ok) { const eq = el("div", "eq"); tex(eq, s.result.latex, false); row.append(eq);
-            if (s.result.units === "wrong") row.append(el("span", "badge no", "⚠ the units don't come out right: check the set-up")); }
-          else if (s.result && s.result.note) row.append(el("span", "badge no", "not checked: " + s.result.note));
+            if (s.result.units === "wrong") row.append(el("span", "badge no", W.unitsOff)); }
+          else if (s.result && s.result.note) row.append(el("span", "badge no", W.notCheckedLead + s.result.note));
           row.addEventListener("click", () => showStep(p, i));
           bd.append(row);
         });
-        const chk = el("div", "chk"), inp = el("input"), go = el("button", "", "Check my answer");
-        inp.placeholder = `Your answer${p.unit ? " in " + p.unit : ""}`;
+        const chk = el("div", "chk"), inp = el("input"), go = el("button", "", W.check);
+        inp.placeholder = W.answer + (p.unit ? W.inUnit + p.unit : "");
         const send = () => { if (inp.value.trim()) post({ problem: "check", part: p.id, answer: inp.value.trim().slice(0, 200) }); };
         go.addEventListener("click", send); inp.addEventListener("keydown", ev => { if (ev.key === "Enter") send(); });
         chk.append(inp, go); bd.append(chk);
@@ -1009,12 +1037,12 @@ window.JarvisProblem = (function () {
       }
       const foot = el("div", "pfoot");
       const fb = (label, action) => { const x = el("button", "", label); x.addEventListener("click", () => post({ problem: action })); foot.append(x); };
-      fb("Summary", "summary"); fb("Practice: new numbers", "practice");
+      fb(W.summary, "summary"); fb(W.newNumbers, "practice");
       side.append(foot);
-      if (state.summary && data.summary.length) { const s = el("div", "psum"); s.append(el("h4", "", "The method"));
+      if (state.summary && data.summary.length) { const s = el("div", "psum"); s.append(el("h4", "", W.method));
         const ul = el("ul"); for (const line of data.summary) ul.append(el("li", "", line)); s.append(ul);
-        if (data.concepts.length) s.append(el("div", "pnote", "Ideas: " + data.concepts.join(", "))); side.append(s); }
-      side.append(el("div", "pnote", "Every number here was worked out by SymPy; the animations are tested drawings."));
+        if (data.concepts.length) s.append(el("div", "pnote", W.ideas + data.concepts.join(", "))); side.append(s); }
+      side.append(el("div", "pnote", W.sympy));
     }
     function showStep(p, i) {
       const s = p.steps[i]; mathBar.textContent = "";
@@ -1022,9 +1050,9 @@ window.JarvisProblem = (function () {
       if (s.goal) mathBar.append(el("span", "goal", s.goal));
       if (s.latex) { const eq = el("span", "eq"); tex(eq, s.latex, false); mathBar.append(eq); }
       if (s.result && s.result.ok) { const r = el("span", "eq"); tex(r, s.result.latex, false); mathBar.append(r, el("span", "badge ok", "✓ SymPy"));
-        if (s.result.units === "ok") mathBar.append(el("span", "badge ok", "✓ units"));
-        else if (s.result.units === "wrong") mathBar.append(el("span", "badge no", "⚠ units: check the set-up")); }
-      else if (s.result && s.result.note) mathBar.append(el("span", "badge no", "not checked"));
+        if (s.result.units === "ok") mathBar.append(el("span", "badge ok", W.units));
+        else if (s.result.units === "wrong") mathBar.append(el("span", "badge no", W.unitsBad)); }
+      else if (s.result && s.result.note) mathBar.append(el("span", "badge no", W.notChecked));
       const view = s.view || (p.steps.slice(0, i).reverse().find(x => x.view) || {}).view || viewName || Object.keys(data.views)[0];
       showView(view, s.highlight);
     }
@@ -1033,7 +1061,7 @@ window.JarvisProblem = (function () {
       render();
       const p = data.parts.find(x => x.id === state.part);
       if (p) showStep(p, state.shown - 1);
-      else { mathBar.textContent = ""; mathBar.append(el("span", "goal", "Choose a part: start with a hint, or the next step")); }
+      else { mathBar.textContent = ""; mathBar.append(el("span", "goal", W.choose)); }
     }
     const first = Object.keys(data.views)[0]; showView(first, {});
     apply(opts.state);

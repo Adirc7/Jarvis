@@ -41,12 +41,17 @@ PHRASES: dict[str, dict[str, str]] = {
         "weather_map": "කාලගුණ සිතියම ඕපන් කළා: තැන් {n}ක්.",
         "board_shown": "බෝඩ් එකේ දැම්මා.",
         "matlab_ran": "කෝඩ් එක රන් කළා, ප්‍රතිඵල බෝඩ් එකේ තියෙනවා.",
-        "matlab_failed": "කෝඩ් එක හරියට රන් වුණේ නෑ, error එක බෝඩ් එකේ තියෙනවා.",
+        "matlab_failed": "කෝඩ් එක හරියට රන් වුණේ නෑ, එරර් එක බෝඩ් එකේ තියෙනවා.",
         "map_focus": "සිතියමේ {place} පෙන්නනවා.",
         "map_zoom_in": "ළං කළා.",
         "map_zoom_out": "ඈත් කළා.",
         "map_close": "සිතියම වැහුවා.",
         "map_layer": "සිතියමේ {layer} පෙන්නනවා.",
+        "map_which_layer": "මොන ලේයර් එකද? උෂ්ණත්වය, වලාකුළු, වැස්ස, සුළඟ, ආර්ද්‍රතාවය, වායු පීඩනය, "
+                           "චන්ද්‍රිකා ඡායාරූපය, නැත්නම් වැසි රේඩාර් එක?",
+        "map_which_place": "මොන තැනද පෙන්නන්න ඕනේ?",
+        "map_not_found": "සිතියමේ පෙන්නන්න {place} හොයාගන්න බැරි වුණා.",
+        "map_not_open": "මගේ වින්ඩෝ එකේ සිතියම ඕපන් කරලා නෑ. මුලින් ප්‍රවෘත්ති සිතියම හරි කාලගුණ සිතියම හරි ඉල්ලන්න.",
     },
     "ta": {
         "opening": "{name} திறக்கிறேன்.",
@@ -84,8 +89,31 @@ PHRASES: dict[str, dict[str, str]] = {
         "map_zoom_out": "சிறிதாக்கினேன்.",
         "map_close": "வரைபடத்தை மூடினேன்.",
         "map_layer": "வரைபடத்தில் {layer} காட்டுகிறேன்.",
+        "map_which_layer": "எந்த அடுக்கு? வெப்பநிலை, மேகங்கள், மழை, காற்று, ஈரப்பதம், காற்றழுத்தம், "
+                           "செயற்கைக்கோள் படம், அல்லது மழை ரேடார்?",
+        "map_which_place": "எந்த இடத்தைக் காட்ட வேண்டும்?",
+        "map_not_found": "வரைபடத்தில் காட்ட {place} கிடைக்கவில்லை.",
+        "map_not_open": "என் சாளரத்தில் வரைபடம் திறக்கப்படவில்லை. முதலில் செய்தி வரைபடம் அல்லது வானிலை வரைபடத்தைக் கேளுங்கள்.",
     },
 }
+
+
+# The weather map's layers, as they're said (the English is the tools' own: tools/info.py).
+LAYER_NAMES: dict[str, dict[str, str]] = {
+    "en": {"temperature": "temperature", "clouds": "clouds", "rain": "rain", "wind": "wind",
+           "humidity": "humidity", "pressure": "air pressure", "satellite": "satellite picture",
+           "radar": "rain radar"},
+    "si": {"temperature": "උෂ්ණත්වය", "clouds": "වලාකුළු", "rain": "වැස්ස", "wind": "සුළඟ",
+           "humidity": "ආර්ද්‍රතාවය", "pressure": "වායු පීඩනය", "satellite": "චන්ද්‍රිකා ඡායාරූපය",
+           "radar": "වැසි රේඩාර් එක"},
+    "ta": {"temperature": "வெப்பநிலை", "clouds": "மேகங்கள்", "rain": "மழை", "wind": "காற்று",
+           "humidity": "ஈரப்பதம்", "pressure": "காற்றழுத்தம்", "satellite": "செயற்கைக்கோள் படம்",
+           "radar": "மழை ரேடார்"},
+}
+
+
+def layer_name(layer: str, lang: str) -> str:
+    return LAYER_NAMES.get(lang, LAYER_NAMES["en"]).get(layer) or LAYER_NAMES["en"].get(layer, layer)
 
 
 def words_for(outcome: Any, lang: str) -> str:
@@ -105,6 +133,8 @@ def words_for(outcome: Any, lang: str) -> str:
     else:
         key, values = "failed", {}
     phrase = table.get(key or "")
+    if values.get("layer"):
+        values = {**values, "layer": layer_name(str(values["layer"]), lang)}
     try:
         return phrase.format(**values) if phrase else outcome.text
     except (KeyError, IndexError):

@@ -151,6 +151,17 @@ open_fist = 1.15
 open_flat = 1.9
 pinch = 0.33
 
+[problems]
+# Worked problems (docs/PROBLEMS.md). "I got 33.3": right when it's within this
+# fraction of SymPy's answer (0.02 = 2%; 33.3 for 33.33 is right).
+answer_tolerance = 0.02
+# "Practice: new numbers": each given number is multiplied by a random factor
+# in this range (constants like g stay), then everything is worked out again.
+practice_spread = [0.6, 1.5]
+# How many planned problems to keep in state/problems/ (to look at one that
+# went wrong): the newest are kept.
+keep_plans = 100
+
 [clap]
 # The double clap (decision D29; src/jarvis/perception/clap.py): two claps 0.2-0.6 s apart make Jarvis
 # listen hands-free ("Yes, sir?"), until you pause. Ignored while he speaks and for 0.5 s after; it never
@@ -211,6 +222,9 @@ browser = "edge"            # "edge" (Microsoft Edge on Windows) or "default"
 # (30 Oct). "likely": the web and PC tools too only with a word for them;
 # "always": every tool on every request; "off".
 model_tools = "smart"
+# The world weather map (knowledge/world_weather.py) asks Open-Meteo for every
+# country again only after this many minutes; until then it opens at once.
+world_weather_minutes = 60
 # MATLAB code the model writes (src/jarvis/tools/matlab.py): "solve this ODE in
 # MATLAB and plot it". Offered when you mention MATLAB, Octave or a numerical
 # solution; the code shows on the board and runs only after you click.

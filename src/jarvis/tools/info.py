@@ -29,6 +29,7 @@ from ..knowledge.weather import (
 from ..knowledge.weather_map import save_weather_map
 from ..knowledge.world_weather import WorldWeather, countries, world_for_the_model
 from ..knowledge.world_weather_map import LAYERS, save_world_map
+from .desk_phrases import layer_name
 from .gate import ActionLog, Gate
 from .registry import Args, Registry, Result, Tier, Tool
 
@@ -86,13 +87,13 @@ class InfoTools:
     def __init__(self, jarvis_folder: Path | str, log: ActionLog | None = None, *, news: NewsDesk | None = None,
                  research: Research | None = None, weather: Weather | None = None,
                  world: WorldWeather | None = None, opener: Callable[[str], None] | None = None, now: Callable[[], datetime] = lambda: datetime.now(UTC),
-                 screen: Callable[[str, dict], bool] | None = None):
+                 screen: Callable[[str, dict], bool] | None = None, world_cache_minutes: float = 60):
         self.home = Path(jarvis_folder).expanduser()
         self.news = news or NewsDesk()
         self.research = research or Research()
         self.weather = weather or Weather()
         self.world = world or WorldWeather(get=getattr(self.weather, "get", None) or WorldWeather().get,
-                                           cache_dir=self.home / "weather")
+                                           cache_dir=self.home / "weather", max_age_s=world_cache_minutes * 60)
         self.opener = opener or _open_in_browser
         self.now = now
         # The window (app.py): screen(kind, data) shows a map move or the board; True if a window shows it.
@@ -308,11 +309,11 @@ class InfoTools:
             layer = str(args.get("layer") or "").lower()
             if layer not in (*LAYERS, "satellite", "radar"):
                 return Result(False, "Which layer: temperature, clouds, rain, wind, humidity, pressure, "
-                                     "satellite or radar?")
+                                     "satellite or radar?", data={"say": ("map_which_layer", {})})
             data["layer"] = layer
         if action == "focus":
             if not place_name:
-                return Result(False, "Which place should I show?")
+                return Result(False, "Which place should I show?", data={"say": ("map_which_place", {})})
             spot = where(countries_in(place_name)[0]) if countries_in(place_name) else None
             if spot is not None:
                 data.update(lat=spot[0], lon=spot[1], zoom=7 if countries_in(place_name)[0] == "Sri Lanka" else 5,
@@ -323,14 +324,16 @@ class InfoTools:
                 except WeatherError:
                     found = None
                 if found is None:
-                    return Result(False, f"I couldn't find {place_name} to show it on the map.")
+                    return Result(False, f"I couldn't find {place_name} to show it on the map.",
+                                  data={"say": ("map_not_found", {"place": place_name})})
                 data.update(lat=found.lat, lon=found.lon, zoom=5 if found.kind.startswith("PCL") else 11,
                             label=found.label())
         if not self.screen("map_cmd", data):
-            return Result(False, "The map isn't open in my window; ask me for the news map or the weather map first.")
+            return Result(False, "The map isn't open in my window; ask me for the news map or the weather map first.",
+                          data={"say": ("map_not_open", {})})
         said = {"focus": f"Showing {data.get('label', place_name)}.", "zoom_in": "Zooming in.",
                 "zoom_out": "Zooming out.", "close": "Closed the map.",
-                "layer": f"Showing the {data.get('layer', '')}."}[action]
+                "layer": f"Showing the {layer_name(data.get('layer', ''), 'en')}."}[action]
         return Result(True, said, data={"say": (f"map_{action}", {"place": data.get("label", place_name),
                                                                  "layer": data.get("layer", "")})})
 

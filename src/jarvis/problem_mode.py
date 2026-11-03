@@ -23,6 +23,8 @@ from typing import Any
 
 from .agent.llm import LLMUnavailable
 from .knowledge.problems import (
+    ANSWER_TOLERANCE,
+    PRACTICE_SPREAD,
     Problem,
     ProblemError,
     check_answer,
@@ -96,6 +98,29 @@ UNITS = {"m/s": "metres per second", "m/s^2": "metres per second squared", "m/s�
          "mol": "moles", "mol/L": "moles per litre", "M": "molar", "mL": "millilitres", "L": "litres",
          "rad": "radians", "rad/s": "radians per second", "°": "degrees", "deg": "degrees", "C": "coulombs",
          "F": "farads", "T": "tesla", "eV": "electron volts", "m^2": "square metres", "m^3": "cubic metres"}
+# The same units in Sinhala (as Sinhala-medium science says them) and Tamil. A unit not here is said as written.
+UNIT_WORDS = {
+    "si": {"m/s": "මීටර් තත්පරයට", "m/s^2": "මීටර් තත්පර වර්ගයට", "m/s²": "මීටර් තත්පර වර්ගයට", "m": "මීටර්",
+           "km": "කිලෝමීටර්", "cm": "සෙන්ටිමීටර්", "mm": "මිලිමීටර්", "s": "තත්පර", "km/h": "පැයට කිලෝමීටර්",
+           "kg": "කිලෝග්‍රෑම්", "g": "ග්‍රෑම්", "N": "නිව්ටන්", "J": "ජූල්", "kJ": "කිලෝජූල්",
+           "kJ/mol": "මවුලයට කිලෝජූල්", "W": "වොට්", "V": "වෝල්ට්", "A": "ඇම්පියර්", "ohm": "ඕම්", "Ω": "ඕම්",
+           "Pa": "පැස්කල්", "kPa": "කිලෝපැස්කල්", "K": "කෙල්වින්", "Hz": "හර්ට්ස්", "mol": "මවුල",
+           "mol/L": "ලීටරයට මවුල", "M": "මවුලික", "mL": "මිලිලීටර්", "L": "ලීටර්", "rad": "රේඩියන්",
+           "rad/s": "තත්පරයට රේඩියන්", "°": "අංශක", "deg": "අංශක", "C": "කූලෝම්", "F": "ෆැරඩ්", "T": "ටෙස්ලා",
+           "eV": "ඉලෙක්ට්‍රෝන වෝල්ට්", "m^2": "වර්ග මීටර්", "m^3": "ඝන මීටර්"},
+    "ta": {"m/s": "மீட்டர் ஒரு வினாடிக்கு", "m/s^2": "மீட்டர் ஒரு வினாடி வர்க்கத்துக்கு",
+           "m/s²": "மீட்டர் ஒரு வினாடி வர்க்கத்துக்கு", "m": "மீட்டர்", "km": "கிலோமீட்டர்", "cm": "சென்டிமீட்டர்",
+           "mm": "மில்லிமீட்டர்", "s": "வினாடி", "km/h": "மணிக்கு கிலோமீட்டர்", "kg": "கிலோகிராம்", "g": "கிராம்",
+           "N": "நியூட்டன்", "J": "ஜூல்", "kJ": "கிலோஜூல்", "kJ/mol": "மோலுக்கு கிலோஜூல்", "W": "வாட்",
+           "V": "வோல்ட்", "A": "ஆம்பியர்", "ohm": "ஓம்", "Ω": "ஓம்", "Pa": "பாஸ்கல்", "kPa": "கிலோபாஸ்கல்",
+           "K": "கெல்வின்", "Hz": "ஹெர்ட்ஸ்", "mol": "மோல்", "mol/L": "லிட்டருக்கு மோல்", "M": "மோலார்",
+           "mL": "மில்லிலிட்டர்", "L": "லிட்டர்", "rad": "ரேடியன்", "rad/s": "வினாடிக்கு ரேடியன்", "°": "டிகிரி",
+           "deg": "டிகிரி", "C": "கூலூம்", "F": "ஃபாரட்", "T": "டெஸ்லா", "eV": "எலக்ட்ரான் வோல்ட்",
+           "m^2": "சதுர மீட்டர்", "m^3": "கன மீட்டர்"},
+}
+# "5.27 × 10^-6": how "times ten to the (minus) 6" is said in each language
+POWERS = {"en": (" times ten to the {minus}{e}", "minus "), "si": (" ගුණ කිරීම දහයේ බලය {minus}{e}", "සෘණ "),
+          "ta": (" பெருக்கல் பத்தின் அடுக்கு {minus}{e}", "மைனஸ் ")}
 WORDS = {
     "planning": {"en": "Let me work that out, step by step.", "si": "මම ඒක පියවරෙන් පියවර විසඳන්නම්.",
                  "ta": "நான் அதைப் படிப்படியாகத் தீர்க்கிறேன்."},
@@ -104,7 +129,7 @@ WORDS = {
                "ta": "மன்னிக்கவும், அந்தக் கணக்கை அமைக்க முடியவில்லை. மீண்டும் கேளுங்கள்."},
     "reading": {"en": "Let me read that.", "si": "මම ඒක කියවන්නම්.", "ta": "நான் அதைப் படிக்கிறேன்."},
     "unreadable": {"en": "I couldn't read a problem in that. A clearer photo, or a screenshot of the page, would help.",
-                   "si": "ඒකෙන් ප්‍රශ්නයක් කියවගන්න බැරි වුණා. පැහැදිලි photo එකක් එවන්න.",
+                   "si": "ඒකෙන් ප්‍රශ්නයක් කියවගන්න බැරි වුණා. පැහැදිලි ෆොටෝ එකක් එවන්න.",
                    "ta": "அதிலிருந்து கணக்கைப் படிக்க முடியவில்லை. தெளிவான படத்தை அனுப்புங்கள்."},
     "opened": {"en": "{title}. {n} parts. Pick a part, or say part a, then ask for a hint or the next step.",
                "si": "{title}. කොටස් {n}ක් තියෙනවා. කොටසක් තෝරන්න, නැත්නම් a කොටස කියන්න, ඊට පස්සේ ඉඟියක් හරි ඊළඟ පියවර හරි අහන්න.",
@@ -119,37 +144,41 @@ WORDS = {
     "answer": {"en": "So part {id} is {value} {unit}.", "si": "ඉතින් {id} කොටසේ උත්තරය {value} {unit}.",
                "ta": "எனவே பகுதி {id} இன் விடை {value} {unit}."},
     "units": {"en": "Careful: the units of this step don't come out as {unit}, so the set-up may be wrong.",
-              "si": "පරිස්සමෙන්: මේ පියවරේ units {unit} විදියට එන්නේ නෑ, ඒ නිසා setup එක වැරදි වෙන්න පුළුවන්.",
+              "si": "පරිස්සමෙන්: මේ පියවරේ ඒකක {unit} විදියට එන්නේ නෑ, ඒ නිසා ගණන සකස් කරපු විදිය වැරදි වෙන්න පුළුවන්.",
               "ta": "கவனம்: இந்தப் படியின் அலகுகள் {unit} ஆக வரவில்லை, அமைப்பு தவறாக இருக்கலாம்."},
     "disagree": {"en": "Careful: {said}, so the steps or the animation are set up wrong.",
-                 "si": "පරිස්සමෙන්: {said}. ඒ නිසා පියවර හරි animation එක හරි වැරදියි.",
+                 "si": "පරිස්සමෙන්: {said}. ඒ නිසා පියවර හරි ඇනිමේෂන් එක හරි වැරදියි.",
                  "ta": "கவனம்: {said}. படிகளோ அனிமேஷனோ தவறாக அமைக்கப்பட்டுள்ளன."},
     "last": {"en": "That was the last step.", "si": "ඒ තමයි අන්තිම පියවර.", "ta": "அதுதான் கடைசி படி."},
     "start": {"en": "Back to the start.", "si": "ආයෙත් මුලට.", "ta": "மீண்டும் தொடக்கத்திற்கு."},
     "unchecked": {"en": "I couldn't check this part's answer myself, so take it with care.",
-                  "si": "මේ කොටසේ උත්තරය මට check කරගන්න බැරි වුණා, ඒ නිසා පරිස්සමෙන් බලන්න.",
+                  "si": "මේ කොටසේ උත්තරය මට චෙක් කරගන්න බැරි වුණා, ඒ නිසා පරිස්සමෙන් බලන්න.",
                   "ta": "இந்தப் பகுதியின் விடையை என்னால் சரிபார்க்க முடியவில்லை."},
     "practice": {"en": "Here's the same problem with new numbers. Try it yourself, then check your answers; ask for a hint "
                        "if you're stuck.",
-                 "si": "ඔන්න අලුත් ඉලක්කම් එක්ක එකම ප්‍රශ්නය. තනියම හදලා බලන්න, ඊට පස්සේ උත්තර check කරන්න. හිර වුණොත් ඉඟියක් අහන්න.",
+                 "si": "ඔන්න අලුත් ඉලක්කම් එක්ක එකම ප්‍රශ්නය. තනියම හදලා බලන්න, ඊට පස්සේ උත්තර චෙක් කරන්න. හිර වුණොත් ඉඟියක් අහන්න.",
                  "ta": "புதிய எண்களுடன் அதே கணக்கு. நீங்களே முயன்று, பிறகு விடைகளைச் சரிபார்க்கவும்."},
     "no_practice": {"en": "I couldn't make a version with new numbers that works out, sorry.",
                     "si": "සමාවෙන්න, අලුත් ඉලක්කම් එක්ක හරියන ප්‍රශ්නයක් හදන්න බැරි වුණා.",
                     "ta": "மன்னிக்கவும், புதிய எண்களுடன் கணக்கை உருவாக்க முடியவில்லை."},
+    "method": {"en": "That's the method.", "si": "ඔන්න ඒ තමයි ක්‍රමය.", "ta": "அதுதான் முறை."},
     "pick": {"en": "There are {n} questions on that sheet. Pick one in my window.",
-             "si": "ඒකේ ප්‍රශ්න {n}ක් තියෙනවා. window එකේ එකක් තෝරන්න.",
+             "si": "ඒකේ ප්‍රශ්න {n}ක් තියෙනවා. වින්ඩෝ එකේ එකක් තෝරන්න.",
              "ta": "அதில் {n} கேள்விகள் உள்ளன. ஒன்றைத் தேர்ந்தெடுங்கள்."},
 }
 
 
-def spoken_number(text: str) -> str:
-    """'5.27 × 10^-6' -> '5.27 times ten to the minus 6'."""
-    return re.sub(r"\s*×\s*10\^(-?)(\d+)", lambda m: f" times ten to the {'minus ' if m.group(1) else ''}{m.group(2)}",
-                  text or "")
+def spoken_number(text: str, lang: str = "en") -> str:
+    """'5.27 × 10^-6' -> '5.27 times ten to the minus 6' (in `lang`)."""
+    words, minus = POWERS.get(lang, POWERS["en"])
+    return re.sub(r"\s*×\s*10\^(-?)(\d+)",
+                  lambda m: words.format(minus=minus if m.group(1) else "", e=m.group(2)), text or "")
 
 
-def spoken_unit(unit: str) -> str:
+def spoken_unit(unit: str, lang: str = "en") -> str:
     unit = (unit or "").strip()
+    if lang in UNIT_WORDS:
+        return UNIT_WORDS[lang].get(unit, unit)
     return UNITS.get(unit, unit.replace("^2", " squared").replace("^3", " cubed").replace("/", " per "))
 
 
@@ -263,6 +292,7 @@ class ProblemMode:
             text = await self._collect(messages, "problem", lang.code, token, None)
             try:
                 problem = parse_problem(text)
+                problem.lang = lang.code                 # the marks, the animation's check and the card in it
             except ProblemError as exc:
                 self.telemetry.log("problem_retry", error=str(exc)[:200])
                 messages += [{"role": "assistant", "content": text[:4000]},
@@ -286,7 +316,7 @@ class ProblemMode:
 
     def _problem_keep(self, question: str, reply: str, problem: Problem) -> None:
         """The question, the model's plan as it wrote it, and what SymPy and the checks found: one file a
-        problem in state/problems (the newest 100 kept), to see what the model did when one looks wrong."""
+        problem in state/problems (the newest [problems] keep_plans kept), to see what the model did when one looks wrong."""
         import time
         from pathlib import Path
         folder = Path(str(self.settings.get("general.state_dir", "state"))) / "problems"
@@ -299,7 +329,8 @@ class ProblemMode:
             path.write_text(json.dumps({"question": question, "provider": self.llm.last_provider, "plan": reply,
                                         "notes": problem.notes, "answers": answers}, indent=1, ensure_ascii=False),
                             encoding="utf-8")
-            for old in sorted(folder.glob("*.json"))[:-100]:
+            keep = max(1, int(self.settings.get("problems.keep_plans", 100)))
+            for old in sorted(folder.glob("*.json"))[:-keep]:
                 old.unlink()
         except OSError as exc:
             self.out(f"[problem] couldn't keep the plan ({type(exc).__name__})")
@@ -341,12 +372,15 @@ class ProblemMode:
             ex["shown"] = len(part.steps)
             line = " ".join(s.say for s in part.steps if s.say) + " " + self._problem_answer_line(problem, part)
         elif action == "check" and part is not None:
-            ok, said = check_answer(problem, part.id, answer)
+            ok, said = check_answer(problem, part.id, answer,
+                                    float(self.settings.get("problems.answer_tolerance", ANSWER_TOLERANCE)))
             ex["check"] = {"ok": bool(ok), "said": said}
-            line = spoken_number(said)
+            line = said
         elif action == "practice":
             try:
-                fresh = await asyncio.get_running_loop().run_in_executor(None, practice, ex["original"])
+                spread = tuple(float(x) for x in self.settings.get("problems.practice_spread", PRACTICE_SPREAD))
+                fresh = await asyncio.get_running_loop().run_in_executor(
+                    None, lambda: practice(ex["original"], spread=spread))
             except ProblemError:
                 line = self._problem_words("no_practice")
             else:
@@ -361,14 +395,14 @@ class ProblemMode:
                 return line
         elif action == "summary":
             ex["summary"] = True
-            line = ". ".join(problem.summary) or "That's the method."
+            line = ". ".join(problem.summary) or self._problem_words("method")
         elif action == "close":
             self._problem_close()
             return ""
         self._show("problem_state", state=self._problem_state())
         self.telemetry.log("problem_action", action=action, part=ex.get("part"), shown=ex.get("shown"))
         if line:
-            await self.sink.say(spoken_number(line), lang, token)
+            await self.sink.say(spoken_number(line, lang.code), lang, token)
         if turn is not None:
             turn.finish(kind="problem", action=action, part=ex.get("part"))
         return line
@@ -380,19 +414,22 @@ class ProblemMode:
         line = step.say
         r = step.result
         if r.get("ok") and r.get("value") is not None:
-            line += " " + self._problem_words("gives", value=r["shown"], unit=spoken_unit(r.get("unit", ""))).replace(
+            line += " " + self._problem_words("gives", value=r["shown"], unit=self._said_unit(r.get("unit", ""))).replace(
                 "  ", " ").replace(" .", ".")
         if r.get("units") == "wrong":
-            line += " " + self._problem_words("units", unit=spoken_unit(r.get("unit", "") or part.unit))
+            line += " " + self._problem_words("units", unit=self._said_unit(r.get("unit", "") or part.unit))
         if i == len(part.steps) - 1:
             line += " " + self._problem_answer_line(problem, part)
         return line.strip()
+
+    def _said_unit(self, unit: str) -> str:
+        return spoken_unit(unit, self.lang.current.code)
 
     def _problem_answer_line(self, problem: Problem, part: Any, last: bool = False) -> str:
         ans = problem.answer_of(part)
         if not ans:
             return self._problem_words("unchecked")
-        unit = spoken_unit(ans.get("unit", "") or part.unit)
+        unit = self._said_unit(ans.get("unit", "") or part.unit)
         lead = self._problem_words("last") + " " if last else ""
         line = lead + self._problem_words("answer", id=part.id, value=ans["shown"], unit=unit)
         vc = ans.get("view_check") or {}

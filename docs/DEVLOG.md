@@ -1858,3 +1858,22 @@ window server: every number matches SymPy, every button reaches Jarvis.
   (one slit, two, a grating). Each lists the numbers it works out, so the
   answers are checked against it too; each checked against textbook values
   (a Carnot cycle between 600 and 300 K comes out at 50%).
+- 3 Nov, 23:10: The hard-coding audit Adhi asked for. What answered the same
+  whatever the language: the conversation column, closing a panel, the map's
+  layers ("සිතියමේ temperature" is now "සිතියමේ උෂ්ණත්වය"), the 3D explorer's
+  lines, a new computer, the models being out of reach and the stand-in's
+  lead (all English, and the last two always in the English voice), the
+  marks for "I got 33.3" and the animation's check (English inside a Sinhala
+  problem), units and powers of ten in the spoken steps ("metres" in a
+  Sinhala sentence), and the worked problem's card in the window (Hint, Next
+  step... now follow the problem's language). The map's "which layer?",
+  "which place?" and "not open" now say so in Sinhala and Tamil too, instead
+  of "that didn't work". New: `said.py`, and `tests/test_said.py`, which
+  checks every line has English and the same values in each language.
+  English words in Sinhala lines are now written in Sinhala letters, for
+  the voice. Settings instead of fixed numbers: `[problems]` answer_tolerance,
+  practice_spread, keep_plans, and `[tools]` world_weather_minutes. Left
+  as they are by design: the 3D models (made by hand, like the lesson
+  scenes, which take their numbers from each question), Sri Lanka's towns,
+  monsoons and news feeds (home), and physical defaults in the views (g =
+  9.81, the speed of sound 343 m/s) used only when the plan gives none.

@@ -92,6 +92,7 @@ class Problem:
     values: dict[str, Any] = field(default_factory=dict)  # symbol -> SymPy value, filled by work()
     shown_views: dict[str, dict] = field(default_factory=dict)   # the views' data for the window
     seed: int = 0                                         # 0: as asked; otherwise a practice version
+    lang: str = "en"                                      # the language it was asked in: the marks and the card
 
     def statement_text(self) -> str:
         values = {g.symbol: g for g in self.given}
@@ -123,7 +124,7 @@ class Problem:
                        "steps": [{"say": s.say, "goal": s.goal, "latex": s.latex, "view": s.view,
                                   "highlight": s.highlight, "result": s.result} for s in p.steps]}
                       for p in self.parts],
-            "views": self.shown_views, "summary": self.summary, "concepts": self.concepts,
+            "views": self.shown_views, "summary": self.summary, "concepts": self.concepts, "lang": self.lang,
         }
 
 
@@ -140,7 +141,7 @@ def show_number(value: Any, digits: int = 4) -> str:
         return "0"
     if 1e-3 <= abs(v) < 1e6:
         text = f"{v:.{digits}g}"
-        return text if "e" not in text else f"{v:.{max(0, digits - 1 - int(math.floor(math.log10(abs(v)))))}f}"
+        return text if "e" not in text else f"{v:.{max(0, digits - 1 - math.floor(math.log10(abs(v))))}f}"
     mant, exp = f"{v:.{digits - 1}e}".split("e")
     return f"{mant.rstrip('0').rstrip('.')} × 10^{int(exp)}"
 
@@ -448,18 +449,22 @@ def work(problem: Problem, timeout_s: float = 20.0) -> Problem:
 
 
 # ---- practice: the same problem, new numbers --------------------------------------------------------
-def _nice(v: float, rng: random.Random) -> float:
+PRACTICE_SPREAD = (0.6, 1.5)        # a practice version's numbers: 0.6 to 1.5 times the asked ones ([problems])
+
+
+def _nice(v: float, rng: random.Random, spread: tuple[float, float] = PRACTICE_SPREAD) -> float:
     if v == 0:
         return 0.0
-    new = v * rng.uniform(0.6, 1.5)
+    new = v * rng.uniform(*spread)
     digits = 2 if abs(v) >= 10 or float(v).is_integer() else 3
     return float(f"{new:.{digits}g}")
 
 
-def practice(problem: Problem, seed: int | None = None, tries: int = 12) -> Problem:
-    """A new version: every given that isn't a constant changes by -40% to +50%, rounded nicely; the
-    answers are worked out again. A version whose answers aren't all real (a car that never stops) is
-    thrown away and another tried."""
+def practice(problem: Problem, seed: int | None = None, tries: int = 12,
+             spread: tuple[float, float] = PRACTICE_SPREAD) -> Problem:
+    """A new version: every given that isn't a constant is multiplied by a number in `spread` (-40% to +50%
+    by default), rounded nicely; the answers are worked out again. A version whose answers aren't all real
+    (a car that never stops) is thrown away and another tried."""
     import copy
     rng = random.Random(seed)
     for _ in range(tries):
@@ -468,7 +473,7 @@ def practice(problem: Problem, seed: int | None = None, tries: int = 12) -> Prob
         fresh.notes = []
         for g in fresh.given:
             if not g.const:
-                g.value = _nice(g.value, rng)
+                g.value = _nice(g.value, rng, spread)
         try:
             work(fresh)
         except ProblemError:
@@ -502,35 +507,75 @@ def _number_in(text: str) -> float | None:
         return None
 
 
-def check_answer(problem: Problem, part_id: str, text: str, rel: float = 0.02) -> tuple[bool | None, str]:
-    """(right?, what to say). None: there's nothing to check it against."""
+# What the marks say, in the language the problem was asked in (Problem.lang). Spoken Sinhala, as Friday talks.
+MARKS = {
+    "no_part": {"en": "There's no part {id}.", "si": "{id} කියලා කොටසක් නෑ.", "ta": "பகுதி {id} இல்லை."},
+    "unchecked": {"en": "I couldn't check that part's answer myself, so I can't mark yours.",
+                  "si": "ඒ කොටසේ උත්තරය මටම චෙක් කරගන්න බැරි වුණා, ඒ නිසා ඔයාගේ උත්තරේ හරිද කියන්න බෑ.",
+                  "ta": "அந்தப் பகுதியின் விடையை என்னால் சரிபார்க்க முடியவில்லை, அதனால் உங்கள் விடையை மதிப்பிட முடியாது."},
+    "no_number": {"en": "I didn't catch a number in your answer.", "si": "ඔයාගේ උත්තරේ ඉලක්කමක් අහුවුණේ නෑ.",
+                  "ta": "உங்கள் விடையில் எண் எதுவும் இல்லை."},
+    "right": {"en": "Right: {shown}{unit}.", "si": "හරි: {shown}{unit}.", "ta": "சரி: {shown}{unit}."},
+    "sign": {"en": "The size is right but the sign isn't: think about the direction.",
+             "si": "අගය හරි, ඒත් ලකුණ වැරදියි: දිශාව ගැන හිතන්න.",
+             "ta": "அளவு சரி, ஆனால் குறி தவறு: திசையைப் பற்றி யோசியுங்கள்."},
+    "conversion": {"en": "Close: the number is off by a unit conversion. Check your units.",
+                   "si": "ළඟයි: ඒකක පරිවර්තනයක් වැරදිලා. ඔයාගේ ඒකක බලන්න.",
+                   "ta": "நெருக்கம்: அலகு மாற்றத்தில் தவறு. உங்கள் அலகுகளைச் சரிபாருங்கள்."},
+    "wrong": {"en": "Not quite. Try the hint, or the next step.", "si": "තාම හරි නෑ. ඉඟිය හරි ඊළඟ පියවර හරි බලන්න.",
+              "ta": "இன்னும் சரியில்லை. குறிப்பையோ அடுத்த படியையோ பாருங்கள்."},
+    "wrong_maths": {"en": "Not quite. Try the next step.", "si": "තාම හරි නෑ. ඊළඟ පියවර බලන්න.",
+                    "ta": "இன்னும் சரியில்லை. அடுத்த படியைப் பாருங்கள்."},
+    "unreadable": {"en": "I couldn't read your answer as maths.", "si": "ඔයාගේ උත්තරේ ගණිතයක් විදියට කියවගන්න බැරි වුණා.",
+                   "ta": "உங்கள் விடையைக் கணிதமாகப் படிக்க முடியவில்லை."},
+    # the animation's own numbers against the answer (problem_views.cross_check); {label} is the view's
+    "view_agrees": {"en": "the animation agrees: {label}", "si": "ඇනිමේෂන් එකත් එකඟයි: {label}",
+                    "ta": "அனிமேஷனும் ஒப்புக்கொள்கிறது: {label}"},
+    "view_differs": {"en": "the animation shows {value} {unit} for {label}, not {answer}",
+                     "si": "ඇනිමේෂන් එකේ {label} එකට {value} {unit} එනවා, {answer} නෙවෙයි",
+                     "ta": "அனிமேஷன் {label} க்கு {value} {unit} காட்டுகிறது, {answer} அல்ல"},
+}
+
+
+def marks(key: str, lang: str, **values: Any) -> str:
+    """A line of MARKS in `lang`, English when that language has none."""
+    options = MARKS[key]
+    return (options.get(lang) or options["en"]).format(**values)
+
+
+ANSWER_TOLERANCE = 0.02             # an answer within 2% is right ([problems] answer_tolerance)
+
+
+def check_answer(problem: Problem, part_id: str, text: str, rel: float = ANSWER_TOLERANCE) -> tuple[bool | None, str]:
+    """(right?, what to say, in the problem's language). None: there's nothing to check it against."""
+    lang = problem.lang
     part = problem.part(part_id)
     if part is None:
-        return None, f"There's no part {part_id}."
+        return None, marks("no_part", lang, id=part_id)
     worked = problem.answer_of(part)
     if not worked:
-        return None, "I couldn't check that part's answer myself, so I can't mark yours."
+        return None, marks("unchecked", lang)
     unit = f" {worked.get('unit')}" if worked.get("unit") else ""
     if worked.get("value") is not None:
         mine = _number_in(text or "")
         if mine is None:
-            return None, "I didn't catch a number in your answer."
+            return None, marks("no_number", lang)
         right = worked["value"]
         ok = abs(mine - right) <= max(abs(right) * rel, 1e-12)
         if ok:
-            return True, f"Right: {worked['shown']}{unit}."
+            return True, marks("right", lang, shown=worked["shown"], unit=unit)
         if right and abs(abs(mine) - abs(right)) <= abs(right) * rel:
-            return False, "The size is right but the sign isn't: think about the direction."
+            return False, marks("sign", lang)
         if right and any(abs(mine * f - right) <= abs(right) * rel for f in (1e3, 1e-3, 3.6, 1 / 3.6, 60, 1 / 60)):
-            return False, "Close: the number is off by a unit conversion. Check your units."
-        return False, "Not quite. Try the hint, or the next step."
+            return False, marks("conversion", lang)
+        return False, marks("wrong", lang)
     try:
         import sympy
         mine_expr = _parse(text, problem.values)
         ok = sympy.simplify(mine_expr - _parse(worked["shown"].replace("^", "**"), problem.values)) == 0
     except (ProblemError, TypeError, ValueError):
-        return None, "I couldn't read your answer as maths."
-    return (True, f"Right: {worked['shown']}.") if ok else (False, "Not quite. Try the next step.")
+        return None, marks("unreadable", lang)
+    return (True, marks("right", lang, shown=worked["shown"], unit="")) if ok else (False, marks("wrong_maths", lang))
 
 
 def problem_for_the_model(problem: Problem) -> str:
@@ -543,5 +588,6 @@ def problem_for_the_model(problem: Problem) -> str:
     return "\n".join(lines)
 
 
-__all__ = ["Given", "Part", "Problem", "ProblemError", "Step", "check_answer", "evaluate", "parse_problem",
-           "practice", "problem_for_the_model", "problem_prompt", "show_number", "work"]
+__all__ = ["ANSWER_TOLERANCE", "MARKS", "PRACTICE_SPREAD", "Given", "Part", "Problem", "ProblemError", "Step",
+           "check_answer", "evaluate", "marks", "parse_problem", "practice", "problem_for_the_model", "problem_prompt",
+           "show_number", "work"]
