@@ -61,6 +61,8 @@ class AudioPlayer:
         self._pending = 0
         self._epoch = 0                # bumped by every stop()
         self._lock = threading.Lock()
+        # Called with each piece of audio as it starts (the window's orb follows Jarvis's voice: app.py)
+        self.on_play: Callable[[np.ndarray, int], None] | None = None
         self._thread = threading.Thread(target=self._run, name="audio-player", daemon=True)
         self._thread.start()
 
@@ -131,6 +133,11 @@ class AudioPlayer:
                     continue
                 if item.on_start:
                     item.on_start()
+                if self.on_play is not None:
+                    try:
+                        self.on_play(item.audio, item.sample_rate)
+                    except Exception:  # noqa: BLE001, S110 - the orb must never stop the voice
+                        pass
                 self.backend.play(item.audio, item.sample_rate, self._stop)
             except Exception as exc:   # a broken audio device must not kill the thread
                 print(f"[audio] playback failed: {exc}")

@@ -10,6 +10,7 @@
 <script defer src="/lesson.js"></script>
 <script defer src="/explore.js"></script>
 <script defer src="/problem.js"></script>
+<script defer src="/orb.js"></script>
 <style>
 :root { --bg:#03070d; --panel:#091522; --line:#12314a; --text:#eaf5ff; --muted:#8fa7ba; --cyan:#4de1ff;
         --amber:#ffb43b; --teal:#4ce2c4; --green:#64efb7; --red:#ff766f; --accent:var(--amber); }
@@ -664,6 +665,8 @@ function showBoard(b) {
   openPanel("board");
 }
 function onEvent(e) {
+  if (e.kind === "voice") { if (window.JarvisOrb) JarvisOrb.voice(e.env, e.step); return; }   // the orb follows his voice
+  if (e.kind === "mic") { if (window.JarvisOrb) JarvisOrb.mic(e.level); return; }            // and yours
   if (e.kind === "map") showMap(e.url);
   else if (e.kind === "map_cmd") mapCmd(e);
   else if (e.kind === "board") showBoard(e);
@@ -706,8 +709,10 @@ function connect() {
 }
 connect();
 
-// ---- the orb: a particle sphere (ROADMAP "The orb"): gold for Jarvis, teal for Friday ----
-const canvas = $("orb"), ctx = canvas.getContext("2d");
+// ---- the orb: the liquid sphere (orb.js, WebGL); without WebGL this particle sphere ----
+// gold for Jarvis, teal for Friday
+const canvas = $("orb");
+let ctx = null;
 const N = 900, pts = [];
 for (let i = 0; i < N; i++) {                       // points spread evenly over a sphere
   const y = 1 - (i / (N - 1)) * 2, r = Math.sqrt(1 - y * y), th = i * Math.PI * (3 - Math.sqrt(5));
@@ -757,7 +762,12 @@ function frame(now) {
   ctx.globalAlpha = 1;
   requestAnimationFrame(frame);                    // the browser pauses this when the page is hidden
 }
-requestAnimationFrame(frame);
+window.addEventListener("DOMContentLoaded", () => {   // after orb.js (deferred) has loaded
+  if (!(window.JarvisOrb && JarvisOrb.start(canvas))) {
+    ctx = canvas.getContext("2d");
+    requestAnimationFrame(frame);
+  }
+});
 </script>
 </body>
 </html>

@@ -413,6 +413,7 @@ class App(LessonMode, ExploreMode, ProblemMode):
         self._ptt = None
         self._clap = None                      # the double clap listener, when [clap] is on (D29)
         self._wake = None                      # "Hey Jarvis", when [wake_word] is on (perception/wake.py)
+        self._mic_sum, self._mic_n = 0.0, 0      # your loudness, summed for the orb (ui/orb.js)
         self._explore = None                   # the 3D explorer, while it's open (explore_mode.py)
         self._explore_hands = None
         self._stt_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="stt")
@@ -1696,6 +1697,12 @@ class App(LessonMode, ExploreMode, ProblemMode):
         self.recorder.open()
         self._recorder_open = True            # closed on exit even if what follows fails
         self._start_push_to_talk()
+        # The window's orb (ui/orb.js) moves with Jarvis's voice and with yours: loudness only, nothing kept
+        player = getattr(self.sink, "player", None)
+        if player is not None and hasattr(player, "on_play"):
+            player.on_play = self._voice_envelope
+        if hasattr(self.recorder, "listeners"):
+            self.recorder.listeners.append(self._mic_level)
         if self.settings.get("clap.enabled", False):
             self._start_clap()
         if self.settings.get("wake_word.enabled", False):
@@ -1723,6 +1730,35 @@ class App(LessonMode, ExploreMode, ProblemMode):
         self.out("[clap] listening for a double clap: clap twice to make Jarvis listen (/clap off stops it).")
         self.telemetry.log("clap", on=True)
         return True
+
+    # ---- the orb's movement (ui/orb.js) ----------------------------------------------------------------
+    def _voice_envelope(self, audio, rate: int) -> None:
+        """What Jarvis is about to say, as its loudness every 50 ms (0-1): the orb swells with it."""
+        if self.view is None:
+            return
+        import numpy as np
+        a = np.asarray(audio, np.float32).reshape(-1)
+        step = max(1, int(rate * 0.05))
+        n = len(a) // step
+        if n == 0:
+            return
+        rms = np.sqrt(np.mean(a[: n * step].reshape(n, step) ** 2, axis=1) + 1e-12)
+        level = np.clip((20 * np.log10(rms) + 45) / 35, 0, 1)
+        self._show("voice", env=[round(float(x), 2) for x in level], step=0.05)
+
+    def _mic_level(self, samples) -> None:
+        """While you speak (the microphone's thread): your loudness ten times a second, for the orb."""
+        if self.view is None or self.state.mode != Mode.LISTENING:
+            self._mic_sum, self._mic_n = 0.0, 0
+            return
+        import numpy as np
+        a = np.asarray(samples, np.float32).reshape(-1)
+        self._mic_sum += float(np.sum(a * a))
+        self._mic_n += len(a)
+        if self._mic_n >= 1600:
+            rms = (self._mic_sum / self._mic_n) ** 0.5
+            self._mic_sum, self._mic_n = 0.0, 0
+            self._show("mic", level=round(float(min(1.0, max(0.0, (20 * np.log10(rms + 1e-12) + 55) / 40))), 2))
 
     # ---- "Hey Jarvis" (perception/wake.py) ----------------------------------------------------------
     def _hands_free_listener(self):

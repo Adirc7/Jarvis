@@ -287,3 +287,40 @@ def test_the_page_tells_which_panel_and_gets_the_board():
         conn.close()
     finally:
         v.stop()
+
+
+# ---- the liquid orb (ui/orb.js, 4 Nov) ----------------------------------------------------------------
+def test_the_orb_script_is_served_and_the_page_falls_back_without_webgl(view):
+    v, _, _, _ = view
+    status, body = get(v, "/orb.js")
+    assert status == 200 and b"window.JarvisOrb" in body and b"gl_FragColor" in body
+    page = get(v, "/")[1]
+    assert b'src="/orb.js"' in page and b'ctx = canvas.getContext("2d")' in page    # the particle sphere, if no WebGL
+
+
+def test_the_orb_hears_jarvis_and_you_as_loudness_only(settings):
+    import numpy as np
+
+    from jarvis.state import Mode
+    from jarvis.voice.player import AudioPlayer
+    shown = []
+    app = App(settings, Telemetry.disabled(), out=lambda *a, **k: None)
+    app.view = SimpleNamespace(publish=lambda kind, **d: shown.append((kind, d)))
+    t = np.arange(24000) / 24000
+    app._voice_envelope((0.2 * np.sin(2 * np.pi * 220 * t) * (t < 0.5)).astype(np.float32), 24000)
+    kind, data = shown[-1]
+    assert kind == "voice" and data["step"] == 0.05 and len(data["env"]) == 20
+    assert min(data["env"][:10]) > 0.7 and max(data["env"][10:]) < 0.05              # loud, then silence
+    app._mic_level(np.full(1600, 0.1, np.float32))
+    assert shown[-1][0] == "voice"                                                    # not listening: nothing sent
+    app.state.mode = Mode.LISTENING
+    app._mic_level(np.full(1600, 0.1, np.float32))
+    assert shown[-1][0] == "mic" and 0 < shown[-1][1]["level"] <= 1
+
+    played = []
+    backend = SimpleNamespace(play=lambda audio, sr, stop: played.append(len(audio)), stop=lambda: None)
+    player = AudioPlayer(backend)
+    player.on_play = lambda audio, sr: played.append(("orb", sr))
+    player.play(np.zeros(100, np.float32), 24000)
+    player.wait_idle(2)
+    assert played == [("orb", 24000), 100]                                             # the orb first, then the sound

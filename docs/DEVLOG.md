@@ -1948,3 +1948,14 @@ window server: every number matches SymPy, every button reaches Jarvis.
   within 1.8 times each other) and alike (within 12 dB), and no key or
   mouse button may have been pressed in the 4 s around them (pynput hooks:
   only the time of a press, not the key).
+- 4 Nov, 03:30: The orb is now a liquid sphere (ui/orb.js; Adhi chose it from
+  three original designs, after asking for the film's hologram, which
+  stays the film's). WebGL, no libraries: a sphere pushed in and out by 3D
+  noise, ray marched in a fragment shader, glossy with light inside and a
+  glowing rim. Idle breathes; listening draws in and ripples with your
+  voice (mic loudness ten times a second, only while listening); thinking
+  swirls; speaking swells and ripples with Jarvis's own voice (each
+  sentence's loudness every 50 ms, sent as it starts playing). Gold for
+  Jarvis, teal for Friday, blended when they switch. Without WebGL the old
+  particle sphere. docs/orb-states.png shows the five looks (headless
+  Chromium, software WebGL).

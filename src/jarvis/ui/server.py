@@ -41,6 +41,7 @@ ICON = Path(__file__).with_name("jarvis.ico")
 LESSON_JS = Path(__file__).with_name("lesson.js")
 EXPLORE_JS = Path(__file__).with_name("explore.js")
 PROBLEM_JS = Path(__file__).with_name("problem.js")
+ORB_JS = Path(__file__).with_name("orb.js")
 LESSON_ACTIONS = ("next", "prev", "again", "play", "pause", "restart", "goto")
 EXPLORE_ACTIONS = ("pick", "model", "next", "close")
 PROBLEM_ACTIONS = ("part", "hint", "step", "back", "solution", "check", "practice", "summary", "close", "pick")
@@ -226,6 +227,8 @@ class LiveView:
                     self._send(200, PROBLEM_JS.read_bytes(), "text/javascript; charset=utf-8")
                 elif path == "/problem":
                     self._send(200, json.dumps(view.problem() or {}, default=str).encode(), "application/json")
+                elif path == "/orb.js":
+                    self._send(200, ORB_JS.read_bytes(), "text/javascript; charset=utf-8")
                 elif path == "/explore.js":
                     self._send(200, EXPLORE_JS.read_bytes(), "text/javascript; charset=utf-8")
                 elif path == "/events":
