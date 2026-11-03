@@ -225,10 +225,11 @@ function colour(stops, v) {
 }
 
 // ---- the map ----
-const map = L.map('map', { worldCopyJump: true, minZoom: 2, maxZoom: 10 }).setView(__CENTRE__, __ZOOM__);
+const map = L.map('map', { maxZoom: 10, zoomSnap: 0.25 }).setView(__CENTRE__, __ZOOM__);
 addBaseLayers(map);
-const zoomClass = () => { const z = map.getZoom(), m = document.getElementById('map');
-  m.classList.toggle('z1', z <= 2); m.classList.toggle('z2', z === 3); };
+fitWorld(map);
+const zoomClass = () => { const z = map.getZoom(), m = document.getElementById('map');   // zooms can be fractions
+  m.classList.toggle('z1', z < 3); m.classList.toggle('z2', z >= 3 && z < 4); };
 map.on('zoomend', zoomClass); zoomClass();
 
 const CanvasLayer = L.Layer.extend({

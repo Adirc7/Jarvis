@@ -1785,3 +1785,10 @@ takes 85 ms. Not checked from here: NASA's and Open-Meteo's live answers
   bar. Each is remembered. Checked in headless Chromium through the real
   window server: the map goes from 1240 to 1600 px wide, the explorer from
   981 to 1280.
+- 3 Nov, 16:45: Adhi found the maps scroll sideways forever and can be
+  dragged past the top and bottom of the world into empty space. Now every
+  map (news, weather, world) stops at the world's edges (180 W to 180 E,
+  75 S to 84 N, a hard edge), and the farthest zoom-out is the world filling
+  the map, worked out again when the window or the side panel changes size
+  (zoom in quarter steps, so it fits closely). Checked at 1100, 1600 and
+  1920 px wide: dragging hard every way stays inside.

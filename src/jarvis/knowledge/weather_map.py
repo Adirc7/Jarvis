@@ -86,6 +86,7 @@ button {{ background:#12314a; color:var(--text); border:1px solid #1c4766; borde
 const DATA = {data};
 const map = L.map('map').setView([{centre[0]}, {centre[1]}], {zoom});
 addBaseLayers(map);
+fitWorld(map);
 followJarvis(map);
 panelToggle(map);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}})[c]);

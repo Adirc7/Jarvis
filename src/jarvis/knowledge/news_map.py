@@ -81,8 +81,9 @@ h1 {{ font-size:18px; font-weight:500; margin:0 0 4px; color:var(--cyan); }}
 <div class="legend" id="legend"></div><div id="list"></div></aside></main>
 <script>{tiles_js}
 const DATA = {data};
-const map = L.map('map', {{ worldCopyJump: true }}).setView([20, 30], 2);
+const map = L.map('map').setView([20, 30], 2);
 addBaseLayers(map);
+fitWorld(map);
 followJarvis(map);
 panelToggle(map);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}})[c]);

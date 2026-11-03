@@ -38,6 +38,25 @@ function addBaseLayers(map) {
   L.control.layers(layers, null, { position: 'topright' }).addTo(map);
   return layers;
 }
+// The world ends at its edges: no endless scrolling sideways and no empty space above or below it.
+// The farthest you can zoom out is the world filling the map, worked out again when the window changes
+// size (or the side panel hides). Above 84 N and below 75 S there is only ice, so the map stops there.
+const WORLD = L.latLngBounds([[-75, -180], [84, 180]]);
+function fitWorld(map) {
+  map.options.zoomSnap = 0.25;                     // a fraction of a zoom step, so the world fits closely
+  map.options.maxBoundsViscosity = 1.0;            // a hard edge, not a rubber band
+  map.options.worldCopyJump = false;
+  map.setMaxBounds(WORLD);
+  const fit = () => {
+    map.setMinZoom(0);
+    const z = map.getBoundsZoom(WORLD, true);      // the least zoom at which the world covers the view
+    map.setMinZoom(z);
+    if (map.getZoom() < z) map.setZoom(z, { animate: false });
+    map.panInsideBounds(WORLD, { animate: false });
+  };
+  map.on('resize', fit);
+  fit();
+}
 // The side panel can be hidden for a bigger map, and shown again (remembered for next time).
 function panelToggle(map) {
   const main = document.querySelector('main'), aside = document.querySelector('main > aside');

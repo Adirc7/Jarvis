@@ -127,6 +127,7 @@ def test_the_page_carries_the_numbers_and_escapes_what_it_shows(tmp_path):
     assert "window.jarvisLayer" in html and "gibs.earthdata.nasa.gov/wms/epsg3857" in html
     assert "m.action === 'layer'" in html                         # the window's voice moves reach it
     assert "panelToggle(map);" in html and "main.full" in html      # the side panel hides for a bigger map
+    assert "fitWorld(map);" in html and "worldCopyJump: true" not in html   # the world ends at its edges
     path = save_world_map(world, [], tmp_path, now=NOW)
     assert path.name.startswith("weather-map ") and path.name.endswith(" world.html")   # Jarvis's window finds it
 
@@ -168,3 +169,12 @@ def test_the_window_and_the_explorer_can_hide_their_side_columns():
     assert 'id="widePanel"' in window and 'id="wideTop"' in window and "body.wide main > aside" in window
     assert 'id="panelCap"' in window                                # the latest line shows under a wide panel
     assert "jarvisExploreFull" in EXPLORE_JS.read_text(encoding="utf-8")
+
+
+def test_every_map_stops_at_the_worlds_edges():
+    from jarvis.knowledge.weather_map import page as towns_page
+    html = towns_page([], [], "Weather", NOW)
+    assert "fitWorld(map);" in html and "maxBoundsViscosity = 1.0" in html
+    news = Path(__file__).parents[1] / "src" / "jarvis" / "knowledge" / "news_map.py"
+    assert "fitWorld(map);" in news.read_text(encoding="utf-8") and "worldCopyJump: true" not in news.read_text(
+        encoding="utf-8")
