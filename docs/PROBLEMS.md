@@ -63,3 +63,27 @@ sheet with several questions: pick one in the window.
 - Gao et al. (2022), PAL: Program-aided language models. arXiv 2211.10435.
 - Renkl and Atkinson (2003), Structuring the transition from example study to
   problem solving in cognitive skill acquisition.
+
+## The views for modern physics, quantum computing and more
+
+`knowledge/problem_views_more.py`, each checked against known results in
+`tests/test_problems.py`:
+
+| View | Shows | Checked against |
+|---|---|---|
+| quantum (box, oscillator) | levels, ψ and \|ψ\|² at each level, a superposition sloshing in time | electron in a 1 nm box: 0.376 eV; oscillator levels 1 : 3 |
+| quantum (barrier) | tunnelling: the wave moving, \|ψ\|², T and R (solved exactly by matching) | T + R = 1 |
+| quantum (hydrogen) | levels, a transition's photon and its colour, radial probability | 3 → 2: 656.1 nm, red (H-alpha) |
+| qcircuit | a circuit stepped gate by gate: probabilities (coloured by phase), Bloch spheres | Bell state 50/50, no Bloch direction; RY(π/2) to +x; Toffoli |
+| minkowski | light cones, a moving frame's axes and grid, events in both frames, lines of simultaneity, proper times | γ = 1.25 at 0.6c; the twins: 6 years against 10 |
+| black_hole | horizon, photon sphere, innermost stable orbit, curved space, Hawking temperature | the Sun: 2954 m, 6.17 × 10⁻⁸ K |
+| matrix | the plane bent by a 2x2 matrix, eigenvectors, the determinant as an area | [[2, 1], [1, 2]]: λ = 1, 3, det 3 |
+| distribution | normal, t, χ², exponential, uniform, binomial, Poisson: a probability as an area | ±1.96, t(5) ±2.571, χ²(3) 7.815: 0.95 |
+| montecarlo | random points and the estimate converging (π, an integral) | within 0.1 of π for 4000 points |
+| field | a vector field with moving particles (div and curl worked out), or a slope field with RK4 curves | (−y, x): div 0, curl 2; y' = y follows eˣ |
+| molecule | any molecule in 3D from PubChem, turned with the mouse (kept on disk after once) | water: H2O, 2 bonds |
+| feynman | fermions, photons, gluons, W, Z, Higgs lines, with time's direction | |
+
+For ideas with no exact simulation (string theory's extra dimensions, say),
+the plan uses the lessons' tested visuals: Mermaid diagrams, 3D surfaces,
+scenes and Wikipedia pictures, never a model-drawn sketch.

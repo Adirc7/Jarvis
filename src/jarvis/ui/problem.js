@@ -487,8 +487,286 @@ window.JarvisProblem = (function () {
       if (v.K_shown) text(ctx, `K = ${v.K_shown}   (x = ${fmt(v.x)} ${v.unit})`, 20, 14, C.green, 13, "left", "600");
     } };
   }
+  // ---- modern physics, quantum computing, linear algebra, statistics, fields, molecules, particles ----
+  function changed(hl, state) { const k = JSON.stringify(hl); if (k !== state.key) { state.key = k; state.age = 0; return true; } return false; }
+  function quantumView(v) {
+    const st = { key: "", age: 0 }; let tau = 0;
+    const cols = [C.cyan, C.amber, C.green, C.violet, C.pink, C.teal];
+    return { timed: false, draw(ctx, w, h, dt, t, hl) {
+      changed(hl, st); st.age += dt; tau += dt;
+      if (v.system === "hydrogen") return hydrogen(ctx, w, h, hl);
+      const r = { x: 60, y: 30, w: w - 190, h: h - 70 }, prob = hl.show && hl.show.includes("prob");
+      const xs = v.x, x0 = xs[0], x1 = xs[xs.length - 1], X = x => r.x + (x - x0) / (x1 - x0) * r.w;
+      if (v.system === "barrier") {
+        const V0 = v.V0, E = v.E, Y = e => r.y + r.h - e / (V0 * 1.6) * r.h;
+        ctx.fillStyle = "#1a2c40"; ctx.fillRect(X(0), Y(V0), X(v.a) - X(0), r.y + r.h - Y(V0));
+        text(ctx, `V₀ = ${fmt(V0 / 1.602e-19)} eV`, X(v.a) + 8, Y(V0), C.muted, 12);
+        ctx.strokeStyle = C.amber; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(r.x, Y(E)); ctx.lineTo(r.x + r.w, Y(E)); ctx.stroke(); ctx.setLineDash([]);
+        text(ctx, `E = ${v.E_shown[0]}`, r.x + 4, Y(E) - 10, C.amber, 12);
+        const amp = r.h * 0.18, ph = tau * 2.5, mid = Y(E);
+        ctx.strokeStyle = C.cyan; ctx.lineWidth = 2.2; ctx.beginPath();
+        xs.forEach((x, i) => { const [re, im] = v.psi[i], val = re * Math.cos(ph) + im * Math.sin(ph); i ? ctx.lineTo(X(x), mid - val * amp) : ctx.moveTo(X(x), mid - val * amp); }); ctx.stroke();
+        ctx.strokeStyle = C.pink + "aa"; ctx.lineWidth = 1.6; ctx.beginPath();
+        xs.forEach((x, i) => { const [re, im] = v.psi[i], p2 = (re * re + im * im) * 0.5; i ? ctx.lineTo(X(x), mid - p2 * amp) : ctx.moveTo(X(x), mid - p2 * amp); }); ctx.stroke();
+        text(ctx, `transmitted T = ${v.T_shown}   reflected R = ${fmt(v.R)}   (T + R = 1)`, 14, 16, C.text, 13, "left", "600");
+        text(ctx, "— Re ψ (moving)   — |ψ|²", r.x + r.w, 16, C.muted, 12, "right"); return;
+      }
+      const Es = v.E, top = Math.max(...Es) * 1.25, Y = e => r.y + r.h - e / top * r.h;
+      ctx.strokeStyle = C.text; ctx.lineWidth = 2;
+      if (v.system === "box") { ctx.beginPath(); ctx.moveTo(X(x0), r.y); ctx.lineTo(X(x0), r.y + r.h); ctx.lineTo(X(x1), r.y + r.h); ctx.lineTo(X(x1), r.y); ctx.stroke(); }
+      else { ctx.strokeStyle = C.muted; ctx.beginPath(); xs.forEach((x, i) => { const y = Y(Math.min(v.V[i], top)); i ? ctx.lineTo(X(x), y) : ctx.moveTo(X(x), y); }); ctx.stroke(); }
+      const peak = Math.max(...v.psi.flat().map(Math.abs)), Hpx = r.h / Es.length * 0.42, amp = Hpx / peak;
+      const sup = hl.time && v.superpose && v.superpose.length >= 2 ? v.superpose : null;
+      v.levels.forEach((n, k) => {
+        const lit = hl.level === undefined || hl.level === n, y0 = Y(Es[k]), col = lit ? cols[k % cols.length] : "#2a4258";
+        ctx.strokeStyle = col + (sup ? "55" : ""); ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(r.x, y0); ctx.lineTo(r.x + r.w, y0); ctx.stroke(); ctx.setLineDash([]);
+        if (!sup) { ctx.strokeStyle = col; ctx.lineWidth = lit ? 2.4 : 1.4; ctx.beginPath();
+          xs.forEach((x, i) => { const p = v.psi[k][i], y = y0 - (prob ? p * p / (peak * peak) * Hpx : p * amp); i ? ctx.lineTo(X(x), y) : ctx.moveTo(X(x), y); }); ctx.stroke(); }
+        text(ctx, `n = ${n}: ${v.E_shown[k]}`, r.x + r.w + 4, y0, col, 11);
+      });
+      if (sup) { // the superposition's |Ψ|² sloshing: phases e^{-iEt/ħ}, one beat of the first two in 3 s
+        const E0 = Es[sup[0]], dE = Math.abs(Es[sup[1]] - E0) || 1, c = 1 / Math.sqrt(sup.length), yb = Y((Es[sup[0]] + Es[sup[1]]) / 2);
+        ctx.strokeStyle = C.amber; ctx.lineWidth = 2.6; ctx.beginPath();
+        xs.forEach((x, i) => { let re = 0, im = 0; for (const k of sup) { const ph = -2 * Math.PI * (Es[k] - E0) / dE * tau / 3; re += c * v.psi[k][i] * Math.cos(ph); im += c * v.psi[k][i] * Math.sin(ph); }
+          const y = yb - (re * re + im * im) / (peak * peak) * Hpx * 1.6; i ? ctx.lineTo(X(x), y) : ctx.moveTo(X(x), y); }); ctx.stroke();
+        text(ctx, `|Ψ|² of a superposition of n = ${sup.map(k => v.levels[k]).join(" and ")}: it sloshes back and forth`, 14, 16, C.amber, 13, "left", "600");
+      } else text(ctx, prob ? "|ψ|²: where the particle is likely to be found" : "ψ for each level, drawn at its energy", 14, 16, C.text, 13, "left", "600");
+    } };
+    function hydrogen(ctx, w, h, hl) {
+      const r = { x: 40, y: 34, w: w * 0.42, h: h - 70 }, Es = v.E_eV, lo = Math.min(...Es) * 1.08, Y = e => r.y + r.h - (e - lo) / (0 - lo) * r.h;
+      text(ctx, "energy (eV)", r.x, r.y - 14, C.cyan, 11, "left", "600");
+      ctx.strokeStyle = C.muted; ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.moveTo(r.x, Y(0)); ctx.lineTo(r.x + r.w, Y(0)); ctx.stroke(); ctx.setLineDash([]); text(ctx, "0 (free)", r.x + r.w, Y(0) - 8, C.muted, 10, "right");
+      v.levels.forEach((n, k) => { const lit = hl.level === undefined || hl.level === n; ctx.strokeStyle = lit ? cols[k % cols.length] : "#2a4258"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(r.x + 40, Y(Es[k])); ctx.lineTo(r.x + r.w, Y(Es[k])); ctx.stroke(); text(ctx, `n = ${n}   ${v.E_shown[k]}`, r.x + 44, Y(Es[k]) - 9, lit ? C.text : C.muted, 11); });
+      if (v.transition) { const tr = v.transition, a = v.levels.indexOf(tr.from), b = v.levels.indexOf(tr.to);
+        if (a >= 0 && b >= 0) { const xx = r.x + r.w * 0.6, colour = { violet: "#a070ff", blue: "#4d7dff", green: "#56e07a", yellow: "#ffe45c", orange: "#ffa040", red: "#ff4d4d" }[tr.colour] || C.muted;
+          arrow(ctx, xx, Y(Es[a]), xx, Y(Es[b]), colour, 3, 10);
+          ctx.strokeStyle = colour; ctx.lineWidth = 2; ctx.beginPath(); for (let k = 0; k <= 60; k++) { const px = xx + 10 + k * 1.6, py = (Y(Es[a]) + Y(Es[b])) / 2 + Math.sin(k * 0.6 - st.age * 8) * 6; k ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.stroke();
+          text(ctx, `photon: ${tr.shown} (${tr.colour}), ΔE = ${fmt(tr.dE_eV)} eV`, xx + 10, (Y(Es[a]) + Y(Es[b])) / 2 - 18, colour, 12, "left", "600"); } }
+      const g = { x: w * 0.55, y: 34, w: w * 0.4, h: h - 80 }, all = v.radial.flatMap(c => c.P), pm = Math.max(...all) || 1, rmax = 25;
+      const { X, Y: GY } = axes(ctx, g, [0, rmax], [0, pm * 1.1], "r / a₀", "P(r) = r²R²");
+      v.radial.forEach((c, k) => curve(ctx, c.r.map((rr, i) => [rr / v.a0, c.P[i]]), X, GY, cols[v.levels.indexOf(c.n) % cols.length], 2.2));
+      text(ctx, `hydrogen${v.Z > 1 ? " (Z = " + v.Z + ")" : ""}: radial probability, l = ${v.l}`, g.x, 16, C.text, 12, "left", "600");
+    }
+  }
+  function blochAt(ctx, cx, cy, R, b, label) {
+    ctx.strokeStyle = "#2a5878"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(cx, cy, R, R * 0.3, 0, 0, 7); ctx.stroke();
+    const P = (x, y, z) => [cx + (x * 0.94 + y * 0.34) * R, cy + (-z * 0.94 + y * 0.18) * R];
+    text(ctx, "|0⟩", cx, cy - R - 10, C.muted, 11, "center"); text(ctx, "|1⟩", cx, cy + R + 11, C.muted, 11, "center");
+    const [ex, ey] = P(1, 0, 0); text(ctx, "+x", ex + 12, ey, C.muted, 10);
+    const [bx, by] = P(b[0], b[1], b[2]), len = Math.hypot(...b);
+    if (len < 0.05) { text(ctx, "entangled: no direction of its own", cx, cy + R + 26, C.pink, 11, "center"); ctx.fillStyle = C.pink; ctx.beginPath(); ctx.arc(cx, cy, 4, 0, 7); ctx.fill(); }
+    else arrow(ctx, cx, cy, bx, by, C.amber, 2.6, 9);
+    text(ctx, label, cx, cy - R - 26, C.text, 12, "center", "600");
+  }
+  function qcircuitView(v) {
+    let shown = v.states[v.states.length - 1], from = shown, mix = 1, lastStep = -1;
+    const lerp = (a, b, f) => a.map((x, i) => x + (b[i] - x) * f);
+    return { timed: false, draw(ctx, w, h, dt, t, hl) {
+      const step = hl.gate === undefined ? v.gates.length : clamp(Math.round(hl.gate), 0, v.gates.length);
+      if (step !== lastStep) { from = lastStep < 0 ? v.states[step] : { probs: shown.probs, bloch: shown.bloch }; lastStep = step; mix = 0; }
+      mix = clamp(mix + dt / 0.6, 0, 1); const target = v.states[step];
+      shown = { probs: lerp(from.probs, target.probs, mix), bloch: target.bloch.map((b, q) => lerp(from.bloch[q], b, mix)), amps: target.amps };
+      const nq = v.qubits, top = 40, gap = Math.min(46, (h * 0.42) / nq), colW = Math.min(80, (w - 160) / Math.max(1, v.gates.length + 1));
+      for (let q = 0; q < nq; q++) { const y = top + q * gap; ctx.strokeStyle = "#3a6f93"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(70, y); ctx.lineTo(80 + colW * (v.gates.length + 1), y); ctx.stroke();
+        text(ctx, `q${q} |${(v.labels[0] || "").length ? "0" : ""}⟩`, 20, y, C.muted, 12); }
+      v.gates.forEach((g, i) => { const x = 80 + colW * (i + 1), done = i < step, col = done ? C.cyan : "#35506a";
+        if (g.qubits.length > 1) { const ys = g.qubits.map(q => top + q * gap); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, Math.min(...ys)); ctx.lineTo(x, Math.max(...ys)); ctx.stroke();
+          const ctrl = g.name === "SWAP" ? [] : g.qubits.slice(0, -1), tq = g.qubits[g.qubits.length - 1];
+          ctrl.forEach(q => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, top + q * gap, 5, 0, 7); ctx.fill(); });
+          if (g.name === "SWAP") g.qubits.forEach(q => text(ctx, "×", x, top + q * gap, col, 18, "center", "600"));
+          else if (g.name === "CZ") { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, top + tq * gap, 5, 0, 7); ctx.fill(); }
+          else { ctx.strokeStyle = col; ctx.beginPath(); ctx.arc(x, top + tq * gap, 10, 0, 7); ctx.moveTo(x - 10, top + tq * gap); ctx.lineTo(x + 10, top + tq * gap); ctx.moveTo(x, top + tq * gap - 10); ctx.lineTo(x, top + tq * gap + 10); ctx.stroke(); } }
+        else { const y = top + g.qubits[0] * gap; ctx.fillStyle = done ? "#12405e" : C.bg; ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.fillRect(x - 16, y - 14, 32, 28); ctx.strokeRect(x - 16, y - 14, 32, 28);
+          text(ctx, g.name, x, y, done ? "#fff" : C.muted, 12, "center", "600"); if (g.angle !== null) text(ctx, g.angle_shown, x, y + 22, C.muted, 9, "center"); } });
+      const cx = 80 + colW * (step + 0.5); ctx.strokeStyle = C.amber; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(cx, top - 20); ctx.lineTo(cx, top + (nq - 1) * gap + 20); ctx.stroke(); ctx.setLineDash([]);
+      text(ctx, step === 0 ? "the start" : `after gate ${step} (${v.gates[step - 1].name})`, cx + 6, top - 24, C.amber, 12, "left", "600");
+      // probabilities, coloured by each amplitude's phase
+      const by = top + nq * gap + 30, bh = h - by - 40, bw = Math.min(60, (w * 0.55) / v.labels.length);
+      v.labels.forEach((lab, i) => { const p = shown.probs[i], x = 30 + i * (bw + 6), [re, im] = shown.amps[i], ph = Math.atan2(im, re);
+        ctx.fillStyle = `hsl(${Math.round((ph / Math.PI * 180 + 360) % 360)},80%,60%)`; ctx.fillRect(x, by + bh - p * bh, bw, p * bh);
+        ctx.strokeStyle = C.line; ctx.strokeRect(x, by, bw, bh); text(ctx, `|${lab}⟩`, x + bw / 2, by + bh + 12, C.text, 11, "center");
+        if (p > 0.005) text(ctx, fmt(p), x + bw / 2, by + bh - p * bh - 9, C.text, 11, "center"); });
+      text(ctx, "measurement probabilities (colour: the amplitude's phase)", 30, by - 12, C.muted, 11);
+      const R = Math.min(70, (w * 0.4) / nq / 2.4, bh / 2.6);
+      shown.bloch.forEach((b, q) => blochAt(ctx, w * 0.62 + q * R * 2.6 + R, by + bh / 2, R, b, `qubit ${q}`));
+    } };
+  }
+  function minkowskiView(v) {
+    let now = 0;
+    return { timed: false, draw(ctx, w, h, dt, t, hl) {
+      const S = v.span, side = Math.min(w - 80, h - 60), ox = (w - side) / 2 + 20, oy = 30, half = side / 2;
+      const X = x => ox + half + x / S * half, Y = ct => oy + side - (ct + S * 0) / S * side * 0.98 - 6;
+      now = (now + dt * S / 8) % S;
+      ctx.strokeStyle = C.line; for (let k = -Math.floor(S); k <= S; k += Math.max(1, Math.round(S / 8))) { ctx.beginPath(); ctx.moveTo(X(k), Y(0)); ctx.lineTo(X(k), Y(S)); ctx.stroke(); ctx.beginPath(); ctx.moveTo(X(-S), Y(Math.abs(k))); ctx.lineTo(X(S), Y(Math.abs(k))); ctx.stroke(); }
+      ctx.strokeStyle = "#5a7a94"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(-S), Y(0)); ctx.lineTo(X(S), Y(0)); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(0), Y(S)); ctx.stroke();
+      text(ctx, `x ${v.unit ? "(" + v.unit + ")" : ""}`, X(S) - 4, Y(0) + 14, C.muted, 12, "right"); text(ctx, `ct ${v.unit ? "(" + v.unit + ")" : ""}`, X(0) + 6, Y(S) + 8, C.muted, 12);
+      ctx.fillStyle = C.amber + "14"; ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(S), Y(S)); ctx.lineTo(X(-S), Y(S)); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = C.amber; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(S), Y(S)); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(-S), Y(S)); ctx.stroke();
+      text(ctx, "light (x = ±ct)", X(S * 0.72), Y(S * 0.8), C.amber, 11);
+      if (v.beta) { const b = v.beta, g = v.gamma, frame = hl.frame !== false;
+        ctx.strokeStyle = C.green; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(b * S), Y(S)); ctx.moveTo(X(-S), Y(Math.max(0, -b * S))); ctx.lineTo(X(S), Y(b * S)); ctx.stroke();
+        text(ctx, `ct' (frame at ${fmt(b)}c, γ = ${v.gamma_shown})`, X(b * S) + 6, Y(S) + 14, C.green, 12, "left", "600"); text(ctx, "x'", X(S) - 10, Y(b * S) - 10, C.green, 12, "right", "600");
+        if (frame) { ctx.save(); ctx.beginPath(); ctx.rect(X(-S), Y(S), side, side); ctx.clip();
+          ctx.strokeStyle = C.green + "33"; ctx.lineWidth = 1; const step = Math.max(1, Math.round(S / 6));
+          for (let k = step; k < S * 1.5; k += step) { // lines of constant ct' = k: ct - b x = k / g ; constant x' = k: x - b ct = k / g
+            ctx.beginPath(); ctx.moveTo(X(-S), Y(k / g - b * S)); ctx.lineTo(X(S), Y(k / g + b * S)); ctx.stroke();
+            for (const sgn of [1, -1]) { ctx.beginPath(); ctx.moveTo(X(sgn * k / g), Y(0)); ctx.lineTo(X(sgn * k / g + b * S), Y(S)); ctx.stroke(); } }
+          ctx.restore(); } }
+      ctx.save(); ctx.beginPath(); ctx.rect(X(-S), Y(S), side, side); ctx.clip();
+      v.worldlines.forEach((wl, i) => { const col = [C.cyan, C.pink, C.violet, C.teal][i % 4]; ctx.strokeStyle = col; ctx.lineWidth = 2.6; ctx.beginPath();
+        wl.points.forEach(([x, ct], k) => k ? ctx.lineTo(X(x), Y(ct)) : ctx.moveTo(X(x), Y(ct))); ctx.stroke();
+        text(ctx, `${wl.name}: proper time τ = ${wl.tau_shown}${v.unit ? " " + (v.unit === "ly" ? "years" : v.unit) : ""}`, X(-S) + 8, Y(S) + 14 + i * 16, col, 12, "left", "600");
+        for (let k = 1; k < wl.points.length; k++) { const [xa, ca] = wl.points[k - 1], [xb, cb] = wl.points[k]; if (now >= ca && now <= cb) { const f = (now - ca) / ((cb - ca) || 1);
+          ctx.fillStyle = col; ctx.beginPath(); ctx.arc(X(xa + (xb - xa) * f), Y(now), 5, 0, 7); ctx.fill(); } } });
+      ctx.restore();
+      v.events.forEach(e => { const lit = !hl.event || hl.event === e.name; ctx.fillStyle = lit ? "#fff" : C.muted; ctx.beginPath(); ctx.arc(X(e.x), Y(e.ct), lit ? 6 : 4, 0, 7); ctx.fill();
+        text(ctx, `${e.name} (x ${fmt(e.x)}, ct ${fmt(e.ct)})${v.beta ? `  →  (x' ${fmt(e.x2)}, ct' ${fmt(e.ct2)})` : ""}`, X(e.x) + 9, Y(e.ct) - 10, lit ? C.text : C.muted, 12, "left", lit && hl.event ? "600" : "");
+        if (hl.simultaneity && lit && v.beta) { const k = e.ct - v.beta * e.x; ctx.strokeStyle = C.green; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(X(-S), Y(k - v.beta * S)); ctx.lineTo(X(S), Y(k + v.beta * S)); ctx.stroke(); ctx.setLineDash([]);
+          text(ctx, "simultaneous with it in the moving frame", X(S * 0.2), Y(k + v.beta * S * 0.2) - 10, C.green, 11); } });
+    } };
+  }
+  function blackHoleView(v) {
+    let ang = 0;
+    return { timed: false, draw(ctx, w, h, dt, t, hl) {
+      ang += dt * 0.9; const cx = w / 2, cy = h * 0.3, R = Math.min(w * 0.42, h * 0.9), rs = 1, rmax = 8;
+      const depth = r => 2 * Math.sqrt(rs * (r - rs)), dmax = depth(rmax), sc = R / rmax;
+      for (let k = 0; k <= 22; k++) { const r = rs + (rmax - rs) * Math.pow(k / 22, 1.6), z = (dmax - depth(r)) * sc * 0.55;
+        ctx.strokeStyle = `rgba(77,225,255,${0.12 + 0.4 * (1 - k / 22)})`; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(cx, cy + z, r * sc, r * sc * 0.28, 0, 0, 7); ctx.stroke(); }
+      for (let a = 0; a < 16; a++) { const th = a / 16 * Math.PI * 2; ctx.strokeStyle = "rgba(77,225,255,0.18)"; ctx.beginPath();
+        for (let k = 0; k <= 30; k++) { const r = rs + (rmax - rs) * Math.pow(k / 30, 1.6), z = (dmax - depth(r)) * sc * 0.55; const px = cx + Math.cos(th) * r * sc, py = cy + z + Math.sin(th) * r * sc * 0.28; k ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.stroke(); }
+      const ring = (r, col, lab, lit) => { const z = (dmax - depth(Math.max(r, rs + 1e-6))) * sc * 0.55; ctx.strokeStyle = col; ctx.lineWidth = lit ? 3 : 2; ctx.beginPath(); ctx.ellipse(cx, cy + z, r * sc, r * sc * 0.28, 0, 0, 7); ctx.stroke();
+        text(ctx, lab, cx + r * sc + 8, cy + z, col, 12, "left", "600"); return z; };
+      const show = k => !hl.show || hl.show.includes(k);
+      ring(rs, C.red, `event horizon r_s = ${v.rs_shown}`, true);
+      if (show("photon")) ring(1.5, C.amber, "photon sphere 1.5 r_s", hl.show && hl.show.includes("photon"));
+      const zi = show("isco") ? ring(3, C.green, "innermost stable orbit 3 r_s", hl.show && hl.show.includes("isco")) : 0;
+      if (show("isco")) { ctx.fillStyle = C.green; ctx.beginPath(); ctx.arc(cx + Math.cos(ang) * 3 * sc, cy + zi + Math.sin(ang) * 3 * sc * 0.28, 5, 0, 7); ctx.fill(); }
+      text(ctx, `mass ${fmt(v.M)} kg   ·   Hawking temperature ${v.T_shown}   ·   evaporates in ${fmt(v.lifetime_s / 3.156e7)} years`, 14, 16, C.text, 12, "left", "600");
+      text(ctx, "space near the hole, drawn as a funnel (Flamm's paraboloid): steeper means more curved", 14, h - 14, C.muted, 11);
+    } };
+  }
+  function matrixView(v) {
+    const st = { key: "", age: 0 }, A = v.A;
+    return { timed: false, draw(ctx, w, h, dt, t, hl) {
+      changed(hl, st); st.age += dt; const s = hl.t !== undefined ? clamp(hl.t, 0, 1) : (1 - Math.cos(Math.min(st.age / 2.2, 1) * Math.PI)) / 2;
+      const M = [[1 + (A[0][0] - 1) * s, A[0][1] * s], [A[1][0] * s, 1 + (A[1][1] - 1) * s]], ap = (p) => [M[0][0] * p[0] + M[0][1] * p[1], M[1][0] * p[0] + M[1][1] * p[1]];
+      const ext = Math.max(3, ...A.flat().map(Math.abs).map(x => x * 2)), sc = Math.min(w, h) / (2 * ext + 1), cx = w / 2, cy = h / 2, P = p => [cx + p[0] * sc, cy - p[1] * sc];
+      ctx.strokeStyle = "#162a3c"; for (let k = -ext; k <= ext; k++) { ctx.beginPath(); ctx.moveTo(...P([k, -ext])); ctx.lineTo(...P([k, ext])); ctx.moveTo(...P([-ext, k])); ctx.lineTo(...P([ext, k])); ctx.stroke(); }
+      ctx.strokeStyle = C.cyan + "55"; ctx.lineWidth = 1; for (let k = -ext; k <= ext; k++) { ctx.beginPath(); ctx.moveTo(...P(ap([k, -ext]))); ctx.lineTo(...P(ap([k, ext]))); ctx.moveTo(...P(ap([-ext, k]))); ctx.lineTo(...P(ap([ext, k]))); ctx.stroke(); }
+      const show = k => !hl.show || hl.show.includes(k);
+      if (show("det")) { ctx.fillStyle = C.amber + "40"; ctx.beginPath(); [[0, 0], [1, 0], [1, 1], [0, 1]].map(ap).forEach((p, i) => i ? ctx.lineTo(...P(p)) : ctx.moveTo(...P(p))); ctx.closePath(); ctx.fill();
+        text(ctx, `area = |det A| = ${fmt(Math.abs(v.det))}${v.det < 0 ? " (flipped)" : ""}`, ...P(ap([1.1, 1.1])), C.amber, 13, "left", "600"); }
+      arrow(ctx, ...P([0, 0]), ...P(ap([1, 0])), C.green, 3, 10); arrow(ctx, ...P([0, 0]), ...P(ap([0, 1])), C.pink, 3, 10);
+      text(ctx, "A î", ...P(ap([1.08, -0.15])), C.green, 12, "left", "600"); text(ctx, "A ĵ", ...P(ap([-0.3, 1.1])), C.pink, 12, "left", "600");
+      if (show("eigen")) v.eigen.forEach((e, i) => { const d = e.vector, L = ext * 1.5; ctx.strokeStyle = C.violet; ctx.setLineDash([6, 5]); ctx.beginPath(); ctx.moveTo(...P([-d[0] * L, -d[1] * L])); ctx.lineTo(...P([d[0] * L, d[1] * L])); ctx.stroke(); ctx.setLineDash([]);
+        const lam = 1 + (e.value - 1) * s; arrow(ctx, ...P([0, 0]), ...P([d[0] * lam, d[1] * lam]), C.violet, 3.4, 10); text(ctx, `λ${i + 1} = ${e.shown}`, ...P([d[0] * lam * 1.08, d[1] * lam * 1.08]), C.violet, 13, "left", "600"); });
+      v.vectors.forEach((p, i) => { arrow(ctx, ...P([0, 0]), ...P(ap(p)), C.teal, 2.4, 9); });
+      text(ctx, `A = [[${A[0].map(x => fmt(x)).join(", ")}], [${A[1].map(x => fmt(x)).join(", ")}]]   det = ${v.det_shown}${v.complex_eigen ? "   (complex eigenvalues: it rotates)" : ""}`, 14, 16, C.text, 13, "left", "600");
+    } };
+  }
+  function distributionView(v) {
+    return { timed: false, draw(ctx, w, h, dt, t, hl) {
+      const r = { x: 60, y: 40, w: w - 100, h: h - 90 };
+      if (v.discrete) { const N = v.pmf.length, top = Math.max(...v.pmf) * 1.15, { X, Y } = axes(ctx, r, [-0.5, N - 0.5], [0, top], "k", "P(X = k)"), bw = Math.max(2, r.w / N * 0.7);
+        v.pmf.forEach((p, k) => { const inR = k >= v.from - 1e-9 && k <= v.to + 1e-9; ctx.fillStyle = inR ? C.amber : "#2a6f8f"; ctx.fillRect(X(k) - bw / 2, Y(p), bw, Y(0) - Y(p)); }); }
+      else { const top = Math.max(...v.curve.map(p => p[1])) * 1.15, { X, Y } = axes(ctx, r, v.x, [0, top], "x", "f(x)");
+        const a = Math.max(v.x[0], v.from), b = Math.min(v.x[1], v.to), pts = v.curve.filter(p => p[0] >= a && p[0] <= b);
+        ctx.fillStyle = C.amber + "55"; ctx.beginPath(); ctx.moveTo(X(a), Y(0)); pts.forEach(p => ctx.lineTo(X(p[0]), Y(p[1]))); ctx.lineTo(X(b), Y(0)); ctx.closePath(); ctx.fill();
+        curve(ctx, v.curve, X, Y, C.cyan, 2.4);
+        for (const e of [v.from, v.to]) if (isFinite(e) && e >= v.x[0] && e <= v.x[1]) { ctx.strokeStyle = C.amber; ctx.beginPath(); ctx.moveTo(X(e), Y(0)); ctx.lineTo(X(e), r.y); ctx.stroke(); text(ctx, fmt(e), X(e), r.y - 6, C.amber, 11, "center"); } }
+      const range = `${isFinite(v.from) ? fmt(v.from) + " ≤ " : ""}X${isFinite(v.to) ? " ≤ " + fmt(v.to) : ""}`;
+      text(ctx, `${v.dist}: P(${range}) = ${v.shown}`, 14, 16, C.amber, 14, "left", "600");
+    } };
+  }
+  function montecarloView(v) {
+    return { timed: true, T: v.n, unit: "points", draw(ctx, w, h, dt, t, hl) {
+      const k = clamp(Math.round(t), 0, v.points.length), [x0, x1, y0, y1] = v.box, side = Math.min(w * 0.45, h - 70), bx = 30, by = 40;
+      const X = x => bx + (x - x0) / (x1 - x0) * side, Y = y => by + side - (y - y0) / ((y1 - y0) || 1) * side;
+      ctx.strokeStyle = C.line; ctx.strokeRect(bx, by, side, side);
+      if (v.mc === "pi") { ctx.strokeStyle = C.amber; ctx.beginPath(); ctx.arc(X(0), Y(0), side, -Math.PI / 2, 0); ctx.stroke(); }
+      else { curve(ctx, v.curve, X, Y, C.amber, 2.2); }
+      for (let i = 0; i < k; i++) { const [px, py, inside] = v.points[i]; ctx.fillStyle = inside ? C.cyan : "#5a3a4a"; ctx.fillRect(X(px) - 1.3, Y(py) - 1.3, 2.6, 2.6); }
+      const r = { x: bx + side + 70, y: 40, w: w - side - 130, h: h - 90 }, run = v.running.filter(p => p[0] <= Math.max(k, 1));
+      const vals = v.running.map(p => p[1]), lo = Math.min(v.exact, ...vals), hi = Math.max(v.exact, ...vals), pad = (hi - lo) * 0.15 || 0.1;
+      const { X: GX, Y: GY } = axes(ctx, r, [0, v.n], [lo - pad, hi + pad], "samples", "estimate");
+      ctx.strokeStyle = C.green; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(GX(0), GY(v.exact)); ctx.lineTo(GX(v.n), GY(v.exact)); ctx.stroke(); ctx.setLineDash([]);
+      text(ctx, `exact ${v.exact_shown}`, GX(v.n), GY(v.exact) - 10, C.green, 12, "right");
+      curve(ctx, run, GX, GY, C.cyan, 2.2);
+      const cur = run.length ? run[run.length - 1][1] : 0;
+      text(ctx, `${k} random points · estimate ${fmt(cur, 4)}   (all ${v.n}: ${v.shown})`, 14, 16, C.text, 13, "left", "600");
+    } };
+  }
+  function fieldView(v) {
+    const parts = Array.from({ length: 260 }, () => ({ x: Math.random(), y: Math.random(), age: Math.random() * 60 }));
+    const mags = v.grid.map(g => Math.hypot(g[2], g[3])), mmax = Math.max(1e-9, ...mags);
+    return { timed: false, draw(ctx, w, h, dt, t, hl) {
+      const r = { x: 50, y: 34, w: w - 90, h: h - 74 }, { X, Y } = axes(ctx, r, v.x, v.y, "x", "y"), cw = r.w / 20;
+      v.grid.forEach((g, i) => { const m = mags[i], ux = v.mode === "slope" ? 1 / Math.hypot(1, g[3]) : g[2] / (m || 1), uy = v.mode === "slope" ? g[3] / Math.hypot(1, g[3]) : g[3] / (m || 1);
+        const L = cw * 0.4, px = X(g[0]), py = Y(g[1]), sx = (r.w / (v.x[1] - v.x[0])), sy = (r.h / (v.y[1] - v.y[0])), k = Math.hypot(ux * sx, uy * sy) || 1;
+        const dx = ux * sx / k * L, dy = -uy * sy / k * L, col = v.mode === "slope" ? "#4a7a9a" : `hsl(${200 - 160 * m / mmax},80%,60%)`;
+        if (v.mode === "slope") { ctx.strokeStyle = col; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(px - dx, py - dy); ctx.lineTo(px + dx, py + dy); ctx.stroke(); }
+        else arrow(ctx, px - dx, py - dy, px + dx, py + dy, col, 1.4, 5); });
+      if (v.mode === "slope") v.solutions.forEach((s, i) => curve(ctx, s, X, Y, [C.amber, C.green, C.pink, C.violet, C.teal][i % 5], 2.4));
+      else { const near = (x, y) => { let best = null, bd = 1e18; for (const g of v.grid) { const d = (g[0] - x) ** 2 + (g[1] - y) ** 2; if (d < bd) { bd = d; best = g; } } return best; };
+        ctx.fillStyle = C.amber; for (const p of parts) { const x = v.x[0] + p.x * (v.x[1] - v.x[0]), y = v.y[0] + p.y * (v.y[1] - v.y[0]), g = near(x, y);
+          if (!g || ++p.age > 120) { p.x = Math.random(); p.y = Math.random(); p.age = 0; continue; }
+          p.x += g[2] / mmax * dt * 0.12; p.y += g[3] / mmax * dt * 0.12; if (p.x < 0 || p.x > 1 || p.y < 0 || p.y > 1) { p.x = Math.random(); p.y = Math.random(); p.age = 0; }
+          ctx.beginPath(); ctx.arc(X(x), Y(y), 2, 0, 7); ctx.fill(); }
+        text(ctx, `div F = ${v.div}    curl F = ${v.curl}`, 14, 16, C.text, 13, "left", "600"); }
+    } };
+  }
+  const CPK = { H: ["#f2f2f2", 0.32], C: ["#8a8f96", 0.5], N: ["#3a6bff", 0.48], O: ["#ff4d4d", 0.46], S: ["#ffe45c", 0.6], P: ["#ff9a40", 0.58],
+    F: ["#7cf07c", 0.42], Cl: ["#40d040", 0.56], Br: ["#a52a2a", 0.6], I: ["#9a40c0", 0.64], Na: ["#ab5cf2", 0.62], Fe: ["#e06633", 0.6] };
+  function moleculeView(v) {
+    let ry = 0, rx = 0.35, drag = null;
+    const span = Math.max(1, ...v.atoms.map(a => Math.hypot(a.x, a.y, a.z)));
+    return { timed: false, attach(canvas) {
+      canvas.addEventListener("pointerdown", e => { drag = [e.clientX, e.clientY, ry, rx]; canvas.setPointerCapture(e.pointerId); });
+      canvas.addEventListener("pointermove", e => { if (drag) { ry = drag[2] + (e.clientX - drag[0]) * 0.01; rx = clamp(drag[3] + (e.clientY - drag[1]) * 0.01, -1.5, 1.5); } });
+      canvas.addEventListener("pointerup", () => { drag = null; }); canvas.style.cursor = "grab"; canvas.style.pointerEvents = "auto"; },
+      draw(ctx, w, h, dt) {
+        if (!drag) ry += dt * 0.4;
+        const sc = Math.min(w, h) * 0.42 / span, cx = w / 2, cy = h / 2 + 10, cyr = Math.cos(ry), syr = Math.sin(ry), cxr = Math.cos(rx), sxr = Math.sin(rx);
+        const P = v.atoms.map(a => { const x1 = a.x * cyr + a.z * syr, z1 = -a.x * syr + a.z * cyr, y2 = a.y * cxr - z1 * sxr, z2 = a.y * sxr + z1 * cxr;
+          const f = 1 / (1 + z2 / (span * 6)); return [cx + x1 * sc * f, cy - y2 * sc * f, z2, f]; });
+        ctx.lineWidth = 3; for (const [a, b, order] of v.bonds) { const pa = P[a], pb = P[b]; if (!pa || !pb) continue; ctx.strokeStyle = "#9fb3c4";
+          if (order >= 2) { const dx = pb[1] - pa[1], dy = pa[0] - pb[0], L = Math.hypot(dx, dy) || 1, o = 3.2;
+            for (const s of order === 3 ? [-1, 0, 1] : [-0.5, 0.5]) { ctx.beginPath(); ctx.moveTo(pa[0] + dx / L * o * s * 2, pa[1] + dy / L * o * s * 2); ctx.lineTo(pb[0] + dx / L * o * s * 2, pb[1] + dy / L * o * s * 2); ctx.lineWidth = 2; ctx.stroke(); } ctx.lineWidth = 3; }
+          else { ctx.beginPath(); ctx.moveTo(pa[0], pa[1]); ctx.lineTo(pb[0], pb[1]); ctx.stroke(); } }
+        v.atoms.map((a, i) => i).sort((i, j) => P[i][2] - P[j][2]).forEach(i => { const [x, y, , f] = P[i], [col, rad] = CPK[v.atoms[i].el] || ["#ff7eb6", 0.5], R = rad * sc * 0.55 * f;
+          const g = ctx.createRadialGradient(x - R * 0.35, y - R * 0.35, R * 0.1, x, y, R); g.addColorStop(0, "#ffffff"); g.addColorStop(0.25, col); g.addColorStop(1, "#05121e");
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, R, 0, 7); ctx.fill(); });
+        text(ctx, `${v.name}   ${v.formula}   (${v.atoms.length} atoms; drag to turn)`, 14, 16, C.text, 13, "left", "600"); text(ctx, v.credit, w - 12, h - 12, C.muted, 10, "right");
+        const els = [...new Set(v.atoms.map(a => a.el))]; els.forEach((e, k) => { const [col] = CPK[e] || ["#ff7eb6"]; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(20, 40 + k * 18, 6, 0, 7); ctx.fill(); text(ctx, e, 32, 40 + k * 18, C.text, 12); });
+      } };
+  }
+  function feynmanView(v) {
+    let flow = 0;
+    return { timed: false, draw(ctx, w, h, dt) {
+      flow += dt;
+      const pad = 60, X = x => pad + x * (w - 2 * pad), Y = y => h - pad - y * (h - 2 * pad);
+      const verts = new Map();
+      v.lines.forEach((l, i) => { const [x0, y0] = [X(l.from[0]), Y(l.from[1])], [x1, y1] = [X(l.to[0]), Y(l.to[1])], len = Math.hypot(x1 - x0, y1 - y0), ux = (x1 - x0) / len, uy = (y1 - y0) / len, nx = -uy, ny = ux;
+        const col = { fermion: C.cyan, antifermion: C.cyan, photon: C.amber, gluon: C.green, boson: C.violet, scalar: C.pink }[l.type];
+        ctx.strokeStyle = col; ctx.lineWidth = 2.2; ctx.setLineDash(l.type === "scalar" ? [7, 6] : []); ctx.beginPath();
+        if (l.type === "photon" || l.type === "boson") { for (let k = 0; k <= 80; k++) { const s = k / 80, a = Math.sin(s * len / 9 * Math.PI) * 6, px = x0 + ux * s * len + nx * a, py = y0 + uy * s * len + ny * a; k ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } }
+        else if (l.type === "gluon") { for (let k = 0; k <= 160; k++) { const s = k / 160, ph = s * len / 12 * Math.PI * 2, px = x0 + ux * (s * len - Math.cos(ph) * 6) + nx * Math.sin(ph) * 7, py = y0 + uy * (s * len - Math.cos(ph) * 6) + ny * Math.sin(ph) * 7; k ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } }
+        else { ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); }
+        ctx.stroke(); ctx.setLineDash([]);
+        if (l.type === "fermion" || l.type === "antifermion") { const d = l.type === "fermion" ? 1 : -1, mx = (x0 + x1) / 2, my = (y0 + y1) / 2; arrow(ctx, mx - ux * 8 * d, my - uy * 8 * d, mx + ux * 8 * d, my + uy * 8 * d, col, 2.2, 10); }
+        const f = ((flow * 0.4 + i * 0.13) % 1); ctx.fillStyle = "#fff"; ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.arc(x0 + (x1 - x0) * f, y0 + (y1 - y0) * f, 3, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+        if (l.label) text(ctx, l.label, (x0 + x1) / 2 + nx * 18, (y0 + y1) / 2 + ny * 18, col, 14, "center", "600");
+        for (const p of [l.from, l.to]) { const k = p.join(","); verts.set(k, (verts.get(k) || 0) + 1); } });
+      for (const [k, cnt] of verts) if (cnt > 1) { const [x, y] = k.split(",").map(Number); ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(X(x), Y(y), 5, 0, 7); ctx.fill(); }
+      text(ctx, v.title || "Feynman diagram", 14, 16, C.text, 13, "left", "600"); text(ctx, v.time === "up" ? "time ↑" : "time →", w - 14, h - 14, C.muted, 12, "right");
+    } };
+  }
   const VIEWS = { motion: motionView, path: pathView, graph: graphView, forces: forcesView, circuit: circuitView,
-    kinetics: kineticsView, titration: titrationView, energy_profile: energyView, ice: iceView };
+    kinetics: kineticsView, titration: titrationView, energy_profile: energyView, ice: iceView, quantum: quantumView,
+    qcircuit: qcircuitView, minkowski: minkowskiView, black_hole: blackHoleView, matrix: matrixView,
+    distribution: distributionView, montecarlo: montecarloView, field: fieldView, molecule: moleculeView, feynman: feynmanView };
 
   // ======================= the problem =======================
   function open(box, data, opts = {}) {
@@ -537,6 +815,7 @@ window.JarvisProblem = (function () {
           current.draw(ctx, w, h, dt, t, hl);
         });
         ctl.hidden = !current.timed;
+        if (current.attach) current.attach(api.canvas);
       }
       if (current && current.timed) {                  // a step's moment: play up to it and stop there
         const target = hl.t !== undefined ? hl.t : hl.V !== undefined ? hl.V : hl.equivalence ? spec.V_eq : hl.half ? spec.V_eq / 2

@@ -239,3 +239,84 @@ async def test_the_conversation_column_and_the_map_layer_by_voice(settings):
     assert asked[-1] == ("map_view", {"action": "layer", "layer": "wind"})
     assert await app.handle_text("වලාකුළු පෙන්නන්න") == "Showing the wind."    # the stand-in's words
     assert asked[-1][1]["layer"] == "clouds"
+
+
+# ---- the views of modern physics, quantum computing, linear algebra, statistics ------------------------------
+def view_of(spec, given=()):
+    from jarvis.knowledge.problems import Given, Part, Problem, Step
+    p = Problem("t", "other", "", [Given(s, s, v) for s, v in given], {"v": spec},
+                [Part("a", "x", steps=[Step("x", view="v")])])
+    work(p)
+    return p.shown_views.get("v"), p.notes
+
+
+def test_quantum_levels_tunnelling_and_spectral_lines():
+    box, _ = view_of({"quantum": {"system": "box", "L": "L", "n": [1, 2]}}, [("L", 1e-9)])
+    assert box["E_shown"] == ["0.376 eV", "1.504 eV"]                              # E = n^2 h^2 / 8 m L^2
+    ho, _ = view_of({"quantum": {"system": "oscillator", "omega": 1e15, "n": [0, 1]}})
+    assert ho["E_eV"][1] / ho["E_eV"][0] == pytest.approx(3)                       # (n + 1/2) hbar omega
+    wall, _ = view_of({"quantum": {"system": "barrier", "V0": 10, "a": 1e-10, "E": 5}})
+    assert wall["T"] + wall["R"] == pytest.approx(1) and wall["T_shown"] == "0.3337"
+    h, _ = view_of({"quantum": {"system": "hydrogen", "n": [2, 3], "transition": [3, 2]}})
+    assert h["transition"]["shown"] == "656.1 nm" and h["transition"]["colour"] == "red"   # H-alpha
+
+
+def test_a_quantum_circuit_is_simulated_exactly():
+    bell, notes = view_of({"qcircuit": {"qubits": 2, "gates": [["H", 0], ["CNOT", 0, 1]]}})
+    assert notes == [] and bell["states"][-1]["probs"] == [0.5, 0, 0, 0.5]
+    assert bell["states"][-1]["bloch"] == [[0, 0, 0], [0, 0, 0]]                    # entangled: no direction
+    ry, _ = view_of({"qcircuit": {"qubits": 1, "gates": [["RY", 0, "pi/2"]]}})
+    assert ry["states"][-1]["bloch"][0] == pytest.approx([1, 0, 0], abs=1e-9)
+    tof, _ = view_of({"qcircuit": {"qubits": 3, "initial": "110", "gates": [["CCX", 0, 1, 2]]}})
+    assert tof["states"][-1]["probs"][7] == 1
+    _, notes = view_of({"qcircuit": {"qubits": 2, "gates": [["CNOT", 0, 5]]}})
+    assert notes and "isn't there" in notes[0]
+
+
+def test_relativity_the_twins_and_a_black_hole():
+    st, _ = view_of({"minkowski": {"beta": 0.6, "events": [{"name": "A", "x": 3, "ct": 5}],
+                                   "worldlines": [{"name": "away", "path": [[0, 0], [4, 5], [0, 10]]},
+                                                  {"name": "home", "path": [[0, 0], [0, 10]]}]}})
+    assert st["gamma"] == pytest.approx(1.25) and st["events"][0]["x2"] == pytest.approx(0)
+    assert st["events"][0]["ct2"] == pytest.approx(4) and [w["tau"] for w in st["worldlines"]] == [6, 10]
+    _, notes = view_of({"minkowski": {"worldlines": [{"name": "fast", "path": [[0, 0], [5, 1]]}]}})
+    assert "faster than light" in notes[0]
+    sun, _ = view_of({"black_hole": {"M": 1.989e30}})
+    assert sun["rs_shown"] == "2954 m" and sun["T_shown"] == "6.168 × 10^-8 K"
+
+
+def test_matrices_distributions_monte_carlo_and_fields():
+    m, _ = view_of({"matrix": {"A": [[2, 1], [1, 2]]}})
+    assert m["det"] == pytest.approx(3) and sorted(e["value"] for e in m["eigen"]) == pytest.approx([1, 3])
+    for spec, p in (({"kind": "normal", "params": {"sigma": 1}, "region": {"from": -1.96, "to": 1.96}}, 0.95),
+                    ({"kind": "t", "params": {"df": 5}, "region": {"from": -2.571, "to": 2.571}}, 0.95),
+                    ({"kind": "chi2", "params": {"df": 3}, "region": {"to": 7.815}}, 0.95),
+                    ({"kind": "binomial", "params": {"n": 10, "p": 0.3}, "region": {"to": 3}}, 0.6496),
+                    ({"kind": "poisson", "params": {"lam": 2}, "region": {"from": 0, "to": 0}}, 0.1353)):
+        d, _ = view_of({"distribution": spec})
+        assert d["prob"] == pytest.approx(p, abs=1e-3), spec
+    mc, _ = view_of({"montecarlo": {"kind": "pi", "n": 4000, "seed": 3}})
+    assert abs(mc["estimate"] - 3.1416) < 0.1 and len(mc["points"]) == 4000
+    f, _ = view_of({"field": {"Fx": "-y", "Fy": "x"}})
+    assert f["div"] == "0" and f["curl"] == "2"
+    slope, _ = view_of({"field": {"slope": "y", "solutions": [[0, 1]], "x": [0, 1], "y": [0, 3]}})
+    import math
+    sol = slope["solutions"][0]
+    assert sol[-1][0] > 0.99 and max(abs(y - math.exp(x)) for x, y in sol) < 1e-6    # y' = y: RK4 follows e^x
+
+
+def test_a_molecule_from_pubchem_and_a_feynman_diagram(monkeypatch, tmp_path):
+    from jarvis.knowledge import problem_views_more as more
+    sdf = ("water\n\n\n  3  2  0  0  0  0  0  0  0  0999 V2000\n"
+           "    0.0000    0.0000    0.0000 O   0  0\n    0.9572    0.0000    0.0000 H   0  0\n"
+           "   -0.2400    0.9266    0.0000 H   0  0\n  1  2  1  0\n  1  3  1  0\nM  END\n")
+    asked = []
+    monkeypatch.setattr(more, "MOLECULE_DIR", tmp_path)
+    monkeypatch.setattr("jarvis.knowledge.fetch.get_text", lambda url, timeout=None: asked.append(url) or sdf)
+    water, notes = view_of({"molecule": {"name": "water"}})
+    assert notes == [] and water["formula"] == "H2O" and len(water["bonds"]) == 2
+    view_of({"molecule": {"name": "water"}})
+    assert len(asked) == 1 and "pubchem.ncbi.nlm.nih.gov" in asked[0]              # kept on disk after once
+    fey, _ = view_of({"feynman": {"lines": [{"from": [0, 0], "to": [0.5, 0.5], "type": "photon", "label": "γ"},
+                                            {"from": [0, 1], "to": [0.5, 0.5], "type": "quark-ish"}]}})
+    assert [ln["type"] for ln in fey["lines"]] == ["photon", "fermion"]

@@ -243,6 +243,11 @@ class ProblemMode:
         return line
 
     async def _plan_problem(self, question: str, lang: Any, token: Any) -> Problem:
+        from pathlib import Path
+
+        from .knowledge import problem_views_more
+        if problem_views_more.MOLECULE_DIR is None:      # molecules from PubChem are kept here, fetched once
+            problem_views_more.MOLECULE_DIR = Path(str(self.settings.get("general.state_dir", "state"))) / "molecules"
         context = "\n".join(m["content"][:300] for m in self.history[-4:])
         messages = [{"role": "system", "content": problem_prompt(question, lang.name, context)},
                     {"role": "user", "content": "Plan it. JSON only."}]

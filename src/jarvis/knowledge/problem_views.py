@@ -64,7 +64,8 @@ def view_catalog() -> str:
      "side": "product", "initial": 0}], "x": "x1", "unit": "mol/L"}}   highlight: {"row": "change|equilibrium"}
   {"lesson": {"scene": "pendulum", "params": {"length": 2}}} or {"lesson": {"plot": ["sin(x)"], "from": 0, "to": 6}}
      or {"lesson": {"diagram": "flowchart LR ..."}} or {"lesson": {"formula": "..."}}: a visual from the lessons
-     (scenes: gas_box, waves_3d, string_wave, pendulum, projectile, rc_circuit, fourier, field_3d, orbit, lens)."""
+     (scenes: gas_box, waves_3d, string_wave, pendulum, projectile, rc_circuit, fourier, field_3d, orbit, lens).
+""" + MORE_CATALOG
 
 
 class _Num:
@@ -549,6 +550,9 @@ def _lesson(spec: dict, problem: Problem) -> dict:
 
 BUILDERS = {"motion": _motion, "graph": _graph, "forces": _forces, "circuit": _circuit, "kinetics": _kinetics,
             "titration": _titration, "energy_profile": _energy, "ice": _ice}
+from .problem_views_more import MORE_BUILDERS, MORE_CATALOG  # noqa: E402 - after _Num and the builders above
+
+BUILDERS.update(MORE_BUILDERS)
 
 
 def build_views(problem: Problem) -> dict[str, dict]:

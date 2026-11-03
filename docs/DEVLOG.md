@@ -1823,3 +1823,17 @@ window server: every number matches SymPy, every button reaches Jarvis.
   intents/patterns.py (Sinhala, Singlish, English) under intents it already
   has (solve_problem, check_answer, ask_weather, explain_concept), so a
   retrain learns them without new labels: train is now 14,998 sentences.
+- 3 Nov, 20:30: Adhi wants Jarvis to show any science question properly:
+  relativity, Hawking radiation, quantum physics, quantum computing,
+  particles, chemistry, statistics, Monte Carlo, algebra, numerical methods.
+  Ten more views, each working out its own numbers: quantum (box,
+  oscillator, a barrier solved exactly by matching, hydrogen and its lines),
+  a quantum circuit simulated as a state vector (probabilities and Bloch
+  spheres after each gate), a Minkowski diagram (both frames, simultaneity,
+  proper times), a black hole (horizon, photon sphere, ISCO, Hawking
+  temperature), a 2x2 matrix bending the plane, seven distributions, Monte
+  Carlo, vector and slope fields (RK4), 3D molecules from PubChem, Feynman
+  diagrams. All checked against textbook numbers (H-alpha 656.1 nm, the
+  twins 6 and 10 years, the Sun's 2954 m, 95% tails) and drawn in headless
+  Chromium without errors. Found in the check: a superposition's |Ψ|² was
+  drawn a million times too tall (scaled by ψ's peak once instead of twice).
