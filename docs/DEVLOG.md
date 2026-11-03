@@ -1842,3 +1842,12 @@ window server: every number matches SymPy, every button reaches Jarvis.
   is told a model-drawn sketch is a last resort: those were the blank
   pictures (the CVT lesson's step 5). A view that can't be made, like a
   worldline faster than light, is dropped with a note instead of drawn.
+- 3 Nov, 21:20: Adhi asked whether the physics is really right and nothing
+  is hard-coded. The views are general (their numbers come from each
+  question), but the model's set-up wasn't checked. Now: a units check by
+  scaling each base unit and working the steps out again (a braking
+  "distance" written as speed times acceleration is caught, and the steps
+  that use it), the answers checked against what each animation works out
+  itself (an animation braking half as hard is caught), and every plan kept
+  in state/problems. No false alarms on the four samples; equilibrium
+  constants are left unchecked (chemistry's unitless convention).

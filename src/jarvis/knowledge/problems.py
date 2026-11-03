@@ -119,6 +119,7 @@ class Problem:
                       for g in self.given],
             "parts": [{"id": p.id, "ask": p.ask, "hint": p.hint, "unit": p.unit,
                        "answer": self.answer_of(p).get("shown", ""),
+                       "view_check": self.answer_of(p).get("view_check"),
                        "steps": [{"say": s.say, "goal": s.goal, "latex": s.latex, "view": s.view,
                                   "highlight": s.highlight, "result": s.result} for s in p.steps]}
                       for p in self.parts],
@@ -427,6 +428,11 @@ def _work(problem: Problem) -> None:
                 step.result = {"ok": False, "note": f"SymPy couldn't do it ({type(exc).__name__})"}
                 problem.notes.append(f"({part.id}) {step.calc[:60]}: {type(exc).__name__}")
     problem.values = values
+    from .dimensions import check_units
+    try:
+        check_units(problem)                          # a set-up error usually shows up as wrong units
+    except Exception as exc:  # noqa: BLE001 - the check is a help; the worked numbers stand without it
+        problem.notes.append(f"view units: couldn't check them ({type(exc).__name__})")
 
 
 def work(problem: Problem, timeout_s: float = 20.0) -> Problem:

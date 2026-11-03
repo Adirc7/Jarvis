@@ -118,6 +118,12 @@ WORDS = {
     "gives": {"en": "That gives {value} {unit}.", "si": "ඒකෙන් {value} {unit} එනවා.", "ta": "அது {value} {unit} தருகிறது."},
     "answer": {"en": "So part {id} is {value} {unit}.", "si": "ඉතින් {id} කොටසේ උත්තරය {value} {unit}.",
                "ta": "எனவே பகுதி {id} இன் விடை {value} {unit}."},
+    "units": {"en": "Careful: the units of this step don't come out as {unit}, so the set-up may be wrong.",
+              "si": "පරිස්සමෙන්: මේ පියවරේ units {unit} විදියට එන්නේ නෑ, ඒ නිසා setup එක වැරදි වෙන්න පුළුවන්.",
+              "ta": "கவனம்: இந்தப் படியின் அலகுகள் {unit} ஆக வரவில்லை, அமைப்பு தவறாக இருக்கலாம்."},
+    "disagree": {"en": "Careful: {said}, so the steps or the animation are set up wrong.",
+                 "si": "පරිස්සමෙන්: {said}. ඒ නිසා පියවර හරි animation එක හරි වැරදියි.",
+                 "ta": "கவனம்: {said}. படிகளோ அனிமேஷனோ தவறாக அமைக்கப்பட்டுள்ளன."},
     "last": {"en": "That was the last step.", "si": "ඒ තමයි අන්තිම පියවර.", "ta": "அதுதான் கடைசி படி."},
     "start": {"en": "Back to the start.", "si": "ආයෙත් මුලට.", "ta": "மீண்டும் தொடக்கத்திற்கு."},
     "unchecked": {"en": "I couldn't check this part's answer myself, so take it with care.",
@@ -269,11 +275,34 @@ class ProblemMode:
             # Some calculations wouldn't run: once more, with what went wrong
             self.telemetry.log("problem_retry", error="; ".join(failed)[:300])
             messages += [{"role": "assistant", "content": text[:4000]},
-                         {"role": "user", "content": "These calculations couldn't be run: " + "; ".join(failed)[:900]
-                          + ". Fix them (SymPy syntax, explicit *, only defined names) and reply with the whole JSON."}]
+                         {"role": "user", "content": "These steps have problems: " + "; ".join(failed)[:900]
+                          + ". Fix them (SymPy syntax, explicit *, only defined names; every given value in SI with "
+                            "its unit, each step's unit right for what it computes; if the units are wrong, the "
+                            "physics set-up is) and reply with the whole JSON."}]
         if problem is None:
             raise ProblemError("no usable plan")
+        self._problem_keep(question, text, problem)
         return problem
+
+    def _problem_keep(self, question: str, reply: str, problem: Problem) -> None:
+        """The question, the model's plan as it wrote it, and what SymPy and the checks found: one file a
+        problem in state/problems (the newest 100 kept), to see what the model did when one looks wrong."""
+        import time
+        from pathlib import Path
+        folder = Path(str(self.settings.get("general.state_dir", "state"))) / "problems"
+        try:
+            folder.mkdir(parents=True, exist_ok=True)
+            slug = re.sub(r"[^a-z0-9]+", "-", problem.title.lower()).strip("-")[:40] or "problem"
+            path = folder / f"{time.strftime('%Y-%m-%d %H%M%S')} {slug}.json"
+            answers = {p.id: {k: problem.answer_of(p).get(k) for k in ("shown", "unit", "units", "view_check")}
+                       for p in problem.parts}
+            path.write_text(json.dumps({"question": question, "provider": self.llm.last_provider, "plan": reply,
+                                        "notes": problem.notes, "answers": answers}, indent=1, ensure_ascii=False),
+                            encoding="utf-8")
+            for old in sorted(folder.glob("*.json"))[:-100]:
+                old.unlink()
+        except OSError as exc:
+            self.out(f"[problem] couldn't keep the plan ({type(exc).__name__})")
 
     # ---- doing ---------------------------------------------------------------------------------------
     def _problem_state(self) -> dict:
@@ -353,6 +382,8 @@ class ProblemMode:
         if r.get("ok") and r.get("value") is not None:
             line += " " + self._problem_words("gives", value=r["shown"], unit=spoken_unit(r.get("unit", ""))).replace(
                 "  ", " ").replace(" .", ".")
+        if r.get("units") == "wrong":
+            line += " " + self._problem_words("units", unit=spoken_unit(r.get("unit", "") or part.unit))
         if i == len(part.steps) - 1:
             line += " " + self._problem_answer_line(problem, part)
         return line.strip()
@@ -363,8 +394,11 @@ class ProblemMode:
             return self._problem_words("unchecked")
         unit = spoken_unit(ans.get("unit", "") or part.unit)
         lead = self._problem_words("last") + " " if last else ""
-        return (lead + self._problem_words("answer", id=part.id, value=ans["shown"], unit=unit)).replace(
-            "  ", " ").replace(" .", ".")
+        line = lead + self._problem_words("answer", id=part.id, value=ans["shown"], unit=unit)
+        vc = ans.get("view_check") or {}
+        if vc.get("ok") is False:
+            line += " " + self._problem_words("disagree", said=vc["said"])
+        return line.replace("  ", " ").replace(" .", ".")
 
     def _problem_close(self) -> None:
         if self.panel == "problem":

@@ -848,7 +848,8 @@ window.JarvisProblem = (function () {
           if (s.goal) row.append(el("div", "g", `${i + 1}. ${s.goal}`));
           row.append(el("div", "say", s.say));
           if (s.latex) { const eq = el("div", "eq"); tex(eq, s.latex, true); row.append(eq); }
-          if (s.result && s.result.ok) { const eq = el("div", "eq"); tex(eq, s.result.latex, false); row.append(eq); }
+          if (s.result && s.result.ok) { const eq = el("div", "eq"); tex(eq, s.result.latex, false); row.append(eq);
+            if (s.result.units === "wrong") row.append(el("span", "badge no", "⚠ the units don't come out right: check the set-up")); }
           else if (s.result && s.result.note) row.append(el("span", "badge no", "not checked: " + s.result.note));
           row.addEventListener("click", () => showStep(p, i));
           bd.append(row);
@@ -859,6 +860,8 @@ window.JarvisProblem = (function () {
         go.addEventListener("click", send); inp.addEventListener("keydown", ev => { if (ev.key === "Enter") send(); });
         chk.append(inp, go); bd.append(chk);
         if (on && state.check) bd.append(el("div", "said " + (state.check.ok ? "ok" : "no"), state.check.said));
+        if (on && done && p.view_check) bd.append(el("div", "said " + (p.view_check.ok ? "ok" : "no"),
+          (p.view_check.ok ? "✓ " : "⚠ ") + p.view_check.said));
         card.append(head, bd); side.append(card);
       }
       const foot = el("div", "pfoot");
@@ -875,7 +878,9 @@ window.JarvisProblem = (function () {
       if (!s) { mathBar.append(el("span", "goal", p.ask)); return; }
       if (s.goal) mathBar.append(el("span", "goal", s.goal));
       if (s.latex) { const eq = el("span", "eq"); tex(eq, s.latex, false); mathBar.append(eq); }
-      if (s.result && s.result.ok) { const r = el("span", "eq"); tex(r, s.result.latex, false); mathBar.append(r, el("span", "badge ok", "✓ SymPy")); }
+      if (s.result && s.result.ok) { const r = el("span", "eq"); tex(r, s.result.latex, false); mathBar.append(r, el("span", "badge ok", "✓ SymPy"));
+        if (s.result.units === "ok") mathBar.append(el("span", "badge ok", "✓ units"));
+        else if (s.result.units === "wrong") mathBar.append(el("span", "badge no", "⚠ units: check the set-up")); }
       else if (s.result && s.result.note) mathBar.append(el("span", "badge no", "not checked"));
       const view = s.view || (p.steps.slice(0, i).reverse().find(x => x.view) || {}).view || viewName || Object.keys(data.views)[0];
       showView(view, s.highlight);

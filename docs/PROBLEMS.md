@@ -87,3 +87,25 @@ sheet with several questions: pick one in the window.
 For ideas with no exact simulation (string theory's extra dimensions, say),
 the plan uses the lessons' tested visuals: Mermaid diagrams, 3D surfaces,
 scenes and Wikipedia pictures, never a model-drawn sketch.
+
+## Checking the set-up, not only the arithmetic
+
+SymPy makes the arithmetic right; these catch a wrong set-up:
+
+- **Units** (`knowledge/dimensions.py`): every given value is scaled by a
+  made-up factor for each base unit (metres 1.7 times bigger, seconds 0.6
+  times...), twice, and the steps are worked out again. A step whose result
+  has the unit it claims scales by exactly the right amount; a "distance"
+  that is really speed times acceleration doesn't, and is flagged (badge,
+  and Jarvis says so). The model gets one chance to fix it. Steps with log,
+  exp or trig, or an equilibrium constant (unitless by chemistry's
+  convention), aren't checked rather than wrongly flagged.
+- **Against the animation** (`problem_views.cross_check`): a view works out
+  its own numbers (the motion's phase distances and times, the titration's
+  equivalence point, every resistor's current...). An answer that matches
+  one is marked "the animation agrees"; one where the view has numbers of
+  the same kind and none matches is flagged: the steps and the view were set
+  up differently.
+- **Every plan is kept** in `state/problems/` (the newest 100): the
+  question, the model's plan as it wrote it, and what the checks found.
+  Send one when a problem looks wrong.

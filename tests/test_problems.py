@@ -334,3 +334,42 @@ def test_a_lesson_can_use_the_tested_views_and_an_impossible_one_is_dropped():
     assert lesson.steps[1].visual is None and "faster than light" in lesson.notes[0]
     prompt = plan_prompt("explain tunnelling", "", "English")
     assert '{"view":' in prompt and '"qcircuit"' in prompt and "a last resort" in prompt
+
+
+def test_units_are_checked_through_the_steps_and_a_wrong_set_up_is_caught():
+    from jarvis.knowledge.dimensions import dims
+    assert dims("m/s^2") == (1, 0, -2, 0, 0, 0) and dims("J/(mol K)") == dims("J/mol/K") == (2, 1, -2, 0, -1, -1)
+    assert dims("kg·m/s²") == dims("N") and dims("1/s") == dims("Hz") and dims("furlong") is None
+    car = worked("car")
+    assert all(s.result.get("units") == "ok" for p in car.parts for s in p.steps)
+    acid = worked("titration")                                                   # Ka, Kw: chemistry's convention
+    assert acid.notes == [] and {s.result.get("units") for p in acid.parts for s in p.steps} <= {"ok", None}
+    plan = json.loads((HERE / "car.json").read_text(encoding="utf-8"))
+    plan["parts"][2]["steps"][1]["calc"] = "s3 = v1*a3"                          # speed times acceleration: not metres
+    wrong = work(parse_problem(json.dumps(plan)))
+    assert wrong.parts[2].steps[1].result["units"] == "wrong"
+    assert "(c) s3 = v1*a3: the units don't come out as m" in wrong.notes
+    assert wrong.parts[0].steps[0].result["units"] == "ok"                       # the right steps stay right
+
+
+def test_each_answer_is_checked_against_its_animation():
+    maths, car = worked("maths"), worked("car")
+    assert maths.answer_of(maths.parts[2])["view_check"] == {"ok": True, "said": "the animation agrees: the rule's estimate"}
+    assert car.answer_of(car.parts[2])["view_check"]["said"] == "the animation agrees: brakes (ABS): distance"
+    assert "view_check" not in car.answer_of(car.parts[4])                       # a diagram of symbols: nothing to compare
+    plan = json.loads((HERE / "car.json").read_text(encoding="utf-8"))
+    plan["views"]["road"]["motion"]["bodies"][0]["phases"][2]["a"] = "-a3/2"     # the animation brakes half as hard
+    odd = work(parse_problem(json.dumps(plan)))
+    assert odd.answer_of(odd.parts[2])["view_check"]["ok"] is False
+    assert any("isn't what the animation works out" in n for n in odd.notes)
+
+
+async def test_every_plan_is_kept_to_look_at(settings, tmp_path):
+    settings.raw["general"]["state_dir"] = str(tmp_path / "state")
+    plan = (HERE / "car.json").read_text(encoding="utf-8")
+    app, model, said, events = lesson_app(settings, plan)
+    await app.handle_text(CAR_TEXT)
+    kept = list((tmp_path / "state" / "problems").glob("*.json"))
+    assert len(kept) == 1 and kept[0].name.endswith("a-car-accelerate-cruise-brake-with-abs.json")
+    data = json.loads(kept[0].read_text(encoding="utf-8"))
+    assert data["question"] == CAR_TEXT and data["plan"] == plan and data["answers"]["c"]["shown"] == "33.33"

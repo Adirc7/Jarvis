@@ -574,7 +574,143 @@ def build_views(problem: Problem) -> dict[str, dict]:
             if step.view not in shown:
                 step.view = ""
             step.highlight = n.highlight(step.highlight) if step.highlight else {}
+    problem.shown_views = shown
+    cross_check(problem)
     return shown
 
 
-__all__ = ["BUILDERS", "LOOKS", "build_views", "view_catalog"]
+
+
+# ---- the answers against the animations --------------------------------------------------------------------
+def view_facts(data: dict) -> list[tuple[float, str, str]]:
+    """What a view works out itself, as (value, unit, what it is): the numbers an answer can be checked
+    against. A view with nothing of its own to compare (a force diagram of symbols) has none."""
+    k, out = data.get("kind"), []
+    add = out.append
+    if k == "motion":
+        for b in data["bodies"]:
+            for p in b["phases"]:
+                d = p["t1"] - p["t0"]
+                add((d, "s", f"{p['label']}: time"))
+                add((p["u"] * d + p["a"] * d * d / 2, "m", f"{p['label']}: distance"))
+                add((p["u"] + p["a"] * d, "m/s", f"{p['label']}: speed at the end"))
+                add((p["u"], "m/s", f"{p['label']}: speed at the start"))
+                add((p["s0"] + p["u"] * d + p["a"] * d * d / 2 - b["start"], "m", f"distance up to the end of {p['label']}"))
+                add((p["t1"], "s", f"time at the end of {p['label']}"))
+                add((p["a"], "m/s^2", f"{p['label']}: acceleration"))
+            total_t = b["end"] - b["t0"]
+            add((b["s_end"] - b["start"], "m", f"{b['name']}: total distance"))
+            add((total_t, "s", f"{b['name']}: total time"))
+            if total_t > 0:
+                add(((b["s_end"] - b["start"]) / total_t, "m/s", f"{b['name']}: average speed"))
+    elif k == "path":
+        pts = data["points"]
+        add((max(p[1] for p in pts), "m", "greatest height"))
+        add((pts[-1][0] - pts[0][0], "m", "distance across"))
+        add((data["T"], "s", "time of flight"))
+        add((math.hypot(pts[-1][2], pts[-1][3]), "m/s", "speed at the end"))
+    elif k == "titration":
+        add((data["V_eq"], "mL", "equivalence volume"))
+        add((data["pH_eq"], "", "pH at equivalence"))
+        add((data["curve"][0][1], "", "pH at the start"))
+        if "pH_half" in data:
+            add((data["pH_half"], "", "pH half-way"))
+    elif k == "circuit":
+        add((data["R_total"], "ohm", "total resistance"))
+        add((data["I"], "A", "current from the battery"))
+        add((data["I"] * data["r"], "V", "voltage lost inside the battery"))
+        add((data["V"] - data["I"] * data["r"], "V", "terminal voltage"))
+        for e in data["elements"]:
+            add((e["I"], "A", f"current in {e['name']}"))
+            add((e["V"], "V", f"voltage across {e['name']}"))
+        stack = [data["tree"]]
+        while stack:
+            node = stack.pop()
+            if node["type"] != "R":
+                add((node["R"], "ohm", f"resistance of a {node['type']} group"))
+                add((node["V"], "V", f"voltage across a {node['type']} group"))
+                stack.extend(node["kids"])
+    elif k == "kinetics":
+        add((data["half_life"], "s", "half-life"))
+    elif k == "energy_profile":
+        add((data["Ea"], "kJ/mol", "activation energy"))
+        add((data["dH"], "kJ/mol", "enthalpy change"))
+        add((data["Ea"] - data["dH"], "kJ/mol", "activation energy of the reverse reaction"))
+    elif k == "ice":
+        if data.get("K") is not None:
+            add((data["K"], "", "equilibrium constant"))
+        for r in data["rows"]:
+            add((r["eq"], "mol/L", f"{r['name']} at equilibrium"))
+    elif k == "graph":
+        a = data.get("annotations", {})
+        for key, label in (("area", "area"), ("riemann", "the rule's estimate"), ("tangent", "slope")):
+            if key in a:
+                add((a[key].get("value", a[key].get("slope")), "", label))
+        if a.get("newton", {}).get("steps"):
+            add((a["newton"]["steps"][-1]["next"], "", "Newton's root"))
+        if "riemann" in a:
+            add((a["riemann"]["exact"], "", "the exact area"))
+    elif k == "quantum":
+        for e in data.get("E_eV", []):
+            add((e, "eV", "an energy level"))
+        for e in data.get("E", []):
+            add((e, "J", "an energy level"))
+        if "T" in data:
+            add((data["T"], "", "transmission"))
+            add((data["R"], "", "reflection"))
+        if "transition" in data:
+            add((data["transition"]["wavelength"], "m", "the photon's wavelength"))
+            add((data["transition"]["dE_eV"], "eV", "the photon's energy"))
+    elif k == "minkowski":
+        add((data["gamma"], "", "gamma"))
+        for e in data["events"]:
+            add((e["x2"], data["unit"], f"{e['name']}: x'"))
+            add((e["ct2"], data["unit"], f"{e['name']}: ct'"))
+        for w in data["worldlines"]:
+            add((w["tau"], data["unit"], f"{w['name']}: proper time"))
+    elif k == "black_hole":
+        add((data["rs"], "m", "Schwarzschild radius"))
+        add((data["T_hawking"], "K", "Hawking temperature"))
+    elif k == "matrix":
+        add((data["det"], "", "determinant"))
+        for e in data["eigen"]:
+            add((e["value"], "", "an eigenvalue"))
+    elif k in ("distribution",):
+        add((data["prob"], "", "the probability"))
+    elif k == "montecarlo":
+        add((data["exact"], "", "the exact value"))
+    elif k == "qcircuit":
+        for p in data["states"][-1]["probs"]:
+            add((p, "", "a measurement probability"))
+    for f in data.get("facts", []):                        # a view of the newer kinds lists its own
+        add(tuple(f))
+    return [f for f in out if isinstance(f[0], int | float) and math.isfinite(f[0])]
+
+
+def cross_check(problem: Problem, rel: float = 0.01) -> None:
+    """Each part's answer against the views its steps show: it agrees when the animation worked out the same
+    number itself; it doesn't when the animation has numbers of the same kind and none is this one."""
+    from .dimensions import dims
+    for part in problem.parts:
+        ans = problem.answer_of(part)
+        value = ans.get("value") if ans else None
+        names = {s.view for s in part.steps if s.view}
+        if value is None or not names:
+            continue
+        unit = ans.get("unit") or part.unit
+        want = dims(unit)
+        facts = [f for n in names for f in view_facts(problem.shown_views.get(n, {}))]
+        same = [f for f in facts if want is not None and dims(f[1]) == want]
+        close = [f for f in same if abs(f[0] - value) <= max(abs(value) * rel, 1e-12)]
+        hit = min(close, key=lambda f: abs(f[0] - value)) if close else None
+        if hit is not None:
+            ans["view_check"] = {"ok": True, "said": f"the animation agrees: {hit[2]}"}
+        elif same:
+            near = min(same, key=lambda f: abs(f[0] - value))
+            ans["view_check"] = {"ok": False, "said": f"the animation shows {show_number(near[0])} {near[1]} for "
+                                                     f"{near[2]}, not {ans.get('shown')}"}
+            problem.notes.append(f"({part.id}) the answer {ans.get('shown')} {unit} isn't what the animation works out "
+                                 f"({show_number(near[0])} {near[1]}, {near[2]}): the view or the steps are set up wrong")
+
+
+__all__ = ["BUILDERS", "LOOKS", "build_views", "cross_check", "view_catalog", "view_facts"]
