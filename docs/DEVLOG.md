@@ -1810,3 +1810,16 @@ Practice with new numbers, Summary; by voice too. A photo (Gemini) or a PDF
 its own (it came with torch before). Checked with four problems (car, Newton
 and an area, a titration, a circuit) in headless Chromium through the real
 window server: every number matches SymPy, every button reaches Jarvis.
+- 3 Nov, 19:40: Adhi asked for everything new to work in Sinhala and Singlish,
+  with Jarvis and Friday understanding and answering. Fixed rules (no model
+  needed): in a problem "c kotasa", "hint ekak", "ilaga piyawara", "ඊළඟ
+  පියවර", "mage uththaraya 33.3", "mulu uththaraya pennanna", "සාරාංශය";
+  the explorer "car ekak galawala athula pennanna", "ekathu karanna",
+  "ත්‍රීවීල් එකක් ගලවලා පෙන්නන්න" (Sinhala with or without its zero-width
+  joiners); the world map "sulanga pennanna", "වලාකුළු පෙන්නන්න"; the window
+  "conversation eka hide karanna". The problem mode speaks Sinhala and Tamil
+  lines, and the plan asks the model for the parts, hints and steps in the
+  user's language. For his intent model: 36 new templates in
+  intents/patterns.py (Sinhala, Singlish, English) under intents it already
+  has (solve_problem, check_answer, ask_weather, explain_concept), so a
+  retrain learns them without new labels: train is now 14,998 sentences.

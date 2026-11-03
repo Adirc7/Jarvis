@@ -204,3 +204,38 @@ def test_an_upload_comes_only_from_the_page_and_only_as_a_photo_or_pdf():
         assert len(got) == 1
     finally:
         v.stop()
+
+
+async def test_singlish_and_sinhala_drive_the_problem_too(settings):
+    plan = (HERE / "car.json").read_text(encoding="utf-8")
+    app, model, said, events = lesson_app(settings, plan)
+    await app.handle_text(CAR_TEXT)
+    assert (await app.handle_text("c kotasa pennanna")).startswith("Part c:")             # Singlish
+    assert await app.handle_text("hint ekak denna") == "It slows from v1 to zero at a3."
+    assert (await app.handle_text("hari ilaga piyawara")).endswith("That gives 3.333 seconds.")
+    assert await app.handle_text("mage uththaraya 33.3") == "Right: 33.33 m."
+    assert "So part c is 33.33" in await app.handle_text("mulu uththaraya pennanna")
+    assert (await app.handle_text("kalin eka")).startswith("The time to stop is")
+    # Sinhala script: Friday takes over, and the lines are Sinhala
+    assert (await app.handle_text("ඊළඟ පියවර")).endswith("ඉතින් c කොටසේ උත්තරය 33.33 metres.")
+    assert app.lang.current.code == "si"
+    assert (await app.handle_text("b කොටස")).startswith("b කොටස: the distance while accelerating.")
+    assert "Split the motion into phases" in await app.handle_text("සාරාංශය කියන්න")
+    assert len(model.requests) == 1
+
+
+async def test_the_conversation_column_and_the_map_layer_by_voice(settings):
+    app, model, said, events = lesson_app(settings, "x")
+    assert await app.handle_text("conversation eka hide karanna") == "Hid the conversation."
+    assert kinds(events, "wide")[-1] == {"on": True}
+    await app.handle_text("show the conversation")
+    assert kinds(events, "wide")[-1] == {"on": False}
+    asked = []
+    from types import SimpleNamespace as NS
+    app.info = NS(call=lambda name, args: asked.append((name, json.loads(args))) or NS(result=NS(summary="Showing the wind.")),
+                  names=lambda: set(), board=None)
+    app.panel = "map"
+    assert await app.handle_text("sulanga pennanna") == "Showing the wind."
+    assert asked[-1] == ("map_view", {"action": "layer", "layer": "wind"})
+    assert await app.handle_text("වලාකුළු පෙන්නන්න") == "Showing the wind."    # the stand-in's words
+    assert asked[-1][1]["layer"] == "clouds"

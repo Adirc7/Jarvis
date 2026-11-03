@@ -320,7 +320,8 @@ MODELS = {m["id"]: m for m in sorted(_all(), key=lambda m: ORDER.index(m["id"]))
 # Words that name each model, brands included: a brand points to the type it's built like inside.
 # Checked in this order, most particular first ("electric car" before "car", "car engine" is the engine).
 WORDS = {
-    "three_wheeler": ("three wheeler", "threewheeler", "tuk", "tuktuk", "tuk tuk", "trishaw", "bajaj", "auto rickshaw",
+    "three_wheeler": ("three wheeler", "threewheeler", "three wheel", "threewheel", "tuk", "tuktuk", "tuk tuk",
+                      "trishaw", "bajaj", "auto rickshaw", "ත්‍රීවිල්",
                       "ත්‍රීවීල්", "ත්‍රී රෝද"),
     "scooter": ("scooter", "scooty", "vespa", "dio", "activa"),
     "bicycle": ("bicycle", "bicycles", "cycle", "pushbike", "push bike", "බයිසිකල්"),
@@ -341,10 +342,10 @@ WORDS = {
 def model_for(text: str) -> str | None:
     """Which model a request names ("take the engine apart" -> "engine", "a Prius" -> the hybrid); None when
     it names none."""
-    t = text.lower()
+    t = text.lower().replace("\u200d", "")            # Sinhala with or without its zero-width joiners
     plain = " " + " ".join(re.sub(r"[^a-z0-9\s]", " ", t).split()) + " "
     for key, words in WORDS.items():
-        if any((f" {w} " in plain) if w.isascii() else (w in t) for w in words):
+        if any((f" {w} " in plain) if w.isascii() else (w.replace("\u200d", "") in t) for w in words):
             return key
     return None
 

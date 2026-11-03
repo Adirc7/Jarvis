@@ -57,20 +57,31 @@ PARTS = re.compile(r"(?:^|\s)\(?a\)\s.*(?:^|\s)\(?b\)\s", re.IGNORECASE | re.DOT
 HAS_NUMBER = re.compile(r"\d")
 NOT_HERE = re.compile(r"\b(matlab|octave|python|code|script|program)\b", re.IGNORECASE)   # those have their own tools
 
-PART = re.compile(r"^(?:(?:ok|okay|now|so|jarvis|please|let's do|lets do|go to|show me|open)\s+)*"
-                  r"(?:part|question|කොටස)\s*\(?([a-h])\)?\b", re.IGNORECASE)
-HINT = re.compile(r"\b(hint|clue|nudge|help me start|ඉඟිය|ඉඟියක්)\b", re.IGNORECASE)
-STEP = re.compile(r"^(?:(?:ok|okay|yes|now|so|and|then|jarvis|please)\s+)*(next(?: step)?|continue|go on|"
-                  r"carry on|keep going|then what|what next|ඊළඟ|ඊළඟ පියවර)\b", re.IGNORECASE)
-BACK = re.compile(r"^(?:(?:ok|now|jarvis|please)\s+)*(back|previous(?: step)?|go back|step back|one back)\b",
-                  re.IGNORECASE)
-SOLUTION = re.compile(r"\b((?:full|whole|complete|all the) (?:solution|working|answer|steps)|solve it|"
-                      r"show (?:me )?(?:the )?(?:answer|solution)|just tell me)\b", re.IGNORECASE)
-CHECK = re.compile(r"\b(?:check (?:my )?(?:answer|this)|my answer is|i got|i get|is it|is the answer|"
-                   r"the answer is)\b[:\s]*(.+)$", re.IGNORECASE)
-PRACTICE = re.compile(r"\b(practi[cs]e|new numbers|another one|similar (?:question|problem)|try (?:one )?myself|"
-                      r"different numbers|පුහුණු)\b", re.IGNORECASE)
-SUMMARY = re.compile(r"\b(summary|summari[sz]e|sum (?:it )?up|recap|the method)\b", re.IGNORECASE)
+def _rx(pattern: str) -> re.Pattern:
+    """A rule over normalised text: no zero-width joiners (normalize drops them), any case."""
+    return re.compile(pattern.replace("‍", ""), re.IGNORECASE)
+
+
+# In a problem, by voice: English, Singlish and Sinhala. Sinhala words are matched without \b (its vowel
+# signs aren't word characters to the regex engine).
+_LEAD = r"^(?:(?:ok|okay|now|so|and|then|jarvis|friday|please|hari|ithin|ane|let's do|lets do|go to|show me|open)\s+)*"
+_ID = r"([a-h]|iv|v?i{1,3}|v)"
+PART = _rx(_LEAD + rf"(?:(?:part|question|kotasa|කොටස)\s*\(?{_ID}\)?\b|\(?{_ID}\)?\s*(?:part|kotasa|kotase|kotasata|කොටස))")
+HINT = _rx(r"\b(hint|clue|nudge|help me start|iggiya|iggiyak|podi udawwak)\b|ඉඟිය|පොඩි උදව්වක්")
+STEP = _rx(_LEAD + r"(next(?: step)?|continue|go on|carry on|keep going|then what|what next|ilaga|ilagata|"
+           r"issarahata|ඊළඟ|ඉස්සරහට)")
+BACK = _rx(_LEAD + r"(back|previous(?: step)?|go back|step back|one back|kalin eka|kalin piyawara|aapahu|ආපහු|කලින්)")
+SOLUTION = _rx(r"\b((?:full|whole|complete|all the|mulu) (?:solution|working|answer|steps|uththaraya)|solve it|"
+               r"show (?:me )?(?:the )?(?:answer|solution)|just tell me|sampurna wisaduma|"
+               r"(?:uththaraya|answer eka|solution eka) (?:pennanna|kiyanna|denna))\b|සම්පූර්ණ විසඳුම|මුළු විසඳුම|"
+               r"උත්තරය (?:පෙන්නන්න|කියන්න)")
+CHECK = re.compile(r"(?:\b(?:check (?:my )?(?:answer|this)|my answer is|i got|i get|is it|is the answer|"
+                   r"the answer is|mage (?:uththaraya|answer eka)|mata (?:aawe|awa|aawa|aave)|check karanna)\b|"
+                   r"මගේ උත්තරය|මට ආවේ|මට ආවා)[:\s]*(.+)$", re.IGNORECASE)
+PRACTICE = _rx(r"\b(practi[cs]e|new numbers|another one|similar (?:question|problem)|try (?:one )?myself|"
+               r"different numbers|aluth numbers|aluth ganan|thawa ekak|wena numbers)\b|පුහුණු|ප්‍රැක්ටිස්|"
+               r"අලුත් ගණන්|තව එකක්")
+SUMMARY = _rx(r"\b(summary|summari[sz]e|sum (?:it )?up|recap|the method|saaraamsaya|saramsaya)\b|සාරාංශ")
 
 READ_PROMPT = """Read the problem sheet. Reply with JSON only: {"questions": [{"label": "1", "text": "..."}]}
 - One entry per separate question (1, 2, 3 or Q1, Q2...), each with its whole text, all its numbers and its parts
@@ -95,6 +106,30 @@ WORDS = {
     "unreadable": {"en": "I couldn't read a problem in that. A clearer photo, or a screenshot of the page, would help.",
                    "si": "ඒකෙන් ප්‍රශ්නයක් කියවගන්න බැරි වුණා. පැහැදිලි photo එකක් එවන්න.",
                    "ta": "அதிலிருந்து கணக்கைப் படிக்க முடியவில்லை. தெளிவான படத்தை அனுப்புங்கள்."},
+    "opened": {"en": "{title}. {n} parts. Pick a part, or say part a, then ask for a hint or the next step.",
+               "si": "{title}. කොටස් {n}ක් තියෙනවා. කොටසක් තෝරන්න, නැත්නම් a කොටස කියන්න, ඊට පස්සේ ඉඟියක් හරි ඊළඟ පියවර හරි අහන්න.",
+               "ta": "{title}. {n} பகுதிகள். ஒரு பகுதியைத் தேர்ந்தெடுங்கள், பிறகு குறிப்பு அல்லது அடுத்த படி கேளுங்கள்."},
+    "part": {"en": "Part {id}: {ask}. Want a hint, or the first step?",
+             "si": "{id} කොටස: {ask}. ඉඟියක් ඕනෙද, නැත්නම් පළවෙනි පියවර?",
+             "ta": "பகுதி {id}: {ask}. குறிப்பு வேண்டுமா, அல்லது முதல் படியா?"},
+    "no_hint": {"en": "Think about which equation links what you know to what you want.",
+                "si": "ඔයා දන්න දේවල් සහ හොයන දේ සම්බන්ධ කරන සමීකරණය මොකක්ද කියලා හිතන්න.",
+                "ta": "தெரிந்ததையும் தேடுவதையும் இணைக்கும் சமன்பாடு எது என்று யோசியுங்கள்."},
+    "gives": {"en": "That gives {value} {unit}.", "si": "ඒකෙන් {value} {unit} එනවා.", "ta": "அது {value} {unit} தருகிறது."},
+    "answer": {"en": "So part {id} is {value} {unit}.", "si": "ඉතින් {id} කොටසේ උත්තරය {value} {unit}.",
+               "ta": "எனவே பகுதி {id} இன் விடை {value} {unit}."},
+    "last": {"en": "That was the last step.", "si": "ඒ තමයි අන්තිම පියවර.", "ta": "அதுதான் கடைசி படி."},
+    "start": {"en": "Back to the start.", "si": "ආයෙත් මුලට.", "ta": "மீண்டும் தொடக்கத்திற்கு."},
+    "unchecked": {"en": "I couldn't check this part's answer myself, so take it with care.",
+                  "si": "මේ කොටසේ උත්තරය මට check කරගන්න බැරි වුණා, ඒ නිසා පරිස්සමෙන් බලන්න.",
+                  "ta": "இந்தப் பகுதியின் விடையை என்னால் சரிபார்க்க முடியவில்லை."},
+    "practice": {"en": "Here's the same problem with new numbers. Try it yourself, then check your answers; ask for a hint "
+                       "if you're stuck.",
+                 "si": "ඔන්න අලුත් ඉලක්කම් එක්ක එකම ප්‍රශ්නය. තනියම හදලා බලන්න, ඊට පස්සේ උත්තර check කරන්න. හිර වුණොත් ඉඟියක් අහන්න.",
+                 "ta": "புதிய எண்களுடன் அதே கணக்கு. நீங்களே முயன்று, பிறகு விடைகளைச் சரிபார்க்கவும்."},
+    "no_practice": {"en": "I couldn't make a version with new numbers that works out, sorry.",
+                    "si": "සමාවෙන්න, අලුත් ඉලක්කම් එක්ක හරියන ප්‍රශ්නයක් හදන්න බැරි වුණා.",
+                    "ta": "மன்னிக்கவும், புதிய எண்களுடன் கணக்கை உருவாக்க முடியவில்லை."},
     "pick": {"en": "There are {n} questions on that sheet. Pick one in my window.",
              "si": "ඒකේ ප්‍රශ්න {n}ක් තියෙනවා. window එකේ එකක් තෝරන්න.",
              "ta": "அதில் {n} கேள்விகள் உள்ளன. ஒன்றைத் தேர்ந்தெடுங்கள்."},
@@ -139,7 +174,8 @@ class ProblemMode:
             if len(t.split()) <= 12:
                 m = PART.search(t)
                 if m:
-                    return await self._problem_do("part", m.group(1).lower(), turn=turn, token=token)
+                    return await self._problem_do("part", (m.group(1) or m.group(2)).lower(), turn=turn,
+                                                  token=token)
                 if (c := CHECK.search(text)) and re.search(r"\d", c.group(1)):
                     return await self._problem_do("check", ex["part"], c.group(1), turn=turn, token=token)
                 for rx, action in ((SOLUTION, "solution"), (HINT, "hint"), (BACK, "back"), (STEP, "step"),
@@ -192,8 +228,9 @@ class ProblemMode:
         self.panel = "problem"
         self._show("problem", data=problem.as_data(), state=self._problem_state())
         n = len(problem.parts)
-        line = (f"{problem.title}. {n} part{'s' if n != 1 else ''}. Pick a part, or say part a, then ask for a "
-                "hint or the next step.")
+        line = self._problem_words("opened", title=problem.title, n=n)
+        if n == 1 and lang.code == "en":
+            line = line.replace("1 parts", "1 part")
         await self.sink.say(line, lang, token)
         summary = problem_for_the_model(problem)
         self.history += [{"role": "user", "content": question[:2000]}, {"role": "assistant", "content": summary}]
@@ -253,10 +290,10 @@ class ProblemMode:
             ex.update(part=part.id, shown=0, hint=False, check=None)
         line = ""
         if action == "part" and part is not None:
-            line = f"Part {part.id}: {part.ask}. Want a hint, or the first step?"
+            line = self._problem_words("part", id=part.id, ask=part.ask.rstrip("?."))
         elif action == "hint" and part is not None:
             ex["hint"] = True
-            line = part.hint or "Think about which equation links what you know to what you want."
+            line = part.hint or self._problem_words("no_hint")
         elif action == "step" and part is not None:
             if ex["shown"] >= len(part.steps):
                 line = self._problem_answer_line(problem, part, last=True)
@@ -265,7 +302,7 @@ class ProblemMode:
                 line = self._problem_step_line(problem, part, ex["shown"] - 1)
         elif action == "back" and part is not None:
             ex["shown"] = max(0, ex["shown"] - 1)
-            line = self._problem_step_line(problem, part, ex["shown"] - 1) if ex["shown"] else "Back to the start."
+            line = self._problem_step_line(problem, part, ex["shown"] - 1) if ex["shown"] else self._problem_words("start")
         elif action == "solution" and part is not None:
             ex["shown"] = len(part.steps)
             line = " ".join(s.say for s in part.steps if s.say) + " " + self._problem_answer_line(problem, part)
@@ -277,13 +314,12 @@ class ProblemMode:
             try:
                 fresh = await asyncio.get_running_loop().run_in_executor(None, practice, ex["original"])
             except ProblemError:
-                line = "I couldn't make a version with new numbers that works out, sorry."
+                line = self._problem_words("no_practice")
             else:
                 ex.update(plan=fresh, part="", shown=0, hint=False, check=None, summary=False)
                 self._show("problem", data=fresh.as_data(), state=self._problem_state())
                 self.history.append({"role": "assistant", "content": problem_for_the_model(fresh)})
-                line = ("Here's the same problem with new numbers. Try it yourself, then check your answers; "
-                        "ask for a hint if you're stuck.")
+                line = self._problem_words("practice")
                 self.telemetry.log("problem_practice", seed=fresh.seed)
                 await self.sink.say(line, lang, token)
                 if turn is not None:
@@ -310,7 +346,8 @@ class ProblemMode:
         line = step.say
         r = step.result
         if r.get("ok") and r.get("value") is not None:
-            line += f" That gives {r['shown']} {spoken_unit(r.get('unit', ''))}.".replace("  ", " ")
+            line += " " + self._problem_words("gives", value=r["shown"], unit=spoken_unit(r.get("unit", ""))).replace(
+                "  ", " ").replace(" .", ".")
         if i == len(part.steps) - 1:
             line += " " + self._problem_answer_line(problem, part)
         return line.strip()
@@ -318,10 +355,11 @@ class ProblemMode:
     def _problem_answer_line(self, problem: Problem, part: Any, last: bool = False) -> str:
         ans = problem.answer_of(part)
         if not ans:
-            return "I couldn't check this part's answer myself, so take it with care."
+            return self._problem_words("unchecked")
         unit = spoken_unit(ans.get("unit", "") or part.unit)
-        lead = "That was the last step. " if last else ""
-        return f"{lead}So part {part.id} is {ans['shown']} {unit}.".replace(" .", ".")
+        lead = self._problem_words("last") + " " if last else ""
+        return (lead + self._problem_words("answer", id=part.id, value=ans["shown"], unit=unit)).replace(
+            "  ", " ").replace(" .", ".")
 
     def _problem_close(self) -> None:
         if self.panel == "problem":

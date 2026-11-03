@@ -134,6 +134,17 @@ GROUP_WORDS = {
 }
 CLOSE_PANEL = re.compile(
     r"\b(close|leave|exit|hide|get out of|go back|back to jarvis)\b|වහන්න|අයින් කරන්න", re.IGNORECASE)
+# The window's Conversation column, hidden for a bigger map or model, and shown again: by voice too
+HIDE_TALK = re.compile(r"\b(?:hide|close) (?:the )?(?:conversation|chat)\b|\b(?:conversation|chat) eka (?:hide karanna|"
+                       r"wahanna|ain karanna)\b|සංවාදය (?:වහන්න|හංගන්න)|conversation එක (?:හංගන්න|වහන්න)", re.IGNORECASE)
+SHOW_TALK = re.compile(r"\bshow (?:the )?(?:conversation|chat)\b|\b(?:conversation|chat) eka (?:aye |ayeth )?pennanna\b|"
+                       r"සංවාදය පෙන්නන්න|conversation එක පෙන්නන්න", re.IGNORECASE)
+# A world weather map layer, by voice, while the map is open: "show the wind", "sulanga pennanna"
+MAP_LAYERS = {"temperature": r"temperature|heat|ushnathwaya|උෂ්ණත්ව", "clouds": r"cloud|walakulu|වලාකුළු",
+              "rain": r"\brain|wahi|wessa|වැස්ස|වැසි", "wind": r"\bwind|sulan|sulanga|සුළඟ|සුළං",
+              "humidity": r"humid|ardrathawa|ආර්ද්රතා", "pressure": r"pressure|pidanaya|පීඩන",
+              "satellite": r"satellite|chandrika|චන්ද්රිකා", "radar": r"radar|රේඩාර්"}
+MAP_LAYER_RX = {k: re.compile(v, re.IGNORECASE) for k, v in MAP_LAYERS.items()}
 # How to answer once the tools have fetched something (the second pass), by kind.
 ANSWER_NOTES = {
     "news": ("Brief the user from the fetched news only: the most important 3 to 5 stories first, one or two spoken "
@@ -738,6 +749,18 @@ class App(LessonMode, ExploreMode, ProblemMode):
 
         self._learn_from(text)
 
+        short = len(normalize(text).split())
+        if self.view is not None and short <= 8 and (HIDE_TALK.search(normalize(text)) or SHOW_TALK.search(normalize(text))):
+            wide = bool(HIDE_TALK.search(normalize(text)))
+            self._show("wide", on=wide)
+            said = "Hid the conversation." if wide else "Here's the conversation again."
+            return await self._tool_reply(text, ToolSaid("window_wide", said), turn, token)
+        if self.panel == "map" and self.info is not None and short <= 5:
+            layer = next((k for k, rx in MAP_LAYER_RX.items() if rx.search(normalize(text))), None)
+            if layer is not None:
+                out = await asyncio.get_running_loop().run_in_executor(
+                    None, lambda: self.info.call("map_view", json.dumps({"action": "layer", "layer": layer})))
+                return await self._tool_reply(text, ToolSaid("map_layer", out.result.summary), turn, token)
         if self.panel and CLOSE_PANEL.search(text) and len(normalize(text).split()) <= 8:
             # "Leave the map", "back to Jarvis": the map or board in the window closes,
             # instead of the web tools' "go back" (30 Oct: "There's no page to go back to").

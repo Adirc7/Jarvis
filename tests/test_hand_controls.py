@@ -212,3 +212,14 @@ async def test_this_means_the_picked_part_and_the_hand_limits_are_settings(setti
     app._explore_close()
     await app.handle_text("what is entropy?")
     assert "picked out" not in client.last_messages[0]["content"]
+
+
+async def test_the_explorer_in_singlish_and_sinhala(settings):
+    app, camera, shown, client = explorer_app(settings)
+    reply = await app.handle_text("car ekak galawala athula pennanna")
+    assert reply.startswith("Here's the sports car") and app._explore["model"] == "sports_car"
+    assert await app.handle_text("ekathu karanna") == "Putting it back together."
+    assert await app.handle_text("galawanna") == "Taking it apart."
+    app._explore_close()
+    await app.handle_text("ත්‍රීවීල් එකක් ගලවලා පෙන්නන්න")
+    assert app._explore["model"] == "three_wheeler"

@@ -177,6 +177,8 @@ Rules:
 - "say": 1 to 3 short spoken sentences in {language}, words only (no symbols or LaTeX): "v equals u plus a t".
   Don't say the numeric result in "say": the screen shows the worked number.
 - "goal": the step's purpose in a few words. "hint": a question or nudge that helps without giving it away.
+- Write "title", "ask", "hint", "goal", "say" and "summary" in {language} (spoken style, as students say it;
+  English words for units and technical terms are fine). Symbols, "calc" and "latex" stay as maths.
 - "views": one to three views of the problem, chosen by what it is about; each step names the view it uses and
   what to highlight. Numbers in views may be symbols or expressions of the given and computed names.
 {view_catalog()}

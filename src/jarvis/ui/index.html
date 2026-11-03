@@ -673,6 +673,7 @@ function onEvent(e) {
   else if (e.kind === "lesson_patch" && e.id === lessonId && window.JarvisLesson) JarvisLesson.patch(e.step, e.code);
   else if (e.kind === "explore") startExplore(e);
   else if (e.kind === "problem") startProblem(e.data, e.state);
+  else if (e.kind === "wide") setWide(!!e.on);
   else if (e.kind === "problem_state") { if (problemApi && panel === "problem") problemApi.state(e.state); }
   else if (e.kind === "problem_pick") showPicks(e.questions || []);
   else if (e.kind === "problem_close") { if (panel === "problem") closePanel(); }

@@ -1645,3 +1645,58 @@ SI_PATTERNS += [
     Pattern("resume_media", "{w}වීඩියෝ එක කන්ටිනියු කරන්න"),
     Pattern("go_back", "{w}බැක් යන්න"),
 ]
+
+# ---- 3 Nov: worked problems, the 3D explorer, the world weather map ----------------------------------
+# Under intents the model already has, so no new labels: a problem to work through is solve_problem, an
+# answer to mark is check_answer, the world map is ask_weather, a vehicle taken apart is explain_concept.
+# (In a problem, "hint", "next step", "part b" are caught by fixed rules first: problem_mode.py.)
+SI_PATTERNS += [
+    Pattern("solve_problem", "{w}{problem} පියවරෙන් පියවර පෙන්නන්න"),
+    Pattern("solve_problem", "{w}{problem} කොටස් කොටස් විදියට {solve}"),
+    Pattern("solve_problem", "{w}මේ කාර් එකේ ප්‍රශ්නය ඇනිමේෂන් එකක් එක්ක {solve}"),
+    Pattern("solve_problem", "{w}මේ ෆොටෝ එකේ තියෙන ප්‍රශ්නය {solve}"),
+    Pattern("solve_problem", "{w}මේ පීඩීඑෆ් එකේ පළවෙනි ප්‍රශ්නය {solve}"),
+    Pattern("solve_problem", "{w}මේ ප්‍රශ්නයේ a සහ b කොටස් {solve}"),
+    Pattern("check_answer", "{w}මට උත්තරේ ආවේ 25යි, හරිද?"),
+    Pattern("check_answer", "{w}මගේ උත්තරය 33.3 මීටර්, බලන්න"),
+    Pattern("check_answer", "{w}මම හැදුවා, 20 ද උත්තරේ?"),
+    Pattern("ask_weather", "{w}ලෝකේ කාලගුණ සිතියම පෙන්නන්න"),
+    Pattern("ask_weather", "{w}ලෝකේ හැම රටකම උෂ්ණත්වය පෙන්නන්න"),
+    Pattern("ask_weather", "{w}{country__loc} සුළං පෙන්නන්න"),
+    Pattern("ask_weather", "{w}ආසියාවේ වලාකුළු සිතියමේ පෙන්නන්න"),
+    Pattern("explain_concept", "{w}කාර් එකක් ගලවලා ඇතුළ පෙන්නන්න"),
+    Pattern("explain_concept", "{w}බයික් එකක කෑලි 3D වලින් පෙන්නන්න"),
+    Pattern("explain_concept", "{w}ත්‍රීවීල් එකක් ඇතුළේ තියෙන දේවල් පෙන්නන්න"),
+]
+SL_PATTERNS += [
+    Pattern("solve_problem", "{w}{problem} step by step pennanna"),
+    Pattern("solve_problem", "{w}{problem} kotas kotas widiyata {solve}"),
+    Pattern("solve_problem", "{w}me car eke question eka animation ekak ekka {solve}"),
+    Pattern("solve_problem", "{w}me photo eke thiyena question eka {solve}"),
+    Pattern("solve_problem", "{w}me pdf eke palaweni question eka {solve}"),
+    Pattern("solve_problem", "{w}me question eke a saha b part {solve}"),
+    Pattern("solve_problem", "{w}machan me physics question eka visualize karala {solve}"),
+    Pattern("check_answer", "{w}mata answer eka aawe 25, harida?"),
+    Pattern("check_answer", "{w}mage uththaraya 33.3 meters, check karanna"),
+    Pattern("check_answer", "{w}mama haduwa, 20 da answer eka?"),
+    Pattern("ask_weather", "{w}lokaye weather map eka pennanna"),
+    Pattern("ask_weather", "{w}hama ratakama temperature eka pennanna"),
+    Pattern("ask_weather", "{w}{country} wind eka map eke pennanna"),
+    Pattern("ask_weather", "{w}asia wala cloud tika map eke pennanna"),
+    Pattern("explain_concept", "{w}car ekak galawala athula pennanna"),
+    Pattern("explain_concept", "{w}bike ekaka kaali 3D walin pennanna"),
+    Pattern("explain_concept", "{w}three wheel ekak athule thiyena dewal pennanna"),
+]
+EN_PATTERNS += [
+    Pattern("solve_problem", "{w}take me through {problem} step by step"),
+    Pattern("solve_problem", "{w}solve the question in this photo"),
+    Pattern("solve_problem", "{w}work through question 1 of this PDF"),
+    Pattern("solve_problem", "{w}solve parts a and b of {problem} with animations"),
+    Pattern("check_answer", "{w}I got 25, is that right?"),
+    Pattern("check_answer", "{w}my answer is 33.3 metres, check it"),
+    Pattern("ask_weather", "{w}show me the world weather map"),
+    Pattern("ask_weather", "{w}show the temperature in every country"),
+    Pattern("ask_weather", "{w}show the wind over {country} on the map"),
+    Pattern("explain_concept", "{w}show me a car taken apart"),
+    Pattern("explain_concept", "{w}show me the inside of a motorcycle in 3D"),
+]

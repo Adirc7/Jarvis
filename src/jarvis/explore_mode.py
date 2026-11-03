@@ -22,15 +22,20 @@ from .language import normalize
 
 OPEN_WORDS = re.compile(
     r"\b(apart|explod\w*|disassembl\w*|dismantl\w*|inside (?:of )?(?:a|an|the)\b|parts of|parts in|3d (?:model|view)|"
-    r"exploded view|break \w+ down|explore|how \w+ (?:is|are) built|built inside|in 3d)\b|ගලව|කෑලි", re.IGNORECASE)
-EXPLODE = re.compile(r"\b(take (?:it|them) apart|explode|open it up|apart|show (?:me )?(?:the )?inside)\b|ගලවන්න",
-                     re.IGNORECASE)
+    r"exploded view|break \w+ down|explore|how \w+ (?:is|are) built|built inside|in 3d|galawala|galawanna|kaali|"
+    r"athula|athule|3d eken|3d walin|3d ekak)\b|ගලව|කෑලි|ඇතුළ|ඇතුලේ|3d වලින්", re.IGNORECASE)
+EXPLODE = re.compile(r"\b(take (?:it|them) apart|explode|open it up|apart|show (?:me )?(?:the )?inside|galawanna|"
+                     r"galawala pennanna|athula pennanna)\b|ගලවන්න|ඇතුළ පෙන්නන්න", re.IGNORECASE)
 ASSEMBLE = re.compile(r"\b(put (?:it )?(?:back )?together|assemble|reassemble|put it back|close it up|"
-                      r"back together)\b|එකතු කරන්න", re.IGNORECASE)
-NEXT = re.compile(r"\b(next (?:model|one)|another (?:model|one)|something else)\b", re.IGNORECASE)
+                      r"back together|ekathu karanna|aye hadanna|ayeth ekathu|ayeth hadanna)\b|එකතු කරන්න|ආයෙ හදන්න",
+                      re.IGNORECASE)
+NEXT = re.compile(r"\b(next (?:model|one)|another (?:model|one)|something else|ilaga model|wena ekak|wena model)\b|"
+                  r"ඊළඟ මොඩල්|වෙන එකක්", re.IGNORECASE)
 CLOSE = re.compile(r"\b(close|leave|exit|stop|hide)\b.*\b(3d|explorer|model|view|car|bike|motorcycle|engine)\b|"
-                   r"\bback to jarvis\b", re.IGNORECASE)
-ABOUT = re.compile(r"\b(what|explain|show|tell|pull|pick|which|where|how does|how do|describe)\b", re.IGNORECASE)
+                   r"\bback to jarvis\b|\b(3d|explorer|model) eka (?:wahanna|close karanna)\b|3d එක වහන්න",
+                   re.IGNORECASE)
+ABOUT = re.compile(r"\b(what|explain|show|tell|pull|pick|which|where|how does|how do|describe|mokakda|monawada|"
+                   r"kiyanna|pennanna|wada karanne)\b|මොකක්ද|කියන්න|පෙන්නන්න", re.IGNORECASE)
 
 
 class ExploreMode:
