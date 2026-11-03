@@ -24,6 +24,7 @@ import importlib
 import re
 import time
 from dataclasses import dataclass, field
+from urllib.parse import urlparse
 from typing import Any, AsyncIterator
 
 from ..config import ProviderConfig
@@ -84,6 +85,28 @@ class Provider:
                     client: Any = None) -> Provider:
         client = client or make_client(cfg, timeout_s, keepalive_s)
         return cls(cfg.name, cfg.model, client, dict(cfg.options), cfg.base_url)
+
+
+def service_of(p: Provider) -> str:
+    """Where a model runs, in words: 'Groq', 'Ollama, on this computer'..."""
+    host = (urlparse(p.base_url).hostname or "").lower()
+    if host in ("localhost", "127.0.0.1", "::1"):
+        return "Ollama, on this computer"
+    names = (("groq", "Groq"), ("googleapis", "Google's Gemini API"), ("openrouter", "OpenRouter"),
+             ("cerebras", "Cerebras"), ("github", "GitHub Models"), ("mistral", "Mistral"))
+    return next((name for key, name in names if key in host), host or p.name)
+
+
+def with_identity(messages: list[dict[str, Any]], p: Provider) -> list[dict[str, Any]]:
+    """The instructions with which model is answering, so "are you on Groq or Ollama?" gets the truth (4 Nov:
+    gpt-oss-120b on Groq said "I'm not running on Ollama or Groq, I operate within the assistant on this PC")."""
+    if not messages or messages[0].get("role") != "system":
+        return messages
+    model = "one of OpenRouter's free models" if p.model.startswith("openrouter/") else f"the {p.model} model"
+    note = (f"\n\nThis reply is written by {model}, through {service_of(p)}. Jarvis switches between several models "
+            "(Groq, Gemini, OpenRouter, Ollama on this computer) when one is busy or at its free limit; asked which "
+            "model or service you run on, say this one plainly.")
+    return [{**messages[0], "content": str(messages[0].get("content") or "") + note}, *messages[1:]]
 
 
 def make_client(cfg: ProviderConfig, timeout_s: float = 20, keepalive_s: float = 120) -> Any:
@@ -429,7 +452,7 @@ class FallbackLLM:
             try:
                 async def opened(p=p):
                     stream = await p.client.chat.completions.create(
-                        model=p.model, messages=messages, stream=True, **p.request_kwargs(kwargs)
+                        model=p.model, messages=with_identity(messages, p), stream=True, **p.request_kwargs(kwargs)
                     )
                     it = stream.__aiter__()
                     try:
@@ -581,7 +604,7 @@ class FallbackLLM:
             start = time.perf_counter()
             try:
                 resp = await p.client.chat.completions.create(
-                    model=p.model, messages=messages, **p.request_kwargs(kwargs)
+                    model=p.model, messages=with_identity(messages, p), **p.request_kwargs(kwargs)
                 )
                 self.last_provider = p.name
                 self.telemetry.log(

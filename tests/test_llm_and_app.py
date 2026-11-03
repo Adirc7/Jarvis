@@ -351,3 +351,17 @@ def test_the_history_sent_to_the_model_stays_within_a_budget(settings):
     assert sent[-2]["content"] == "question 11" and len(app.history) == 24   # the real history is untouched
     app.history = [{"role": "user", "content": "x " * 5000}, {"role": "assistant", "content": "ok"}]
     assert len(app._history_for_model()) == 2                            # a long paste is kept for follow-ups
+
+
+async def test_each_model_is_told_which_model_it_is():
+    """4 Nov: asked "are you running on Ollama or Groq?", gpt-oss-120b on Groq said neither."""
+    from jarvis.agent.llm import service_of
+    groq, local = FakeClient(error=DailyLimit(5)), FakeClient(["I'm qwen3:4b, on Ollama on this computer."])
+    llm = FallbackLLM([Provider("groq_oss", "openai/gpt-oss-120b", groq, base_url="https://api.groq.com/openai/v1"),
+                       Provider("ollama", "qwen3:4b", local, base_url="http://localhost:11434/v1")])
+    ask = [{"role": "system", "content": "You are Jarvis."}, {"role": "user", "content": "are you on groq or ollama?"}]
+    await collect(llm.stream_text(ask))
+    assert "written by the qwen3:4b model, through Ollama, on this computer" in local.last_messages[0]["content"]
+    assert ask[0]["content"] == "You are Jarvis."                       # the caller's messages aren't changed
+    assert service_of(Provider("g", "gemini-flash-latest", None,
+                               base_url="https://generativelanguage.googleapis.com/v1beta/openai/")) == "Google's Gemini API"

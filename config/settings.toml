@@ -66,7 +66,7 @@ unclear_max_foreign_script = 0.2    # share of letters from other alphabets
 # should expect. On 30 Oct "Kaduwela" was heard as "Cardwell". Keep each short
 # (Whisper reads at most about 220 tokens of it).
 [stt.prompts]
-en = "Jarvis, Friday. Kaduwela, Malabe, Kelaniya, Kadawatha, Maharagama, Nugegoda, Colombo, Kandy, Galle, Jaffna, Trincomalee, Batticaloa, Anuradhapura, Kurunegala, Ratnapura, Nuwara Eliya, Badulla, Hambantota, SLIIT, Sri Lanka. Sinhala, English, Tamil."
+en = "Jarvis, Friday. Kaduwela, Malabe, Kelaniya, Kadawatha, Maharagama, Nugegoda, Colombo, Kandy, Galle, Jaffna, Trincomalee, Batticaloa, Anuradhapura, Kurunegala, Ratnapura, Nuwara Eliya, Badulla, Hambantota, SLIIT, Sri Lanka. Sinhala, English, Tamil. Groq, Ollama, Gemini, OpenRouter."
 
 [tts]
 kokoro_model = "models/kokoro-v1.0.onnx"

@@ -1896,3 +1896,9 @@ window server: every number matches SymPy, every button reaches Jarvis.
   (`agent/local_model.py`, `[ollama]` in settings): `ollama serve` with no
   window, output in logs/ollama.log, then the "down" rest is cleared so it
   counts as a model left. Install steps in docs/OLLAMA.md.
+- 4 Nov, 01:15: Asked "are you running on Ollama or Groq?", gpt-oss-120b on
+  Groq said neither. Each request now ends Jarvis's instructions with which
+  model is writing and where (Groq, Google's Gemini API, OpenRouter, Ollama
+  on this computer), so the answer is true whichever model it is. Whisper's
+  English prompt now has Groq, Ollama, Gemini and OpenRouter ("Groq" was
+  heard as "Kroak" and "Rock").
