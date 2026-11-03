@@ -59,6 +59,7 @@ def settings(tmp_path):
     s.raw["tools"]["desktop"] = False                 # nor use the real PC tools (tests pass stand-ins)
     s.raw["tools"]["knowledge"] = False               # nor fetch news or papers from the internet
     s.raw["tools"]["matlab"] = False                  # nor run MATLAB or Octave
+    s.raw.setdefault("ollama", {})["start"] = False   # nor start Ollama
     s.raw.setdefault("window", {})["enabled"] = False # nor open the window
     s.raw.setdefault("general", {})["log_dir"] = str(tmp_path / "logs")
     # the stand-in's pairs and models in the test's own folder, and no e5 download

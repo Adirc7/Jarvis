@@ -437,6 +437,14 @@ base_url = "https://openrouter.ai/api/v1"
 api_key_env = "OPENROUTER_API_KEY"
 model = "openrouter/free"
 
+# Ollama, the model on this computer (docs/OLLAMA.md): no daily limit, no internet,
+# the last model on every route. Jarvis starts it when he starts if it's
+# installed and not running ("ollama serve", no window; logs/ollama.log).
+[ollama]
+start = true
+path = ""            # ollama.exe, if it isn't on PATH (e.g. "D:/Ollama/app/ollama.exe")
+models_dir = ""      # where its models are, if OLLAMA_MODELS isn't set (e.g. "D:/Ollama/models")
+
 [llm.providers.ollama]
 base_url = "http://localhost:11434/v1"
 api_key_env = ""                # local: no key needed

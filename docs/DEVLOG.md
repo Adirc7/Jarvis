@@ -1891,3 +1891,8 @@ window server: every number matches SymPy, every button reaches Jarvis.
   every route ends with Qwen and Flash-Lite. Jarvis says what happened:
   "My free models have used up their limits for now. One is free again in
   about 15 minutes." (or busy, or offline), in the turn's language.
+- 4 Nov, 00:45: Ollama installed on the laptop (D:\Ollama, qwen3:4b on D:).
+  Jarvis now starts it when he starts, if it's installed and not running
+  (`agent/local_model.py`, `[ollama]` in settings): `ollama serve` with no
+  window, output in logs/ollama.log, then the "down" rest is cleared so it
+  counts as a model left. Install steps in docs/OLLAMA.md.

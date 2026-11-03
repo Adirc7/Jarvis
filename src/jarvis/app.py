@@ -1739,6 +1739,27 @@ class App(LessonMode, ExploreMode, ProblemMode):
             self.out(f"(Global hotkeys not available: {exc}. Use /stop and /mute instead.)")
 
     # ---- main loop -------------------------------------------------------
+    def _start_ollama(self) -> None:
+        """Ollama, the last model on every route, started if it's installed and not running (agent/local_model.py)."""
+        from .agent.local_model import ensure, server_root
+        local = [p for p in self.llm.providers if server_root(getattr(p, "base_url", "") or "")]
+        if not local or not self.settings.get("ollama.start", True):
+            return
+        status = ensure(local[0].base_url, str(self.settings.get("ollama.path", "") or ""),
+                        str(self.settings.get("ollama.models_dir", "") or ""),
+                        self.settings.path("general.log_dir", "logs"))
+        self.telemetry.log("ollama", status=status)
+        if status in ("started", "running"):
+            for p in local:
+                self.llm.resting.pop(p.quota_key, None)
+        if status == "started":
+            self.out("[ollama] started in the background: the model on this computer answers when the cloud "
+                     "models are out.")
+        elif status == "not_installed":
+            self.out("[ollama] not installed, so nothing answers when the cloud models are out (docs/OLLAMA.md).")
+        elif status == "failed":
+            self.out("[ollama] couldn't start; its log is logs/ollama.log.")
+
     async def run(self, enable_hotkey: bool = True, voice: bool = False) -> None:
         loop = asyncio.get_running_loop()
         self._loop = loop
@@ -1777,6 +1798,7 @@ class App(LessonMode, ExploreMode, ProblemMode):
             self._start_camera()
         moved_from = self._note_machine()
         self._start_window()
+        loop.run_in_executor(None, self._start_ollama)        # the model on this computer, in the background
         if self.standin is not None:
             loop.run_in_executor(self._standin_executor, self._prepare_standin)    # never holds up the start
         self.telemetry.log("session_start", language=self.state.language, providers=names, mode=mode)
