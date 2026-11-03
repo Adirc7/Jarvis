@@ -31,6 +31,17 @@ main { display:grid; grid-template-columns:minmax(0,1fr) 360px; height:calc(100%
 #panel .bar a, #panel .bar button { font-size:12px; color:var(--text); background:#12314a;
   border:1px solid #1c4766; border-radius:6px; padding:4px 10px; cursor:pointer; text-decoration:none; }
 #panel .bar .push { margin-left:auto; }
+#panel .bar .right { margin-left:auto; display:flex; gap:10px; align-items:center; }
+#panel .bar #lessonCtl:not([hidden]) + .right { margin-left:10px; }
+body.wide main { grid-template-columns:minmax(0,1fr) 0; }
+body.wide main > aside { display:none; }
+.wideBtn { font-size:12px; color:var(--text); background:#12314a; border:1px solid #1c4766; border-radius:6px;
+  padding:4px 10px; cursor:pointer; }
+.wideBtn:hover { border-color:var(--cyan); }
+#panelCap { display:none; }
+body.wide #panelCap:not(:empty) { display:block; padding:7px 14px; border-top:1px solid var(--line); font-size:14px;
+  line-height:1.4; color:var(--text); max-height:4.4em; overflow:hidden; background:var(--panel); }
+#panelCap .who { color:var(--muted); font-size:11px; letter-spacing:2px; text-transform:uppercase; margin-right:8px; }
 #panel .bar [hidden] { display:none; }
 #mapFrame { flex:1; border:0; width:100%; }
 #mapFrame[hidden], #board[hidden], #lesson[hidden] { display:none; }
@@ -129,6 +140,7 @@ aside h2 { font-size:12px; font-weight:500; letter-spacing:2px; color:var(--cyan
   <span class="pill" id="pcPill" hidden>pc <b id="pc">-</b></span>
   <span class="pill" id="moodPill" hidden title="What the emotion model heard: a guess">sounds <b id="mood">-</b></span>
   <span class="pill" id="link">live</span>
+  <button class="wideBtn" id="wideTop" type="button">Hide conversation &#8250;</button>
 </header>
 <main>
   <section class="stage">
@@ -149,8 +161,9 @@ aside h2 { font-size:12px; font-weight:500; letter-spacing:2px; color:var(--cyan
           <button type="button" id="lessonPlay" data-act="pause">Pause</button>
           <button type="button" data-act="next" title="The next step">Next</button>
           <button type="button" data-act="again" title="Say this step again">Again</button></span>
-        <a id="mapOwn" class="push" href="/map" target="_blank" rel="noopener">Own window</a>
-        <button id="panelClose" type="button">Back to Jarvis</button></div>
+        <span class="right"><button class="wideBtn" id="widePanel" type="button">Hide conversation &#8250;</button>
+        <a id="mapOwn" href="/map" target="_blank" rel="noopener">Own window</a>
+        <button id="panelClose" type="button">Back to Jarvis</button></span></div>
       <iframe id="mapFrame" title="Map" hidden></iframe>
       <div id="board" hidden></div>
       <div id="explore" hidden></div>
@@ -160,6 +173,7 @@ aside h2 { font-size:12px; font-weight:500; letter-spacing:2px; color:var(--cyan
         <div id="lessonSay"></div>
         <div id="lessonDots"></div>
       </div>
+      <div id="panelCap"></div>
     </div>
   </section>
   <aside>
@@ -203,7 +217,29 @@ function addTalk(who, text) {
   const box = $("talk"); if (box.querySelector(".empty")) box.textContent = "";
   const item = el("div", "item"); item.append(el("div", "meta", who), withMaths(el("div", ""), text));
   box.prepend(item); while (box.children.length > 30) box.lastChild.remove();
+  const cap = $("panelCap"); cap.textContent = "";             // the latest line, under the panel, when it's wide
+  cap.append(el("span", "who", who), withMaths(el("span", ""), text));
+  if (document.body.classList.contains("wide")) { unseen += 1; wideLabels(); }
 }
+// The Conversation column can be hidden, for a bigger map, 3D model, board or lesson (remembered).
+let unseen = 0;
+function wideLabels() {
+  const wide = document.body.classList.contains("wide");
+  for (const b of [$("wideTop"), $("widePanel")]) {
+    b.textContent = wide ? "\u2039 Show conversation" + (unseen ? ` (${unseen} new)` : "") : "Hide conversation \u203a";
+    b.title = wide ? "Show the Conversation column again" : "Hide the Conversation column: more room";
+  }
+}
+function setWide(wide) {
+  document.body.classList.toggle("wide", wide);
+  if (!wide) unseen = 0;
+  wideLabels();
+  try { localStorage.setItem("jarvisWide", wide ? "1" : ""); } catch (err) {}
+}
+for (const b of [$("wideTop"), $("widePanel")]) {
+  b.addEventListener("click", () => setWide(!document.body.classList.contains("wide")));
+}
+try { setWide(localStorage.getItem("jarvisWide") === "1"); } catch (err) { setWide(false); }
 function addAction(a) {
   const box = $("actions"); if (box.querySelector(".empty")) box.textContent = "";
   const cls = ["done", "claimed"].includes(a.status) ? "ok" : a.status === "cancelled" ? "ask" : "no";
@@ -277,6 +313,7 @@ function startExplore(e) {
 function openPanel(kind) {
   if (panel === "lesson" && kind !== "lesson") leaveLesson();
   panel = kind; $("panel").hidden = false; $("panelName").textContent = PANEL_NAMES[kind] || "";
+  $("wideTop").hidden = true;                             // the panel's bar has its own button
   $("mapFrame").hidden = kind !== "map"; $("board").hidden = kind !== "board"; $("mapOwn").hidden = kind !== "map";
   $("lesson").hidden = kind !== "lesson"; $("lessonCtl").hidden = kind !== "lesson";
   $("explore").hidden = kind !== "explore"; if (kind !== "explore") stopExplore();
@@ -287,6 +324,7 @@ function closePanel() {
   if (panel === "lesson") leaveLesson();
   stopExplore();
   panel = ""; $("panel").hidden = true; $("mapFrame").src = "about:blank"; tellJarvis("");
+  $("wideTop").hidden = false;
 }
 function showMap(url) {
   if (!/^\/map(\?|$)/.test(String(url || ""))) return;          // only Jarvis's own map page
@@ -593,6 +631,7 @@ function onEvent(e) {
 fetch("/state").then(r => r.json()).then(d => {
   showState(d.state);
   for (const e of d.history || []) onEvent(e);
+  unseen = 0; wideLabels();                               // what was said before isn't new
   // Opened while a lesson plays (the window was closed when it started): show it.
   if (d.state && d.state.lesson && d.state.lesson.playing && !lessonData) {
     const go = () => openLesson();

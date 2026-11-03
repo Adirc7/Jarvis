@@ -483,6 +483,7 @@ document.getElementById('play').addEventListener('click', () => {
   playing = setInterval(() => { step = (step + 1) % T.length; slider.value = String(step); redraw(); }, 1100);
 });
 followJarvis(map);
+panelToggle(map);
 redraw();
 if (DATA.focus >= 0) setTimeout(() => openCountry(DATA.focus), 300);   // the country asked about
 </script></body></html>

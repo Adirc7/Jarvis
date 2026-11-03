@@ -8,7 +8,13 @@ away (the layer button, top right). Both ask only for the credit shown.
 """
 
 CSS = (".dark-tiles { filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9) saturate(0.6); }\n"
-       ".leaflet-control-layers { background:#091522; color:#eaf5ff; border:1px solid #12314a; }\n")
+       ".leaflet-control-layers { background:#091522; color:#eaf5ff; border:1px solid #12314a; }\n"
+       "main.full { grid-template-columns:minmax(0,1fr) 0 !important; } main.full > aside { display:none; }\n"
+       ".panelHide { float:right; margin:0 0 6px 8px; font-size:12px; padding:3px 8px; background:#0f2639; "
+       "color:#eaf5ff; border:1px solid #1c4766; border-radius:6px; cursor:pointer; }\n"
+       ".panelShow { font:12px 'Segoe UI', system-ui, sans-serif; padding:6px 10px; background:#091522; "
+       "color:#eaf5ff; border:1px solid #1c4766; border-radius:6px; cursor:pointer; }\n"
+       ".panelHide:hover, .panelShow:hover { border-color:#4de1ff; }\n")
 
 JS = """
 function addBaseLayers(map) {
@@ -31,6 +37,32 @@ function addBaseLayers(map) {
   });
   L.control.layers(layers, null, { position: 'topright' }).addTo(map);
   return layers;
+}
+// The side panel can be hidden for a bigger map, and shown again (remembered for next time).
+function panelToggle(map) {
+  const main = document.querySelector('main'), aside = document.querySelector('main > aside');
+  if (!main || !aside) return;
+  const hide = document.createElement('button');
+  hide.className = 'panelHide'; hide.type = 'button'; hide.textContent = 'Hide panel \u203a';
+  hide.title = 'Hide this panel: a bigger map';
+  aside.prepend(hide);
+  const show = L.control({ position: 'topright' });
+  show.onAdd = () => {
+    const b = L.DomUtil.create('button', 'panelShow');
+    b.type = 'button'; b.textContent = '\u2039 Panel'; b.title = 'Show the panel again';
+    L.DomEvent.disableClickPropagation(b); b.addEventListener('click', () => set(false));
+    return b;
+  };
+  function set(full) {
+    main.classList.toggle('full', full);
+    if (full) show.addTo(map); else show.remove();
+    setTimeout(() => map.invalidateSize(), 60);
+    try { localStorage.setItem('jarvisMapFull', full ? '1' : ''); } catch (e) {}
+  }
+  hide.addEventListener('click', () => set(true));
+  let full = false;
+  try { full = localStorage.getItem('jarvisMapFull') === '1'; } catch (e) {}
+  if (full) set(true);
 }
 // Jarvis moves the map when asked ("show Sri Lanka and zoom in"): his window passes the
 // move on. Only from the window's own address, and only numbers are used.

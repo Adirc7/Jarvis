@@ -126,6 +126,7 @@ def test_the_page_carries_the_numbers_and_escapes_what_it_shows(tmp_path):
     assert len(data["samples"]) == len(world.samples) and data["alerts"][0]["kind"] == "tropical cyclone"
     assert "window.jarvisLayer" in html and "gibs.earthdata.nasa.gov/wms/epsg3857" in html
     assert "m.action === 'layer'" in html                         # the window's voice moves reach it
+    assert "panelToggle(map);" in html and "main.full" in html      # the side panel hides for a bigger map
     path = save_world_map(world, [], tmp_path, now=NOW)
     assert path.name.startswith("weather-map ") and path.name.endswith(" world.html")   # Jarvis's window finds it
 
@@ -159,3 +160,11 @@ def test_offline_the_world_map_says_so(tmp_path):
     info = InfoTools(tmp_path / "Jarvis", opener=lambda u: None, now=lambda: NOW, weather=Weather(get=offline))
     out = info.call("show_weather_map", '{"area": "world"}')
     assert out.status == "failed" and "don't guess" in out.result.data["for_model"]
+
+
+def test_the_window_and_the_explorer_can_hide_their_side_columns():
+    from jarvis.ui.server import EXPLORE_JS, PAGE
+    window = PAGE.read_text(encoding="utf-8")
+    assert 'id="widePanel"' in window and 'id="wideTop"' in window and "body.wide main > aside" in window
+    assert 'id="panelCap"' in window                                # the latest line shows under a wide panel
+    assert "jarvisExploreFull" in EXPLORE_JS.read_text(encoding="utf-8")

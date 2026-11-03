@@ -41,6 +41,7 @@ window.JarvisExplore = (function () {
 .xlabel { position:absolute; font:12px Segoe UI,system-ui,sans-serif; color:#eaf5ff; white-space:nowrap;
   padding:2px 7px; border-radius:4px; background:#03070dcc; border:1px solid #1c4766; transform:translateY(-50%); }
 .xlabel.on { border-color:#ffffff; color:#ffffff; background:#0c2236ee; }
+.xw.full .xside { display:none; }
 .xside { width:270px; flex:none; overflow:auto; padding:12px 14px; border-left:1px solid var(--line,#12314a);
   font:13px Segoe UI,system-ui,sans-serif; color:var(--text,#eaf5ff); background:#050d16; }
 .xside h3 { margin:0 0 2px; font-size:18px; font-weight:500; color:#fff; }
@@ -178,7 +179,18 @@ window.JarvisExplore = (function () {
       const o = el("option", "", name); o.value = id; o.selected = id === model.id; models.append(o);
     }
     models.addEventListener("change", () => post({ explore: "model", model: models.value }));
-    bar.append(apart, together, slider, models);
+    const sideBtn = el("button");                           // hide the side card: a bigger model
+    const setSide = full => {
+      wrap.classList.toggle("full", full);
+      sideBtn.textContent = full ? "\u2039 Panel" : "Hide panel \u203a";
+      sideBtn.title = full ? "Show the side panel again" : "Hide the side panel: a bigger model";
+      try { localStorage.setItem("jarvisExploreFull", full ? "1" : ""); } catch (err) {}
+    };
+    let sideFull = false;
+    try { sideFull = localStorage.getItem("jarvisExploreFull") === "1"; } catch (err) {}
+    setSide(sideFull);
+    sideBtn.addEventListener("click", () => setSide(!wrap.classList.contains("full")));
+    bar.append(apart, together, slider, models, sideBtn);
     note.textContent = "Show your hand to the camera, or drag to turn and click a part.";
 
     // ---- state ----

@@ -1776,3 +1776,12 @@ made-up world (trade winds, westerlies, a cyclone in the Bay of Bengal): all
 layers, the slider, popups, search and the voice switch work; filling in
 takes 85 ms. Not checked from here: NASA's and Open-Meteo's live answers
 (the workspace can't reach them).
+- 3 Nov, 16:30: Adhi's world map worked live (NASA's photo of yesterday,
+  India's map). He asked for a way to hide the right-hand column for a
+  bigger map and 3D model. Now three: "Hide conversation" in the window
+  (in the panel's bar, and the header when no panel is open; the latest line
+  shows under the panel, and the button counts new lines), "Hide panel" on
+  every map (news, weather, world), and "Hide panel" on the 3D explorer's
+  bar. Each is remembered. Checked in headless Chromium through the real
+  window server: the map goes from 1240 to 1600 px wide, the explorer from
+  981 to 1280.

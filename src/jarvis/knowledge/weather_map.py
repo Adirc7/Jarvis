@@ -87,6 +87,7 @@ const DATA = {data};
 const map = L.map('map').setView([{centre[0]}, {centre[1]}], {zoom});
 addBaseLayers(map);
 followJarvis(map);
+panelToggle(map);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}})[c]);
 const num = (v, u, d = 0) => v === null || v === undefined ? '?' : Number(v).toFixed(d) + u;
 const rainColour = mm => (DATA.rain.find(([limit]) => (mm ?? 0) < limit) || DATA.rain[DATA.rain.length - 1])[1];

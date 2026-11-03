@@ -84,6 +84,7 @@ const DATA = {data};
 const map = L.map('map', {{ worldCopyJump: true }}).setView([20, 30], 2);
 addBaseLayers(map);
 followJarvis(map);
+panelToggle(map);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}})[c]);
 const storyHtml = s => `<div class="story"><span class="dot" style="background:${{DATA.colours[s.theme] || '#eaf5ff'}}"></span>
   <a href="${{esc(s.url)}}" target="_blank" rel="noopener">${{esc(s.title)}}</a>
