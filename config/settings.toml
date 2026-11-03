@@ -9,6 +9,11 @@ language_mode = "fixed"
 # Small files Jarvis keeps between runs (e.g. when you last talked). Not committed.
 state_dir = "state"
 
+# Where downloaded models are kept (Whisper, the emotion model, e5): Hugging Face's HF_HOME. "" leaves it
+# to Windows (C:\Users\<you>\.cache\huggingface, or HF_HOME if you set one). Set it to a folder on D:
+# in settings.local.toml to keep C: free; every way of starting Jarvis then uses the same one.
+model_cache = ""
+
 [greeting]
 # Jarvis greets like a person: a full greeting the first time each day, a
 # short "welcome back" after a break, and nothing extra within the same

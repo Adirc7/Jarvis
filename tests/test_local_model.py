@@ -57,3 +57,30 @@ async def test_jarvis_starts_it_and_stops_resting_it(settings, monkeypatch):
     settings.raw["ollama"]["start"] = True
     app._start_ollama()
     assert calls and calls[0][0] == "http://localhost:11434/v1" and ollama.quota_key not in app.llm.resting
+
+
+def test_one_model_cache_however_jarvis_starts(monkeypatch, tmp_path):
+    """4 Nov: started by three claps from a console with HF_HOME=D:\\hf-cache, Jarvis downloaded the emotion
+    model again. [general] model_cache wins over whatever the console had."""
+    from jarvis.config import Settings, use_model_cache
+    monkeypatch.setenv("HF_HOME", "D:/somewhere-else")
+    use_model_cache(Settings(raw={"general": {"model_cache": str(tmp_path / "hf")}}, languages={}))
+    import os
+    assert os.environ["HF_HOME"] == str(tmp_path / "hf")
+    monkeypatch.setenv("HF_HOME", "left-alone")
+    use_model_cache(Settings(raw={"general": {"model_cache": ""}}, languages={}))
+    assert os.environ["HF_HOME"] == "left-alone"
+
+
+def test_the_intent_model_and_the_stand_in_share_one_encoder(monkeypatch):
+    import sys
+    import types
+    made = []
+    fake = types.ModuleType("sentence_transformers")
+    fake.SentenceTransformer = lambda name, device=None: made.append((name, device)) or object()
+    monkeypatch.setitem(sys.modules, "sentence_transformers", fake)
+    from jarvis import encoders
+    monkeypatch.setattr(encoders, "_loaded", {})
+    a = encoders.sentence_encoder("intfloat/multilingual-e5-small", "cpu")
+    b = encoders.sentence_encoder("intfloat/multilingual-e5-small", "cpu")
+    assert a is b and made == [("intfloat/multilingual-e5-small", "cpu")]

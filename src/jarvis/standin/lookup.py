@@ -57,8 +57,8 @@ class E5:
 
     def fit(self, texts: list[str]) -> None:
         if self._model is None:
-            from sentence_transformers import SentenceTransformer
-            self._model = SentenceTransformer(self.model_name, device=self.device)
+            from ..encoders import sentence_encoder
+            self._model = sentence_encoder(self.model_name, self.device)      # shared with the intent model
 
     def encode(self, texts: list[str], kind: str = "query") -> np.ndarray:
         self.fit([])

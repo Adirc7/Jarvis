@@ -214,4 +214,17 @@ def load_settings(config_dir: Path | None = None, local: bool = True, load_env: 
     default = settings.get("general.default_language", "en")
     if default not in languages:
         raise ValueError(f"default_language '{default}' is not defined in languages.toml")
+    use_model_cache(settings)
     return settings
+
+
+def use_model_cache(settings: Settings) -> None:
+    """[general] model_cache: where downloaded models live (Hugging Face's HF_HOME), however Jarvis was started.
+
+    4 Nov: started by three claps from a console that had `set HF_HOME=D:\\hf-cache` in it, Jarvis looked
+    there, didn't find the emotion model and downloaded it again. Set before any model library is imported
+    (they're all imported later, when first used)."""
+    cache = str(settings.get("general.model_cache", "") or "")
+    if cache:
+        path = Path(cache).expanduser()
+        os.environ["HF_HOME"] = str(path if path.is_absolute() else PROJECT_ROOT / path)

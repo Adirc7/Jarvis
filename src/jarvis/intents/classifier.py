@@ -41,9 +41,9 @@ def load_classifier(path: Path | str) -> tuple[Classify, dict[str, Any]]:
             return _best(pipeline.classes_, pipeline.predict_proba([text])[0])
 
     elif kind == "embedding":
-        from sentence_transformers import SentenceTransformer
+        from ..encoders import sentence_encoder
 
-        encoder = SentenceTransformer(saved["encoder"])
+        encoder = sentence_encoder(saved["encoder"], "cpu")       # the same copy as the stand-in's
         prefix = saved.get("prefix", "query: ")
         model = saved["classifier"]
 

@@ -1924,3 +1924,12 @@ window server: every number matches SymPy, every button reaches Jarvis.
   allowed folders, never secrets, the text as data. clap_launcher.py: a
   windowless listener started at sign-in; three claps start Jarvis.
   Details: docs/PC_ACTIONS.md.
+- 4 Nov, 02:50: Started by three claps, Jarvis downloaded the emotion model
+  again: the launcher had been started from a console with
+  `set HF_HOME=D:\hf-cache`, so Jarvis looked for models there. Now
+  `[general] model_cache` sets HF_HOME whenever settings load (the laptop's
+  settings.local.toml: D:/hf-cache), so every way of starting Jarvis uses
+  one folder. The second 378 MB was transformers fetching the same model's
+  safetensors copy, once. And e5 (the intent model's and the stand-in's
+  encoder) was loaded twice, one copy on the GPU: now one shared copy on
+  the CPU (encoders.py).
