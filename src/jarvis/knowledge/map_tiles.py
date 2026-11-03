@@ -39,7 +39,9 @@ function followJarvis(map) {
   window.addEventListener('message', e => {
     if (e.origin !== window.location.origin || !e.data || typeof e.data !== 'object') return;
     const m = e.data;
-    if (m.action === 'zoom_in') map.zoomIn(2);
+    if (m.action === 'layer' && typeof m.layer === 'string' && typeof window.jarvisLayer === 'function') {
+      window.jarvisLayer(m.layer);                 // the world weather map: "show me the wind"
+    } else if (m.action === 'zoom_in') map.zoomIn(2);
     else if (m.action === 'zoom_out') map.zoomOut(2);
     else if (m.action === 'focus' && Number.isFinite(m.lat) && Number.isFinite(m.lon)) {
       map.flyTo([m.lat, m.lon], Number.isFinite(m.zoom) ? m.zoom : 7, { duration: 1.5 });

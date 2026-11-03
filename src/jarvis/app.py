@@ -105,11 +105,14 @@ GROUP_NOTES = {
     "news": ("for current events or the news call get_news (show_news_map for the map) instead of answering from "
              "memory; read_article for more on a listed story"),
     "weather": ("for the weather, rain, storms or cyclones call get_weather (weather_alerts for storms and "
-                "disasters, show_weather_map for the map)"),
+                "disasters, show_weather_map for the map: 'world', a continent or a country shows temperature, "
+                "clouds, rain, wind, humidity and pressure for every country)"),
     "research": "look_up for background you're unsure of; find_papers for research papers and references",
     "maths": ("check_maths before stating any maths result; show_on_board to put working, formulas or graphs on "
               "Jarvis's board in his window while you explain"),
-    "map": "map_view to move the map in Jarvis's window (focus on a place, zoom in or out, close it)",
+    "map": ("map_view to move the map in Jarvis's window (focus on a place, zoom in or out, close it, or on the "
+            "world weather map show a layer: temperature, clouds, rain, wind, humidity, pressure, satellite, "
+            "radar)"),
 }
 GROUP_WORDS = {
     "news": re.compile(

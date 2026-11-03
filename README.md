@@ -95,7 +95,11 @@ Measurements: [docs/RESULTS.md](docs/RESULTS.md).
   compared with the usual rain for those dates over the last 10 years; GDACS
   storm and flood alerts; Sri Lanka's monsoon season as background; then
   Jarvis's labelled view. The map shows rain day by day for 16 towns, alerts
-  and rain radar.
+  and rain radar. **The world weather map** ("show me the world's weather",
+  "weather map of India", "show the wind"): temperature, clouds, rain, wind
+  (moving streaks), humidity and pressure over the whole world, every
+  country's numbers at its capital, the next 48 hours with a play button,
+  NASA's satellite clouds and storm alerts (`docs/WEATHER_MAP.md`).
 - **Research and study**: Wikipedia and research papers with real references
   ("find papers on Sinhala speech recognition"); maths worked out and checked
   by SymPy, hints first ("help me integrate x squared sin x"). **The board**:

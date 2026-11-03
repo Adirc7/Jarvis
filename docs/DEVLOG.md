@@ -1758,3 +1758,21 @@ pinch picks it and tells Jarvis; no page errors. `docs/EXPLORE.md`.
   do?" is about it. Found in the browser check: the first frame's clock can be
   before the last one, so the easing ran backwards and showed "-40% apart";
   a frame's step is now never negative.
+
+## 2026-11-03: The world weather map
+
+Adhi asked for temperature, clouds and wind over the whole world, with every
+country's weather. The world map showed only alerts. Now "world", a
+continent or a country opens a live map: Open-Meteo (free, no key) for all
+244 capitals (GeoNames) and 183 points over the seas, 9 values every 3 hours
+for 48 hours, asked in 5 requests of up to 100 places (427 of the free 600
+calls a minute) and kept for an hour. The page fills in between the points
+(modified Shepard, 8 nearest), colours six layers, draws the wind as moving
+streaks, plays the 48 hours, lists every country by the layer, and adds
+NASA GIBS satellite clouds (live infrared from GOES and Himawari; yesterday's
+true-colour photo), RainViewer's radar and GDACS alerts. Jarvis switches the
+layer by voice (map_view "layer"). Checked in headless Chromium with a
+made-up world (trade winds, westerlies, a cyclone in the Bay of Bengal): all
+layers, the slider, popups, search and the voice switch work; filling in
+takes 85 ms. Not checked from here: NASA's and Open-Meteo's live answers
+(the workspace can't reach them).

@@ -46,6 +46,7 @@ PHRASES: dict[str, dict[str, str]] = {
         "map_zoom_in": "ළං කළා.",
         "map_zoom_out": "ඈත් කළා.",
         "map_close": "සිතියම වැහුවා.",
+        "map_layer": "සිතියමේ {layer} පෙන්නනවා.",
     },
     "ta": {
         "opening": "{name} திறக்கிறேன்.",
@@ -82,6 +83,7 @@ PHRASES: dict[str, dict[str, str]] = {
         "map_zoom_in": "பெரிதாக்கினேன்.",
         "map_zoom_out": "சிறிதாக்கினேன்.",
         "map_close": "வரைபடத்தை மூடினேன்.",
+        "map_layer": "வரைபடத்தில் {layer} காட்டுகிறேன்.",
     },
 }
 

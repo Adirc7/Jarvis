@@ -27,11 +27,55 @@ from ..knowledge.weather import (
     forecast_for_the_model,
 )
 from ..knowledge.weather_map import save_weather_map
+from ..knowledge.world_weather import WorldWeather, countries, world_for_the_model
+from ..knowledge.world_weather_map import LAYERS, save_world_map
 from .gate import ActionLog, Gate
 from .registry import Args, Registry, Result, Tier, Tool
 
 MAP_OPEN = ("The map is open on the user's screen now (Jarvis opened it in his window): say so, and point "
             "out what stands out on it")
+
+
+WORLD_WORDS = ("world", "the world", "everywhere", "global", "earth", "the earth", "whole world")
+# continent: (centre, zoom)
+REGIONS = {"asia": ((30.0, 90.0), 3), "europe": ((52.0, 15.0), 4), "africa": ((3.0, 20.0), 3),
+           "north america": ((45.0, -100.0), 3), "south america": ((-18.0, -60.0), 3),
+           "oceania": ((-25.0, 145.0), 3), "australia and oceania": ((-25.0, 145.0), 3),
+           "middle east": ((27.0, 45.0), 4), "south asia": ((20.0, 80.0), 4), "southeast asia": ((10.0, 110.0), 4),
+           "east asia": ((35.0, 120.0), 4), "central america": ((15.0, -87.0), 5), "caribbean": ((18.0, -72.0), 5),
+           "antarctica": ((-75.0, 0.0), 2), "indian ocean": ((-10.0, 75.0), 3), "pacific": ((0.0, -160.0), 2),
+           "atlantic": ((20.0, -40.0), 3), "bay of bengal": ((14.0, 88.0), 5), "arabian sea": ((15.0, 64.0), 5)}
+
+# other names people use for a country (the list's names are GeoNames')
+COUNTRY_WORDS = {"usa": "united states", "us": "united states", "america": "united states",
+                 "united states of america": "united states", "uk": "united kingdom", "britain": "united kingdom",
+                 "great britain": "united kingdom", "england": "united kingdom", "uae": "united arab emirates",
+                 "korea": "south korea", "holland": "netherlands", "czech republic": "czechia", "burma": "myanmar",
+                 "turkiye": "turkey", "türkiye": "turkey", "drc": "democratic republic of the congo",
+                 "dr congo": "democratic republic of the congo", "cote d'ivoire": "ivory coast",
+                 "swaziland": "eswatini", "cape verde": "cabo verde", "east timor": "timor leste"}
+
+BIG_COUNTRIES = {"Russia": 3, "Canada": 3, "United States": 4, "China": 4, "Brazil": 4, "Australia": 4, "India": 4,
+                 "Argentina": 4, "Kazakhstan": 4, "Algeria": 4, "Democratic Republic of the Congo": 4,
+                 "Greenland": 3, "Saudi Arabia": 4, "Mexico": 4, "Indonesia": 4, "Sudan": 4, "Libya": 4, "Iran": 4,
+                 "Mongolia": 4, "Peru": 4, "Chad": 4, "Niger": 4, "Angola": 4, "Mali": 4, "South Africa": 4}
+
+
+def _world_view(area: str) -> tuple[tuple[float, float], int, str] | None:
+    """(centre, zoom, country) for the world map, or None for Sri Lanka's towns map or one town."""
+    key = " ".join(area.lower().replace("the ", " ").split()) if area.lower() not in WORLD_WORDS else "world"
+    if key in ("world", *WORLD_WORDS):
+        return (20.0, 20.0), 2, ""
+    if key in REGIONS:
+        return REGIONS[key][0], REGIONS[key][1], ""
+    if key in ("sri lanka", "lanka", "srilanka"):
+        return None
+    key = COUNTRY_WORDS.get(key, key)
+    for c in countries():
+        if key in (c.country.lower(), c.iso.lower()) and c.country != "Sri Lanka":
+            centre = where(c.country) or (c.lat, c.lon)            # the middle of the country, if known
+            return centre, BIG_COUNTRIES.get(c.country, 5), c.country
+    return None                                          # a town: its own map
 
 
 def _obj(props: dict, required: list[str]) -> dict:
@@ -41,12 +85,14 @@ def _obj(props: dict, required: list[str]) -> dict:
 class InfoTools:
     def __init__(self, jarvis_folder: Path | str, log: ActionLog | None = None, *, news: NewsDesk | None = None,
                  research: Research | None = None, weather: Weather | None = None,
-                 opener: Callable[[str], None] | None = None, now: Callable[[], datetime] = lambda: datetime.now(UTC),
+                 world: WorldWeather | None = None, opener: Callable[[str], None] | None = None, now: Callable[[], datetime] = lambda: datetime.now(UTC),
                  screen: Callable[[str, dict], bool] | None = None):
         self.home = Path(jarvis_folder).expanduser()
         self.news = news or NewsDesk()
         self.research = research or Research()
         self.weather = weather or Weather()
+        self.world = world or WorldWeather(get=getattr(self.weather, "get", None) or WorldWeather().get,
+                                           cache_dir=self.home / "weather")
         self.opener = opener or _open_in_browser
         self.now = now
         # The window (app.py): screen(kind, data) shows a map move or the board; True if a window shows it.
@@ -143,6 +189,9 @@ class InfoTools:
 
     def _show_weather_map(self, args: Args) -> Result:
         area = (args.get("area") or "Sri Lanka").strip()
+        world_view = _world_view(area)
+        if world_view is not None:
+            return self._show_world_map(area, *world_view, str(args.get("layer") or "temperature"))
         try:
             if area.lower() in ("sri lanka", "lanka", "srilanka"):
                 places = [Place(n, lat, lon, "Sri Lanka", kind="PPL") for n, (lat, lon) in SRI_LANKA_TOWNS.items()]
@@ -170,6 +219,32 @@ class InfoTools:
                       data={"path": str(path), "kind": "weather", "say": ("weather_map", {"n": len(forecasts)}),
                             "for_model": (f"{MAP_OPEN} ({title}). Wettest today: {summary or 'n/a'}.\n"
                                           + "\n".join(alerts_for_the_model(alerts, "on the map")))})
+
+    def _show_world_map(self, area: str, centre: tuple[float, float], zoom: int, country: str,
+                        layer: str) -> Result:
+        try:
+            world = self.world.get_world()
+        except WeatherError as exc:
+            return Result(False, "I couldn't get the world's weather for the map.", data={
+                "kind": "weather", "say": ("weather_none", {}),
+                "for_model": f"Open-Meteo didn't answer ({exc}). Say so; don't guess."})
+        try:
+            alerts = self.weather.alerts(country=country) if country else self.weather.alerts()
+        except WeatherError:
+            alerts = []                                  # the map is still worth showing without them
+        focus = world.country(country) if country else None
+        title = f"Weather: {country or area.title()}" if area.lower() not in WORLD_WORDS else "World weather"
+        path = save_world_map(world, alerts, self.home / "weather", title, self.now(), centre, zoom, focus, layer)
+        self.opener(path.as_uri())
+        n = sum(1 for s in world.samples if s.country)
+        return Result(True, f"Opened the world weather map: {n} countries, {len(alerts)} alerts.",
+                      data={"path": str(path), "kind": "weather", "say": ("weather_map", {"n": n}),
+                            "for_model": "\n".join([
+                                (f"{MAP_OPEN} ({title}, showing {layer}; the user can switch it to temperature, "
+                                 "clouds, rain, wind, humidity or pressure, play the next 48 hours, turn on NASA "
+                                 "satellite clouds or the rain radar, and click any country)."),
+                                *world_for_the_model(world, country),
+                                *alerts_for_the_model(alerts, "on the map")[:8]])})
 
     # ---- research ------------------------------------------------------------------------
     def _look_up(self, args: Args) -> Result:
@@ -229,6 +304,12 @@ class InfoTools:
     def _map_view(self, args: Args) -> Result:
         action, place_name = args["action"], (args.get("place") or "").strip()
         data: dict = {"action": action}
+        if action == "layer":
+            layer = str(args.get("layer") or "").lower()
+            if layer not in (*LAYERS, "satellite", "radar"):
+                return Result(False, "Which layer: temperature, clouds, rain, wind, humidity, pressure, "
+                                     "satellite or radar?")
+            data["layer"] = layer
         if action == "focus":
             if not place_name:
                 return Result(False, "Which place should I show?")
@@ -248,8 +329,10 @@ class InfoTools:
         if not self.screen("map_cmd", data):
             return Result(False, "The map isn't open in my window; ask me for the news map or the weather map first.")
         said = {"focus": f"Showing {data.get('label', place_name)}.", "zoom_in": "Zooming in.",
-                "zoom_out": "Zooming out.", "close": "Closed the map."}[action]
-        return Result(True, said, data={"say": (f"map_{action}", {"place": data.get("label", place_name)})})
+                "zoom_out": "Zooming out.", "close": "Closed the map.",
+                "layer": f"Showing the {data.get('layer', '')}."}[action]
+        return Result(True, said, data={"say": (f"map_{action}", {"place": data.get("label", place_name),
+                                                                 "layer": data.get("layer", "")})})
 
     def _tools(self) -> list[Tool]:
         text = {"type": "string", "maxLength": 120}
@@ -281,14 +364,20 @@ class InfoTools:
                  "earthquakes, volcanoes, droughts, wildfires): worldwide, in or near a country, or near a place. "
                  "Not tornadoes.", _obj({"country": {**text, "maxLength": 40}, "place": {**text, "maxLength": 60}},
                                         []), Tier.JUST_DO, self._weather_alerts),
-            Tool("show_weather_map", "Open a weather map in the browser: rain and temperature day by day for "
-                 "Sri Lanka's towns (the default), a place, or 'world', with storm alerts and rain radar.",
-                 _obj({"area": {**text, "maxLength": 60}}, []), Tier.JUST_DO, self._show_weather_map,
-                 verify=self._map_saved),
+            Tool("show_weather_map", "Open a weather map in the browser. 'world', a continent or a country: "
+                 "the live world map, with temperature, clouds, rain, wind (moving streaks), humidity and "
+                 "pressure over the whole world, every country's numbers at its capital, the next 48 hours, NASA "
+                 "satellite clouds and storm alerts; start it on `layer`. Sri Lanka (the default) or a town: rain "
+                 "and temperature day by day for its towns, with rain radar.",
+                 _obj({"area": {**text, "maxLength": 60},
+                       "layer": {"type": "string", "enum": list(LAYERS)}}, []),
+                 Tier.JUST_DO, self._show_weather_map, verify=self._map_saved),
             Tool("map_view", "Move the map open in Jarvis's window: focus on a place (it zooms there), zoom in or "
-                 "out, or close it.", _obj({"action": {"type": "string", "enum": ["focus", "zoom_in", "zoom_out",
-                                                                                 "close"]},
-                                             "place": {**text, "maxLength": 60}}, ["action"]),
+                 "out, close it, or (the world weather map) show a layer: temperature, clouds, rain, wind, "
+                 "humidity, pressure, satellite (NASA's live clouds) or radar.",
+                 _obj({"action": {"type": "string", "enum": ["focus", "zoom_in", "zoom_out", "close", "layer"]},
+                       "place": {**text, "maxLength": 60},
+                       "layer": {"type": "string", "enum": [*LAYERS, "satellite", "radar"]}}, ["action"]),
                  Tier.JUST_DO, self._map_view),
             Tool("show_on_board", "Put working on the board in Jarvis's window, so the user can see it while you "
                  "explain: a title, steps (each a line of text and/or a formula in LaTeX) and up to 3 graphs of "
