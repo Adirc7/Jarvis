@@ -237,3 +237,29 @@ def test_jarvis_is_started_through_run_jarvis_cmd_not_start_with_a_bare_title(mo
     monkeypatch.setattr(subprocess, "Popen", lambda args, **kw: ran.append(args))
     clap_launcher.start_jarvis(tmp_path)
     assert ran == [["cmd.exe", "/c", str(tmp_path / "scripts" / "run_jarvis.cmd"), "voice"]]
+
+
+def test_typing_is_not_three_claps():
+    """4 Nov: typing near the laptop's microphone started Jarvis 25 times in 25 minutes."""
+    from jarvis.clap_launcher import Launcher
+    started = []
+
+    def run(audio, **kw):
+        launcher = Launcher(start=lambda: started.append(1), log=lambda line: None, **kw)
+        for i in range(0, len(audio), 1600):
+            launcher.feed(audio[i:i + 1600])
+
+    soft = room(5)
+    for t in (1.0, 1.4, 1.8):
+        soft = at(soft, clap(int(t * 10)) * 0.05, t)                 # clicks: well under 35 dB above the room
+    run(soft)
+    uneven = at(at(at(room(5), clap(1), 1.0), clap(2), 1.25), clap(3), 2.1)   # 0.25 s, then 0.85 s
+    run(uneven)
+    lopsided = at(at(at(room(5), clap(1), 1.0), clap(2) * 0.08, 1.4), clap(3), 1.8)
+    run(lopsided)
+    assert started == []
+    even = at(at(at(room(5), clap(1), 1.0), clap(2), 1.4), clap(3), 1.8)
+    run(even, last_input=lambda: 1e12, clock=lambda: 1e12 + 1)           # a key pressed a second ago
+    assert started == []
+    run(even)
+    assert started == [1]

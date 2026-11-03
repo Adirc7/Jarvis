@@ -52,26 +52,32 @@ class Launcher:
     """Claps in, Jarvis started: the part that runs anywhere (the tests feed it made-up audio)."""
 
     def __init__(self, settings: ClapSettings | None = None, start=start_jarvis, log=print, console: bool = False,
-                 max_gap_s: float = 0.9):
+                 max_gap_s: float = 0.9, min_above_db: float = 35.0, last_input=lambda: -1e9,
+                 input_quiet_s: float = 4.0, clock=time.monotonic):
         from dataclasses import replace
         self.detector = ClapDetector(RATE, settings)
-        # Three claps in a row are slower than two (4 Nov, Adhi: 0.57-0.6 s apart, at the double clap's limit)
-        self.triple = TripleClap(replace(self.detector.s, max_gap_s=max(max_gap_s, self.detector.s.max_gap_s)))
+        # Three claps in a row are slower than two (4 Nov, Adhi: 0.57-0.6 s apart, at the double clap's limit),
+        # but loud (35 dB above the room), even (gaps within 1.8 times each other) and alike (12 dB)
+        self.triple = TripleClap(replace(self.detector.s, max_gap_s=max(max_gap_s, self.detector.s.max_gap_s)),
+                                 min_above_db=min_above_db, max_spread_db=12.0, max_rhythm=1.8)
         self.start, self.log, self.console = start, log, console
+        # A key or a mouse button within the last few seconds: someone's typing, those weren't claps
+        self.last_input, self.input_quiet_s, self.clock = last_input, input_quiet_s, clock
         self.started = 0
 
     def feed(self, samples) -> bool:
         for event in self.detector.feed(samples):
             if event.kind == "peak" and event.counted:
-                before = list(self.triple.times)
-                self.triple.peak(event.t)
+                taken = self.triple.peak(event.t, event.above)
                 if self.console:
-                    taken = self.triple.times != before
-                    self.log(f"clap {len(self.triple.times) if taken else '(resting)'} at {event.t:.2f} s "
-                             f"({event.above:.0f} dB above the room)")
+                    self.log(f"clap {len(self.triple.times) if taken else '(not counted: quiet or resting)'} at "
+                             f"{event.t:.2f} s ({event.above:.0f} dB above the room)")
             elif event.kind == "peak" and self.console:
                 self.log(f"not a clap at {event.t:.2f} s ({event.why})")
         if self.triple.done(self.detector._t):
+            if self.clock() - self.last_input() < self.input_quiet_s:
+                self.log("three claps, but the keyboard or mouse was in use: ignored")
+                return False
             self.started += 1
             self.log("three claps: starting Jarvis")
             try:
@@ -80,6 +86,20 @@ class Launcher:
                 self.log(f"couldn't start Jarvis: {type(exc).__name__}: {exc}")
             return True
         return False
+
+
+def _watch_input(last: dict) -> None:
+    """When a key or a mouse button was last pressed (not what was pressed: only the time)."""
+    try:
+        from pynput import keyboard, mouse
+
+        def now(*_args) -> None:
+            last["t"] = time.monotonic()
+
+        keyboard.Listener(on_press=now).start()
+        mouse.Listener(on_click=now, on_scroll=now).start()
+    except Exception:  # noqa: BLE001, S110 - no hooks (another OS): the loudness and rhythm checks remain
+        pass
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -107,8 +127,12 @@ def main(argv: list[str] | None = None) -> int:
         log("already running")
         return 0
     import sounddevice as sd
+    last = {"t": -1e9}
+    _watch_input(last)
     launcher = Launcher(ClapSettings.from_settings(settings), log=log, console=console,
-                        max_gap_s=float(settings.get("clap_launcher.max_gap_s", 0.9)))
+                        max_gap_s=float(settings.get("clap_launcher.max_gap_s", 0.9)),
+                        min_above_db=float(settings.get("clap_launcher.min_above_db", 35)),
+                        last_input=lambda: last["t"])
     log("listening for three claps (nothing is recorded)")
     while True:
         try:

@@ -51,7 +51,8 @@ scripts\clap_launcher.cmd test         see each clap it hears (to tune [clap] in
 scripts\clap_launcher.cmd uninstall    stop it for good
 ```
 
-Three claps, each 0.2 to 0.6 seconds after the one before, then quiet: Jarvis starts as the desktop icon
+Three loud, even claps (each 0.2 to 0.9 seconds after the one before, about equally loud, at least
+35 dB above the room), then quiet, with no key or mouse button pressed in the 4 seconds around them: Jarvis starts as the desktop icon
 starts him (if he's already running, his window comes to the front). Two claps are Jarvis's own double
 clap; four or more (applause) and knocks (low-pitched) do nothing. Nothing is recorded: each 10 ms of
 sound is measured and dropped. Its log is `logs/clap_launcher.log`. `scripts\update.cmd` stops it while it

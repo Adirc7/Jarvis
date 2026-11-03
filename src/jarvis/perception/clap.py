@@ -182,29 +182,46 @@ class TripleClap:
     nothing; after a triple, the next one counts only `rest_s` later.
     """
 
-    def __init__(self, settings: ClapSettings | None = None, claps: int = 3, rest_s: float = 8.0):
+    def __init__(self, settings: ClapSettings | None = None, claps: int = 3, rest_s: float = 8.0,
+                 min_above_db: float = 0.0, max_spread_db: float = 99.0, max_rhythm: float = 99.0):
         self.s, self.claps, self.rest_s = settings or ClapSettings(), claps, rest_s
+        # 4 Nov: typing near the laptop's microphone started Jarvis 25 times in 25 minutes. Real claps were
+        # 37-50 dB above the room, the rest 15-34; claps come evenly and equally loud, keys don't.
+        self.min_above_db, self.max_spread_db, self.max_rhythm = min_above_db, max_spread_db, max_rhythm
         self.times: list[float] = []
+        self.loud: list[float] = []
         self._rest_until = 0.0
 
-    def peak(self, t: float) -> None:
-        if t < self._rest_until:
-            return
+    def peak(self, t: float, above: float = 99.0) -> bool:
+        """A clap; False when it isn't counted (resting, an echo, or too quiet)."""
+        if t < self._rest_until or above < self.min_above_db:
+            return False
         if self.times and t - self.times[-1] < self.s.min_gap_s:
-            return                                                     # the same clap's echo
+            return False                                               # the same clap's echo
         if self.times and t - self.times[-1] > self.s.max_gap_s:
-            self.times = []
+            self.times, self.loud = [], []
         self.times.append(t)
+        self.loud.append(above)
         if len(self.times) > self.claps:                               # too many: applause
-            self.times, self._rest_until = [], t + self.s.quiet_after_s
+            self.times, self.loud, self._rest_until = [], [], t + self.s.quiet_after_s
+        return True
+
+    def even(self) -> bool:
+        """The gaps alike and the claps equally loud: a deliberate clap-clap-clap, not typing."""
+        gaps = [b - a for a, b in zip(self.times, self.times[1:], strict=False)]
+        rhythm_ok = not gaps or max(gaps) / max(min(gaps), 1e-6) <= self.max_rhythm
+        return rhythm_ok and (max(self.loud) - min(self.loud) <= self.max_spread_db if self.loud else True)
 
     def done(self, now: float) -> bool:
         """True once, when the claps are in and nothing followed for quiet_after_s."""
         if len(self.times) == self.claps and now - self.times[-1] >= self.s.quiet_after_s:
-            self.times, self._rest_until = [], now + self.rest_s
-            return True
+            ok = self.even()
+            self.times, self.loud = [], []
+            if ok:
+                self._rest_until = now + self.rest_s
+            return ok
         if self.times and now - self.times[-1] > self.s.max_gap_s and len(self.times) < self.claps:
-            self.times = []
+            self.times, self.loud = [], []
         return False
 
 

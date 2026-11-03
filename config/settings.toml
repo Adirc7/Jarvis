@@ -197,6 +197,10 @@ model_dir = "models/openwakeword"
 # records nothing. false: it quits at once (or: scripts\clap_launcher.cmd uninstall).
 enabled = true
 max_gap_s = 0.9           # the most between two of the three claps (people clap three a little slower)
+# Only loud claps count: Adhi's were 37-50 dB above the room; typing near the microphone was 15-34 and
+# started Jarvis 25 times (4 Nov). The claps must also be even and alike, and no key or mouse button
+# pressed in the 4 seconds around them.
+min_above_db = 35
 
 [gestures]
 # Palm to pause (decision D29; docs/IMPLEMENTATION_PLAN.md, M8): a palm held

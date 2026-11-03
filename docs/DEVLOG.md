@@ -1941,3 +1941,10 @@ window server: every number matches SymPy, every button reaches Jarvis.
   2 s after waking. It reuses the double clap's hands-free recording
   (the clap detector keeps measuring the room even with claps off).
   [wake_word], /wake on|off.
+- 4 Nov, 03:15: The three-clap launcher started Jarvis 25 times in 25
+  minutes while Adhi typed (keys near the laptop's microphone; the gap had
+  just been widened to 0.9 s). Now a clap must be 35 dB above the room
+  (his were 37-50, the false ones 15-34), the three must be even (gaps
+  within 1.8 times each other) and alike (within 12 dB), and no key or
+  mouse button may have been pressed in the 4 s around them (pynput hooks:
+  only the time of a press, not the key).
