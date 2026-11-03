@@ -1792,3 +1792,21 @@ takes 85 ms. Not checked from here: NASA's and Open-Meteo's live answers
   the map, worked out again when the window or the side panel changes size
   (zoom in quarter steps, so it fits closely). Checked at 1100, 1600 and
   1920 px wide: dragging hard every way stays inside.
+
+## 2026-11-03: Worked problems, step by step
+
+Adhi asked for problems like his car question (accelerate, cruise, brake with
+ABS) to be shown properly: the question, its parts to click, hints, the
+working, and an animation for each step; the lesson's model-drawn sketch had
+come out blank. Now a problem mode: the model plans (JSON), SymPy works out
+every step's number (the model's own arithmetic never reaches the screen),
+and tested views draw it from the same numbers: motion with v-t and s-t
+graphs and the area under them, ABS, a speedometer; graphs with Newton's
+method and the trapezium rule; forces; circuits; titration curves solved from
+the charge balance; kinetics; energy profiles; ICE tables. Hint, Next step,
+Back, Full solution, Check my answer (it names a km/h slip or a wrong sign),
+Practice with new numbers, Summary; by voice too. A photo (Gemini) or a PDF
+(pypdf) of a sheet can be dropped on the window. SymPy is now a dependency of
+its own (it came with torch before). Checked with four problems (car, Newton
+and an area, a titration, a circuit) in headless Chromium through the real
+window server: every number matches SymPy, every button reaches Jarvis.

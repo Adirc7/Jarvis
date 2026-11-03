@@ -54,6 +54,7 @@ from .language import LanguageManager, normalize, stray_letters
 from .lesson_mode import GROUP_NOTE as LESSON_NOTE
 from .explore_mode import ExploreMode
 from .lesson_mode import LESSON_SPEC, OFFER_NOTE, LessonMode
+from .problem_mode import HAS_NUMBER, NOT_HERE, SOLVE_NOTE, SOLVE_SPEC, SOLVE_WORDS, ProblemMode
 from .memory import Memory, detect_fact, detect_name
 from .persona import Persona
 from .state import CancelToken, Mode, SharedState
@@ -265,7 +266,7 @@ class ToolSaid:
     text: str
 
 
-class App(LessonMode, ExploreMode):
+class App(LessonMode, ExploreMode, ProblemMode):
     def __init__(
         self,
         settings: Settings,
@@ -712,6 +713,11 @@ class App(LessonMode, ExploreMode):
             self.out(f"Jarvis: {confirm}")
             turn.mark("language_switch")   # longer request: switch AND answer it
 
+        # A worked problem's "hint", "next step", "part b", or a problem to solve (problem_mode.py): before
+        # the lesson's "next", while the problem is on screen.
+        problem_reply = await self._problem_turn(text, source, turn, token)
+        if problem_reply is not None:
+            return problem_reply
         # A lesson's "next" or "pause", a yes to "Want me to show it?", or "show me": before the
         # web tools' rules, which would take "pause" and "go back" for YouTube.
         lesson_reply = await self._lesson_turn(text, turn, token)
@@ -763,7 +769,7 @@ class App(LessonMode, ExploreMode):
                 # 2 Nov: on the code route, Qwen sent descriptions as code ("solve the damped ODE ..."); the
                 # teach route's gpt-oss-120b wrote code that ran
                 model_route = "teach"
-        system += self._recent_info_note() + self._emotion_note() + self._explore_note()
+        system += self._recent_info_note() + self._emotion_note() + self._explore_note() + self._problem_note()
         messages = [{"role": "system", "content": system}] + history + [{"role": "user", "content": text}]
         if decision.route in ("maths", "teach") and "maths" in groups:
             messages[0]["content"] += "\n\n" + STUDY_NOTE
@@ -1008,6 +1014,10 @@ class App(LessonMode, ExploreMode):
         if self.view is not None and (every or self._visual_offered(text, route)):
             groups.add("visual")                              # a lesson in the window (lesson_mode.py)
             specs.append(LESSON_SPEC)
+        if self.view is not None and (every or ((route in ("maths", "teach") or SOLVE_WORDS.search(text))
+                                                and HAS_NUMBER.search(text) and not NOT_HERE.search(text))):
+            groups.add("problem")                             # a worked problem in the window (problem_mode.py)
+            specs.append(SOLVE_SPEC)
         if self.matlab is not None and (every or MATLAB_WORDS.search(text) or self._matlab_named_last()
                                         or ("matlab" in self.recent_kinds and self._recent_info_note())):
             groups.add("matlab")                              # MATLAB or Octave (tools/matlab.py)
@@ -1015,11 +1025,11 @@ class App(LessonMode, ExploreMode):
             if not every and MATLAB_BY_NAME.search(text):
                 # Asked for MATLAB by name: run_matlab only (1 Nov: offered the board too, the model drew
                 # the working on the board instead of running MATLAB).
-                dropped = {"show_on_board", "check_maths", "show_lesson"}
+                dropped = {"show_on_board", "check_maths", "show_lesson", "solve_problem"}
                 specs = [sp for sp in specs if sp["function"]["name"] not in dropped]
-                groups -= {"maths", "visual"}
+                groups -= {"maths", "visual", "problem"}
         if groups:
-            said = {**GROUP_NOTES, "visual": LESSON_NOTE,
+            said = {**GROUP_NOTES, "visual": LESSON_NOTE, "problem": SOLVE_NOTE,
                     "matlab": (f"run_matlab to write and run MATLAB code ({self.matlab.engine.name if self.matlab else ''})"
                                " for MATLAB, numerical solutions and simulations; the user clicks to approve each "
                                "run, and the code, output and figures show on the board. Never say you ran or "
@@ -1089,7 +1099,7 @@ class App(LessonMode, ExploreMode):
         """From the window's page (on its server's thread): which panel it shows (the map, the board,
         a lesson, or none), a lesson button, or a lesson's sketch that failed to run."""
         panel = event.get("panel")
-        if panel in ("map", "board", "lesson", "explore", ""):
+        if panel in ("map", "board", "lesson", "explore", "problem", ""):
             self.panel = panel
             if panel != "lesson":
                 self._on_loop(self._pause_lesson, "panel")      # the lesson went out of sight: it waits
@@ -1097,6 +1107,8 @@ class App(LessonMode, ExploreMode):
                 self._on_loop(self._explore_close)              # back to Jarvis: the camera goes off too
         elif "explore" in event:
             self._on_loop(self._explore_ui, event)
+        elif "problem" in event:
+            self._on_loop(self._problem_ui, event)
         elif "lesson" in event or "sketch_error" in event:
             self._on_loop(self._lesson_button, event)
 
@@ -1127,12 +1139,15 @@ class App(LessonMode, ExploreMode):
         lang = self.lang.current
         done = None
         fetched: list[tuple[str, str]] = []                 # (kind, data for the model)
-        lesson_call = None
+        lesson_call = problem_call = None
         for call in calls:
             if token.cancelled:
                 break
             if call.name == "show_lesson":                  # done after the others (lesson_mode.py)
                 lesson_call = call
+                continue
+            if call.name == "solve_problem":                # likewise (problem_mode.py)
+                problem_call = call
                 continue
             if self.info is not None and call.name in self.info.names():
                 outcome = await loop.run_in_executor(None, lambda c=call: self.info.call(c.name, c.arguments))
@@ -1198,6 +1213,9 @@ class App(LessonMode, ExploreMode):
             else:
                 result = None
             done = result or done
+        if problem_call is not None and not token.cancelled:
+            self.telemetry.log("model_tool", name="solve_problem", ok=True, arguments=problem_call.arguments[:200])
+            return await self._problem_from_tool(problem_call.arguments, text, turn, token)
         if lesson_call is not None and not token.cancelled:
             self.telemetry.log("model_tool", name="show_lesson", ok=True, arguments=lesson_call.arguments[:200])
             return await self._lesson_from_tool(lesson_call.arguments, text, turn, token)
@@ -1234,7 +1252,8 @@ class App(LessonMode, ExploreMode):
                 "speaker": self._speaker(), "provider": self.llm.last_provider or "", "timers": timers,
                 "news": news, "map": bool(self._latest_map()),
                 "board": bool(self.info is not None and self.info.board),
-                "lesson": self._lesson_snapshot(), "mood": self._mood_for_window()}
+                "lesson": self._lesson_snapshot(), "mood": self._mood_for_window(),
+                "problem": self._problem is not None, "problem_open": self._problem is not None and self.panel == "problem"}
 
     def _mood_for_window(self) -> str:
         if self.heard is None or time.monotonic() - self._heard_at > 60:
@@ -1268,7 +1287,8 @@ class App(LessonMode, ExploreMode):
                                  on_text=self._typed_in_window, on_ui=self._window_ui,
                                  board=lambda: self.info.board if self.info is not None else None,
                                  lesson=self._lesson_data,
-                                 figure=self.matlab.figure if self.matlab is not None else lambda run, name: None)
+                                 figure=self.matlab.figure if self.matlab is not None else lambda run, name: None,
+                                 problem=self._problem_data, on_upload=self._window_upload)
             url = self.view.start()
         except OSError as exc:                       # the port is taken (another Jarvis running?)
             self.view = None

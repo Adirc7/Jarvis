@@ -576,5 +576,24 @@ window.JarvisLesson = (function () {
       return { spin: 0.15, pick };
     });
   }
-  return { start, show, patch, stop, surfaceIn, curvesIn, scenes: Object.keys(SCENES), get index() { return shownIndex; } };
+  // One visual on its own, in any box (a worked problem's view, ui/problem.js): never a model-written sketch.
+  function draw(box, visual) {
+    let api = null, stopped = false;
+    (async () => {
+      try {
+        if (visual.kind === "scene" && SCENES[visual.name]) {
+          if (THREE_SCENES.includes(visual.name)) await load("three");
+          api = await SCENES[visual.name](box, visual.params);
+        }
+        else if (visual.kind === "plot") api = plot(box, visual);
+        else if (visual.kind === "surface") { await load("three"); api = await surface(box, visual); }
+        else if (visual.kind === "diagram") api = await diagram(box, visual);
+        else if (visual.kind === "image") api = image(box, visual);
+        else if (visual.kind === "formula") { formula(box, visual.latex, true); api = { stop() {} }; }
+      } catch (err) { box.textContent = ""; box.append(el("div", "empty", "This picture couldn't be drawn (" + err.message + ").")); }
+      if (stopped && api && api.stop) api.stop();
+    })();
+    return { stop() { stopped = true; if (api && api.stop) api.stop(); } };
+  }
+  return { start, show, patch, stop, draw, surfaceIn, curvesIn, scenes: Object.keys(SCENES), get index() { return shownIndex; } };
 })();

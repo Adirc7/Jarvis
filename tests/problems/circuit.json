@@ -1,0 +1,15 @@
+{"title": "A battery with resistors in series and parallel", "subject": "electricity",
+ "statement": "A {V} V battery with internal resistance {r} ohm is connected to R1 = {R1} ohm in series with R2 = {R2} ohm and R3 = {R3} ohm in parallel. (a) Find the total resistance. (b) Find the current from the battery. (c) Find the current through R3.",
+ "given": [{"symbol": "V", "name": "emf", "value": 12, "unit": "V"}, {"symbol": "r", "name": "internal resistance", "value": 0.5, "unit": "ohm"},
+           {"symbol": "R1", "name": "R1", "value": 4, "unit": "ohm"}, {"symbol": "R2", "name": "R2", "value": 6, "unit": "ohm"}, {"symbol": "R3", "name": "R3", "value": 3, "unit": "ohm"}],
+ "views": {"circ": {"circuit": {"V": "V", "r": "r", "network": {"series": [{"R": "R1", "name": "R1"}, {"parallel": [{"R": "R2", "name": "R2"}, {"R": "R3", "name": "R3"}]}]}}},
+           "eq": {"ice": {"species": [{"name": "N2", "coef": 1, "side": "reactant", "initial": 1}, {"name": "H2", "coef": 3, "side": "reactant", "initial": 3}, {"name": "NH3", "coef": 2, "side": "product", "initial": 0}], "x": 0.2}}},
+ "parts": [
+  {"id": "a", "ask": "the total resistance", "hint": "Parallel first: 1/R = 1/R2 + 1/R3.", "answer": "Rt", "unit": "ohm",
+   "steps": [{"goal": "The parallel pair", "say": "Combine R two and R three in parallel.", "latex": "R_{23} = \\frac{R_2 R_3}{R_2 + R_3}", "calc": "R23 = R2*R3/(R2 + R3)", "unit": "ohm", "view": "circ", "highlight": {"element": "R2"}},
+             {"goal": "Add in series", "say": "Then add R one and the internal resistance.", "latex": "R = R_1 + R_{23} + r", "calc": "Rt = R1 + R23 + r", "unit": "ohm", "view": "circ"}]},
+  {"id": "b", "ask": "the current", "hint": "Ohm's law for the whole circuit.", "answer": "I", "unit": "A",
+   "steps": [{"goal": "Ohm's law", "say": "The current is the e m f over the total resistance.", "latex": "I = \\frac{\\varepsilon}{R}", "calc": "I = V/Rt", "unit": "A", "view": "circ"}]},
+  {"id": "c", "ask": "the current through R3", "hint": "The pair shares the same voltage.", "answer": "I3", "unit": "A",
+   "steps": [{"goal": "Voltage across the pair", "say": "The pair's voltage is I times R two three.", "latex": "V_{23} = I R_{23}", "calc": "V23 = I*R23", "unit": "V", "view": "circ", "highlight": {"element": "R3"}},
+             {"goal": "Current in R3", "say": "Then the current in R three is that voltage over R three.", "latex": "I_3 = V_{23} / R_3", "calc": "I3 = V23/R3", "unit": "A", "view": "circ", "highlight": {"element": "R3"}}]}]}

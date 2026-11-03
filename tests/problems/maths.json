@@ -1,0 +1,17 @@
+{"title": "Newton's method and an area", "subject": "maths",
+ "statement": "Let f(x) = x^3 - 2x - {c}. (a) Use Newton's method from x0 = {x0} to find a root of f to 4 decimal places. (b) Find the area between the curve, the x-axis and the lines x = {a} and x = {b}. (c) Estimate the same area with the trapezium rule using {n} strips.",
+ "given": [{"symbol": "c", "name": "constant", "value": 5}, {"symbol": "x0", "name": "starting guess", "value": 2},
+           {"symbol": "a", "name": "left limit", "value": 2.2}, {"symbol": "b", "name": "right limit", "value": 3}, {"symbol": "n", "name": "strips", "value": 4}],
+ "views": {"newton": {"graph": {"curves": [{"y": "x^3 - 2*x - c", "label": "f(x)"}], "x": [0, 3.2], "newton": {"curve": 0, "x0": "x0", "steps": 4}, "points": [["r", "", "root"]]}},
+           "area": {"graph": {"curves": [{"y": "x^3 - 2*x - c", "label": "f(x)"}], "x": [1.8, 3.2], "area": {"curve": 0, "from": "a", "to": "b"}, "riemann": {"curve": 0, "from": "a", "to": "b", "n": "n", "rule": "trapezium"}}}},
+ "parts": [
+  {"id": "a", "ask": "a root by Newton's method", "hint": "x(n+1) = x(n) - f(x(n)) / f'(x(n)). What is f'(x)?", "answer": "r",
+   "steps": [{"goal": "The derivative", "say": "First differentiate: f dash of x is three x squared minus two.", "latex": "f'(x) = 3x^2 - 2", "calc": "fd = diff(x^3 - 2*x - c, x)", "view": "newton", "highlight": {"newton_step": 0}},
+             {"goal": "The first step", "say": "From x nought, follow the tangent down to the x axis.", "latex": "x_1 = x_0 - \\frac{f(x_0)}{f'(x_0)}", "calc": "x1 = x0 - (x0^3 - 2*x0 - c)/(3*x0^2 - 2)", "view": "newton", "highlight": {"newton_step": 1}},
+             {"goal": "Repeat until it settles", "say": "Repeat: each tangent lands closer to the root.", "latex": "x_{n+1} = x_n - \\frac{f(x_n)}{f'(x_n)}", "calc": "r = nsolve(x^3 - 2*x - c, x, x1)", "view": "newton", "highlight": {"newton_step": 4}}]},
+  {"id": "b", "ask": "the exact area", "hint": "Integrate f from a to b.", "answer": "A",
+   "steps": [{"goal": "Integrate", "say": "The area is the integral of f from a to b.", "latex": "A = \\int_a^b (x^3 - 2x - c)\\,dx", "calc": "A = integrate(x^3 - 2*x - c, (x, a, b))", "view": "area", "highlight": {"show": ["area"]}}]},
+  {"id": "c", "ask": "the trapezium rule estimate", "hint": "h = (b - a)/n, then h/2 times (first + 2 times the middle ones + last).", "answer": "T",
+   "steps": [{"goal": "Strip width", "say": "Each strip is b minus a over n wide.", "latex": "h = \\frac{b-a}{n}", "calc": "h = (b - a)/n", "view": "area", "highlight": {"show": ["riemann"]}},
+             {"goal": "Add the trapezia", "say": "Add the trapezia: the ends once, the middle heights twice.", "latex": "T = \\tfrac h2\\,[f_0 + 2(f_1+f_2+f_3) + f_4]", "calc": "T = h/2*((a^3-2*a-c) + 2*((a+h)^3-2*(a+h)-c + (a+2*h)^3-2*(a+2*h)-c + (a+3*h)^3-2*(a+3*h)-c) + (b^3-2*b-c))", "view": "area", "highlight": {"show": ["riemann", "area"]}}]}],
+ "summary": ["Newton's method follows tangents to the axis", "Area is an integral", "The trapezium rule overestimates a curve that bends upwards"]}

@@ -40,8 +40,13 @@ PAGE = Path(__file__).with_name("index.html")
 ICON = Path(__file__).with_name("jarvis.ico")
 LESSON_JS = Path(__file__).with_name("lesson.js")
 EXPLORE_JS = Path(__file__).with_name("explore.js")
+PROBLEM_JS = Path(__file__).with_name("problem.js")
 LESSON_ACTIONS = ("next", "prev", "again", "play", "pause", "restart", "goto")
 EXPLORE_ACTIONS = ("pick", "model", "next", "close")
+PROBLEM_ACTIONS = ("part", "hint", "step", "back", "solution", "check", "practice", "summary", "close", "pick")
+# a photo or a PDF of a problem (POST /upload): what the page may send, and how big
+UPLOAD_TYPES = ("image/png", "image/jpeg", "image/webp", "application/pdf")
+UPLOAD_MAX = 12 * 1024 * 1024
 
 
 def open_page(url: str, browser: str = "edge") -> None:
@@ -93,6 +98,12 @@ def _ui_event(body: Any) -> dict:
         if action not in EXPLORE_ACTIONS:
             raise ValueError("unknown explorer action")
         return {"explore": action, "part": str(body.get("part", ""))[:40], "model": str(body.get("model", ""))[:40]}
+    if "problem" in body:
+        action = str(body["problem"])
+        if action not in PROBLEM_ACTIONS:
+            raise ValueError("unknown problem action")
+        return {"problem": action, "part": str(body.get("part", ""))[:6], "answer": str(body.get("answer", ""))[:200],
+                "index": int(body.get("index", -1))}
     if "sketch_error" in body:
         return {"sketch_error": str(body["sketch_error"])[:300], "step": int(body.get("step", 0))}
     raise KeyError("panel")
@@ -104,10 +115,13 @@ class LiveView:
                  on_text: Callable[[str], None] | None = None, on_ui: Callable[[dict], None] | None = None,
                  board: Callable[[], dict | None] = lambda: None,
                  lesson: Callable[[], dict | None] = lambda: None,
-                 figure: Callable[[str, str], Path | None] = lambda run, name: None):
+                 figure: Callable[[str, str], Path | None] = lambda run, name: None,
+                 problem: Callable[[], dict | None] = lambda: None,
+                 on_upload: Callable[[str, bytes], None] | None = None):
         self.snapshot, self.port, self.map_file, self.poll_s = snapshot, port, map_file, poll_s
         self.on_text, self.on_ui, self.board, self.lesson = on_text, on_ui, board, lesson
         self.figure = figure                             # a MATLAB figure: (run folder, file) -> its PNG
+        self.problem, self.on_upload = problem, on_upload  # the worked problem; a photo or PDF of one
         self.token = secrets.token_urlsafe(24)           # in the page; proves a POST came from it
         self.history: deque[dict] = deque(maxlen=60)     # a page opened later still sees recent turns
         self._clients: list[queue.Queue] = []
@@ -208,6 +222,10 @@ class LiveView:
                         self._send(404, b"no such figure", "text/plain")
                 elif path == "/lesson.js":
                     self._send(200, LESSON_JS.read_bytes(), "text/javascript; charset=utf-8")
+                elif path == "/problem.js":
+                    self._send(200, PROBLEM_JS.read_bytes(), "text/javascript; charset=utf-8")
+                elif path == "/problem":
+                    self._send(200, json.dumps(view.problem() or {}, default=str).encode(), "application/json")
                 elif path == "/explore.js":
                     self._send(200, EXPLORE_JS.read_bytes(), "text/javascript; charset=utf-8")
                 elif path == "/events":
@@ -249,7 +267,11 @@ class LiveView:
                     size = max(0, int(self.headers.get("Content-Length") or 0))
                 except ValueError:
                     size = 0
-                raw = self.rfile.read(min(size, 65536)) if size else b""
+                limit = UPLOAD_MAX + 1 if path == "/upload" else 65536
+                raw = self.rfile.read(min(size, limit)) if size else b""
+                if path == "/upload":
+                    self._upload(raw, size)
+                    return
                 handler = {"/say": view.on_text, "/ui": view.on_ui}.get(path)
                 if handler is None:
                     self._send(405, b"read only", "text/plain")
@@ -274,6 +296,25 @@ class LiveView:
                     handler(event)
                 elif text:
                     handler(text)
+                self._send(202, b"ok", "text/plain")
+
+            def _upload(self, raw: bytes, size: int) -> None:
+                """A photo or PDF of a problem: only from the page (its address and token), only those
+                types, at most 12 MB."""
+                origin = self.headers.get("Origin") or ""
+                token = self.headers.get("X-Jarvis-Token") or ""
+                kind = (self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+                if (not self._host_ok() or origin not in (f"http://127.0.0.1:{view.port}", f"http://localhost:{view.port}")
+                        or not hmac.compare_digest(token, view.token)):
+                    self._send(403, b"forbidden", "text/plain")
+                    return
+                if view.on_upload is None or kind not in UPLOAD_TYPES:
+                    self._send(415, b"a PNG, JPEG or WebP photo, or a PDF", "text/plain")
+                    return
+                if not 0 < size <= UPLOAD_MAX or len(raw) != size:
+                    self._send(413, b"at most 12 MB", "text/plain")
+                    return
+                view.on_upload(kind, raw)
                 self._send(202, b"ok", "text/plain")
 
             def do_PUT(self) -> None:

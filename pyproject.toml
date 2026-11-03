@@ -9,6 +9,11 @@ dependencies = [
     # One client library for every free OpenAI-compatible provider:
     # Gemini, Groq, OpenRouter and local Ollama all speak this API.
     "openai>=1.40",
+    # Every number Jarvis shows in maths and worked problems (knowledge/mathcheck.py, problems.py).
+    # It came with torch before; now it's needed on its own.
+    "sympy>=1.12",
+    # Reading the text of a PDF of a problem sheet (problem_mode.py); pure Python.
+    "pypdf>=4.2",
 ]
 
 [project.optional-dependencies]

@@ -9,6 +9,7 @@
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script defer src="/lesson.js"></script>
 <script defer src="/explore.js"></script>
+<script defer src="/problem.js"></script>
 <style>
 :root { --bg:#03070d; --panel:#091522; --line:#12314a; --text:#eaf5ff; --muted:#8fa7ba; --cyan:#4de1ff;
         --amber:#ffb43b; --teal:#4ce2c4; --green:#64efb7; --red:#ff766f; --accent:var(--amber); }
@@ -51,6 +52,16 @@ body.wide #panelCap:not(:empty) { display:block; padding:7px 14px; border-top:1p
 #lesson { flex:1; display:flex; flex-direction:column; min-height:0; }
 #explore { flex:1; display:flex; min-height:0; }
 #explore[hidden] { display:none; }
+#problem { flex:1; display:flex; flex-direction:column; min-height:0; }
+#problem[hidden] { display:none; }
+#problem .picks { padding:16px 20px; overflow:auto; }
+#problem .picks h3 { margin:0 0 10px; font-weight:500; color:var(--cyan); font-size:14px; letter-spacing:2px; text-transform:uppercase; }
+#problem .pick { border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin:8px 0; cursor:pointer; line-height:1.45; }
+#problem .pick:hover { border-color:var(--cyan); background:#0a1a2a; }
+#problem .pick b { color:var(--amber); margin-right:8px; }
+body.dragging::after { content:"Drop a photo or PDF of a problem"; position:fixed; inset:12px; border:2px dashed var(--cyan);
+  border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:22px; color:var(--cyan);
+  background:#03070dcc; z-index:50; pointer-events:none; }
 #lessonStage { flex:1; position:relative; min-height:240px; margin:12px 14px 0; background:var(--panel);
   border:1px solid var(--line); border-radius:12px; overflow:hidden; }
 #lessonStage .scenebox { position:absolute; inset:0; }
@@ -127,7 +138,9 @@ aside h2 { font-size:12px; font-weight:500; letter-spacing:2px; color:var(--cyan
 .empty { color:var(--muted); font-size:12px; }
 #mapBtn, #boardBtn, #lessonBtn { display:inline-block; margin-top:6px; font-size:12px; color:var(--bg); background:var(--cyan);
           border-radius:6px; padding:5px 10px; text-decoration:none; }
-#mapBtn[hidden], #boardBtn[hidden], #lessonBtn[hidden] { display:none; }
+#mapBtn[hidden], #boardBtn[hidden], #lessonBtn[hidden], #problemBtn[hidden] { display:none; }
+#problemBtn { display:inline-block; margin-top:6px; font-size:12px; color:var(--bg); background:var(--cyan);
+  border-radius:6px; padding:5px 10px; text-decoration:none; }
 #offline { position:fixed; bottom:12px; left:12px; font-size:12px; color:var(--red); }
 @media (max-width: 900px) { main { grid-template-columns:1fr; height:auto; } aside { border-left:0; } }
 </style>
@@ -140,6 +153,8 @@ aside h2 { font-size:12px; font-weight:500; letter-spacing:2px; color:var(--cyan
   <span class="pill" id="pcPill" hidden>pc <b id="pc">-</b></span>
   <span class="pill" id="moodPill" hidden title="What the emotion model heard: a guess">sounds <b id="mood">-</b></span>
   <span class="pill" id="link">live</span>
+  <button class="wideBtn" id="photoBtn" type="button" title="Jarvis reads the problem and works it through">Solve from a photo or PDF</button>
+  <input type="file" id="photoFile" accept="image/png,image/jpeg,image/webp,application/pdf" hidden>
   <button class="wideBtn" id="wideTop" type="button">Hide conversation &#8250;</button>
 </header>
 <main>
@@ -167,6 +182,7 @@ aside h2 { font-size:12px; font-weight:500; letter-spacing:2px; color:var(--cyan
       <iframe id="mapFrame" title="Map" hidden></iframe>
       <div id="board" hidden></div>
       <div id="explore" hidden></div>
+      <div id="problem" hidden></div>
       <div id="lesson" hidden>
         <div id="lessonStage"></div>
         <div id="lessonFormula"></div>
@@ -184,6 +200,7 @@ aside h2 { font-size:12px; font-weight:500; letter-spacing:2px; color:var(--cyan
     <a id="mapBtn" href="/map" target="_blank" rel="noopener" hidden>Open the latest map</a>
     <a id="boardBtn" href="#" hidden>Open the board</a>
     <a id="lessonBtn" href="#" hidden>Open the lesson</a>
+    <a id="problemBtn" href="#" hidden>Open the problem</a>
   </aside>
 </main>
 <div id="offline" hidden>Jarvis isn't running.</div>
@@ -278,6 +295,7 @@ function showState(s) {
   $("mapBtn").hidden = !s.map;
   $("boardBtn").hidden = !s.board;
   $("lessonBtn").hidden = !s.lesson;
+  $("problemBtn").hidden = !s.problem;
   lastMode = s.mode || "idle";
   $("lessonMode").textContent = panel === "lesson" && lastMode !== "idle" ? (LABELS[lastMode] || "") : "";
 }
@@ -298,7 +316,32 @@ function post(body) {
     headers: { "Content-Type": "application/json", "X-Jarvis-Token": TOKEN } }).catch(() => {});
 }
 function tellJarvis(kind) { post({ panel: kind }); }   // which panel shows: Jarvis offers map tools then
-const PANEL_NAMES = { map: "Map", board: "Board", lesson: "Lesson", explore: "Explore" };
+const PANEL_NAMES = { map: "Map", board: "Board", lesson: "Lesson", explore: "Explore", problem: "Problem" };
+// ---- worked problems: parts, hints, steps and their animations (problem.js) ----
+let problemApi = null;
+function stopProblem() { if (problemApi) { problemApi.stop(); problemApi = null; } }
+function startProblem(data, state) {
+  if (!data || !Array.isArray(data.parts)) return;
+  openPanel("problem"); stopProblem();
+  const go = () => { problemApi = JarvisProblem.open($("problem"), data, { post, state }); };
+  window.JarvisProblem ? go() : window.addEventListener("load", go, { once: true });
+}
+function showPicks(questions) {
+  openPanel("problem"); stopProblem();
+  const box = $("problem"); box.textContent = "";
+  const list = el("div", "picks"); list.append(el("h3", "", "Which question?"));
+  questions.forEach((q, i) => { const row = el("div", "pick"); row.append(el("b", "", q.label), document.createTextNode(q.text));
+    row.addEventListener("click", () => { post({ problem: "pick", index: i }); list.textContent = "Working it out..."; }); list.append(row); });
+  box.append(list);
+}
+function openProblem() { fetch("/problem").then(r => r.json()).then(d => { if (d && d.data) startProblem(d.data, d.state); }).catch(() => {}); }
+// a photo or PDF of a problem: the button, a drop on the window, or a pasted screenshot
+function sendProblemFile(file) {
+  if (!file || !/^(image\/(png|jpeg|webp)|application\/pdf)$/.test(file.type)) return;
+  if (file.size > 12 * 1024 * 1024) { addTalk("Jarvis", "That file is over 12 MB: send a smaller photo."); return; }
+  fetch("/upload", { method: "POST", headers: { "Content-Type": file.type, "X-Jarvis-Token": TOKEN }, body: file })
+    .then(r => { if (!r.ok) addTalk("Jarvis", "I couldn't take that file (" + r.status + ")."); }).catch(() => {});
+}
 // ---- the 3D explorer: take a model apart with your hand (explore.js) ----
 let exploreApi = null, exploreToken = 0;
 function stopExplore() { exploreToken++; if (exploreApi) { exploreApi.stop(); exploreApi = null; } }
@@ -317,12 +360,13 @@ function openPanel(kind) {
   $("mapFrame").hidden = kind !== "map"; $("board").hidden = kind !== "board"; $("mapOwn").hidden = kind !== "map";
   $("lesson").hidden = kind !== "lesson"; $("lessonCtl").hidden = kind !== "lesson";
   $("explore").hidden = kind !== "explore"; if (kind !== "explore") stopExplore();
+  $("problem").hidden = kind !== "problem"; if (kind !== "problem") stopProblem();
   if (kind !== "lesson") { $("lessonTitle").textContent = ""; $("lessonMode").textContent = ""; }
   tellJarvis(kind);
 }
 function closePanel() {
   if (panel === "lesson") leaveLesson();
-  stopExplore();
+  stopExplore(); stopProblem();
   panel = ""; $("panel").hidden = true; $("mapFrame").src = "about:blank"; tellJarvis("");
   $("wideTop").hidden = false;
 }
@@ -382,6 +426,15 @@ $("lessonCtl").addEventListener("click", ev => {
   const act = ev.target && ev.target.dataset ? ev.target.dataset.act : ""; if (act) post({ lesson: act });
 });
 $("lessonBtn").addEventListener("click", ev => { ev.preventDefault(); lessonId = -1; openLesson(); });
+$("problemBtn").addEventListener("click", ev => { ev.preventDefault(); openProblem(); });
+$("photoBtn").addEventListener("click", () => $("photoFile").click());
+$("photoFile").addEventListener("change", ev => { sendProblemFile(ev.target.files[0]); ev.target.value = ""; });
+document.addEventListener("dragover", ev => { if ([...ev.dataTransfer.types].includes("Files")) { ev.preventDefault(); document.body.classList.add("dragging"); } });
+document.addEventListener("dragleave", ev => { if (!ev.relatedTarget) document.body.classList.remove("dragging"); });
+document.addEventListener("drop", ev => { document.body.classList.remove("dragging");
+  if (ev.dataTransfer.files.length) { ev.preventDefault(); sendProblemFile(ev.dataTransfer.files[0]); } });
+document.addEventListener("paste", ev => { const f = [...(ev.clipboardData || {}).files || []].find(x => x.type.startsWith("image/"));
+  if (f) { ev.preventDefault(); sendProblemFile(f); } });
 
 const COLOURS = ["#4de1ff", "#ffb43b", "#b48cff"];
 function maths(el, tex) {
@@ -619,6 +672,10 @@ function onEvent(e) {
   else if (e.kind === "lesson_step") lessonStep(e);
   else if (e.kind === "lesson_patch" && e.id === lessonId && window.JarvisLesson) JarvisLesson.patch(e.step, e.code);
   else if (e.kind === "explore") startExplore(e);
+  else if (e.kind === "problem") startProblem(e.data, e.state);
+  else if (e.kind === "problem_state") { if (problemApi && panel === "problem") problemApi.state(e.state); }
+  else if (e.kind === "problem_pick") showPicks(e.questions || []);
+  else if (e.kind === "problem_close") { if (panel === "problem") closePanel(); }
   else if (e.kind === "explore_hand") { if (exploreApi && panel === "explore") exploreApi.hands(e); }
   else if (e.kind === "explore_cmd") { if (exploreApi) exploreApi.command(e); }
   else if (e.kind === "explore_close") { if (panel === "explore") closePanel(); }
@@ -632,6 +689,7 @@ fetch("/state").then(r => r.json()).then(d => {
   showState(d.state);
   for (const e of d.history || []) onEvent(e);
   unseen = 0; wideLabels();                               // what was said before isn't new
+  if (d.state && d.state.problem_open) openProblem();     // opened while a problem is on
   // Opened while a lesson plays (the window was closed when it started): show it.
   if (d.state && d.state.lesson && d.state.lesson.playing && !lessonData) {
     const go = () => openLesson();
