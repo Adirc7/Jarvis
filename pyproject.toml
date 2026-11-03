@@ -28,6 +28,7 @@ voice = [
     # NVIDIA card. 1.26 is the newest built for CUDA 12, the CUDA Whisper's
     # CTranslate2 uses; 1.27 and later need CUDA 13.
     "onnxruntime-gpu==1.26.0; sys_platform == 'win32' and platform_machine == 'AMD64'",
+    "openwakeword>=0.6",
 ]
 # Meta MMS-TTS voices (Tamil by default). Pulls in torch, so it's separate.
 mms = [
@@ -70,7 +71,12 @@ dev = [
 [tool.uv]
 # The CPU and GPU builds of onnxruntime install the same Python module and
 # overwrite each other's files, so 64-bit Windows gets only the GPU build.
-override-dependencies = ["onnxruntime; sys_platform != 'win32' or platform_machine != 'AMD64'"]
+override-dependencies = [
+    "onnxruntime; sys_platform != 'win32' or platform_machine != 'AMD64'",
+    # openWakeWord ("Hey Jarvis") runs on onnxruntime here; its TensorFlow Lite option (Linux only, and no
+    # wheel for Python 3.12) is never used.
+    "tflite-runtime; python_version < '3'",
+]
 
 [project.scripts]
 jarvis = "jarvis.__main__:main"

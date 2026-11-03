@@ -75,6 +75,11 @@ class DoubleClap(Event):
 
 
 @dataclass(frozen=True)
+class WakeWordHeard(Event):
+    """"Hey Jarvis" (perception/wake.py): listen now, like a double clap."""
+
+
+@dataclass(frozen=True)
 class ListenTimedOut(Event):
     """After a double clap, nobody spoke."""
 

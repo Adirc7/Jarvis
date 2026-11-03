@@ -1933,3 +1933,11 @@ window server: every number matches SymPy, every button reaches Jarvis.
   safetensors copy, once. And e5 (the intent model's and the stand-in's
   encoder) was loaded twice, one copy on the GPU: now one shared copy on
   the CPU (encoders.py).
+- 4 Nov, 03:10: "Hey Jarvis" without the key (perception/wake.py): openWakeWord
+  (onnxruntime; its TensorFlow Lite option overridden away, no wheel for
+  3.12). Checked with Kokoro voices: "Hey Jarvis" 0.99 in three voices,
+  "Jarvis" alone and "Hey Travis" 0.90, a question 0.00, noise 0.10; 2.4 ms
+  per 80 ms on the CPU. Deaf while Jarvis speaks and a second after, rests
+  2 s after waking. It reuses the double clap's hands-free recording
+  (the clap detector keeps measuring the room even with claps off).
+  [wake_word], /wake on|off.

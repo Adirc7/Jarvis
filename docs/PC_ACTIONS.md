@@ -1,4 +1,4 @@
-# Jarvis on the PC: programs, power, files, and three claps
+# Jarvis on the PC: programs, power, files, three claps and "Hey Jarvis"
 
 ## Say it
 
@@ -56,3 +56,17 @@ starts him (if he's already running, his window comes to the front). Two claps a
 clap; four or more (applause) and knocks (low-pitched) do nothing. Nothing is recorded: each 10 ms of
 sound is measured and dropped. Its log is `logs/clap_launcher.log`. `scripts\update.cmd` stops it while it
 installs and starts it again after.
+
+## "Hey Jarvis" without the key
+
+Say "Hey Jarvis" and he answers "Yes, sir?" and listens until you pause, as after a double clap; then
+speak normally (in Sinhala too, once Friday is on). openWakeWord's small model runs on the CPU, about
+2.5 ms per 80 ms of sound; nothing is recorded or sent. It's deaf while Jarvis speaks and for a second
+after (his own "Jarvis" would wake it), and while you hold the key.
+
+- On: `[wake_word] enabled = true` in `config/settings.local.toml` (or `/wake on`), `/wake off` to stop,
+  `/wake` to see the best score lately.
+- If it wakes by itself, raise `threshold` (0.5 by default; "Hey Jarvis" scores about 0.99, "Jarvis"
+  alone and "Hey Travis" about 0.9). If it misses you, lower it a little.
+- The model files (about 7 MB) download once, to `models/openwakeword`. The pre-trained "hey jarvis"
+  model is CC BY-NC-SA 4.0: fine for a non-commercial project like this one.

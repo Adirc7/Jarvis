@@ -268,9 +268,10 @@ class ClapListener:
                 audio = self.recorder.end()
                 (self.on_heard(audio) if state == "ended" else self.on_nothing())
             return
+        events = self.detector.feed(samples)       # always: the room's noise is what "you paused" is measured against
         if not self.on:
             return
-        for event in self.detector.feed(samples):
+        for event in events:
             if event.kind == "double":
                 self.on_double()
 

@@ -182,6 +182,15 @@ rise_db = 15.0            # how far above the room's noise a clap must be
 min_gap_s = 0.2
 max_gap_s = 0.6
 
+[wake_word]
+# "Hey Jarvis" without the key (src/jarvis/perception/wake.py): openWakeWord's small model on the CPU
+# hears it between key presses, and Jarvis says "Yes, sir?" and listens until you pause, as after a
+# double clap. Nothing is recorded (each 80 ms is scored and dropped). Off by default: when on, the
+# microphone is measured all the time. The model (about 7 MB) downloads once. /wake on, /wake off.
+enabled = false
+threshold = 0.5          # 0-1: "Hey Jarvis" scores about 0.99; raise it if it wakes by itself
+model_dir = "models/openwakeword"
+
 [clap_launcher]
 # Clap three times to open Jarvis when he isn't running (src/jarvis/clap_launcher.py): a small program with
 # no window, started at sign-in by scripts\clap_launcher.cmd install. It uses the [clap] limits above and

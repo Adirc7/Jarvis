@@ -47,6 +47,7 @@ from .events import (
     ListenTimedOut,
     PushToTalkPressed,
     UtteranceCaptured,
+    WakeWordHeard,
 )
 from .greeting import FULL, Greeter, Presence, fill, greeting_kind
 from .killswitch import HotkeyListener, Once
@@ -411,6 +412,7 @@ class App(LessonMode, ExploreMode, ProblemMode):
         self._hotkeys: HotkeyListener | None = None
         self._ptt = None
         self._clap = None                      # the double clap listener, when [clap] is on (D29)
+        self._wake = None                      # "Hey Jarvis", when [wake_word] is on (perception/wake.py)
         self._explore = None                   # the 3D explorer, while it's open (explore_mode.py)
         self._explore_hands = None
         self._stt_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="stt")
@@ -1525,7 +1527,8 @@ class App(LessonMode, ExploreMode, ProblemMode):
 
     # ---- voice ----------------------------------------------------------
     async def _voice_task(self) -> None:
-        q = self.bus.subscribe(PushToTalkPressed, UtteranceCaptured, DoubleClap, ListenTimedOut, name="voice")
+        q = self.bus.subscribe(PushToTalkPressed, UtteranceCaptured, DoubleClap, ListenTimedOut, WakeWordHeard,
+                               name="voice")
         min_s = float(self.settings.get("audio.min_utterance_s", 0.35))
         max_s = float(self.settings.get("audio.max_utterance_s", 30))
         current: asyncio.Task | None = None
@@ -1533,6 +1536,9 @@ class App(LessonMode, ExploreMode, ProblemMode):
             ev = await q.get()
             if isinstance(ev, DoubleClap):
                 await self._double_clap(busy=current is not None and not current.done())
+                continue
+            if isinstance(ev, WakeWordHeard):
+                await self._listen_hands_free("wake", busy=current is not None and not current.done())
                 continue
             if isinstance(ev, ListenTimedOut):
                 if self.state.mode == Mode.LISTENING:
@@ -1692,6 +1698,8 @@ class App(LessonMode, ExploreMode, ProblemMode):
         self._start_push_to_talk()
         if self.settings.get("clap.enabled", False):
             self._start_clap()
+        if self.settings.get("wake_word.enabled", False):
+            await asyncio.get_running_loop().run_in_executor(None, self._start_wake)
 
     # ---- the double clap (D29, perception/clap.py) ---------------------------------------------
     def _start_clap(self) -> bool:
@@ -1716,20 +1724,85 @@ class App(LessonMode, ExploreMode, ProblemMode):
         self.telemetry.log("clap", on=True)
         return True
 
+    # ---- "Hey Jarvis" (perception/wake.py) ----------------------------------------------------------
+    def _hands_free_listener(self):
+        """The part of the double clap that records until you pause; made with the claps off if need be."""
+        from .perception.clap import ClapListener, ClapSettings
+        if self._clap is None and self.recorder is not None and hasattr(self.recorder, "listeners"):
+            rate = int(getattr(self.recorder, "sample_rate", 16000) or 16000)
+            self._clap = ClapListener(
+                self.recorder, ClapSettings.from_settings(self.settings),
+                on_double=lambda: self.bus.publish_threadsafe(DoubleClap()),
+                on_heard=lambda audio: self.bus.publish_threadsafe(UtteranceCaptured(audio=audio,
+                                                                                     seconds=len(audio) / rate)),
+                on_nothing=lambda: self.bus.publish_threadsafe(ListenTimedOut()),
+                muted=lambda: bool(self.sink.busy) or self.state.mode in (Mode.LISTENING, Mode.THINKING),
+                rate=rate)
+            self._clap.on = False                   # listening for claps is /clap on's to decide
+            self.recorder.listeners.append(self._clap.feed)
+        return self._clap
+
+    def _start_wake(self) -> bool:
+        """Listen for "Hey Jarvis" between key presses; nothing is kept (on a worker thread: may download 7 MB)."""
+        from .perception.wake import WakeWord, load_model
+        if self.recorder is None or not hasattr(self.recorder, "listeners") or self._hands_free_listener() is None:
+            self.out("[wake word] needs the microphone (voice mode).")
+            return False
+        if self._wake is None:
+            try:
+                model = load_model(self.settings.path("wake_word.model_dir", "models/openwakeword"))
+            except Exception as exc:  # noqa: BLE001 - no package or no download: the key still works
+                self.out(f"[wake word] couldn't start ({type(exc).__name__}: {str(exc)[:120]}). Hold the key instead.")
+                self.telemetry.log("wake_word_failed", error=str(exc)[:200])
+                return False
+
+            def muted() -> bool:
+                return (bool(self.sink.busy) or self.state.mode in (Mode.LISTENING, Mode.THINKING, Mode.SPEAKING)
+                        or bool(getattr(self.recorder, "recording", False)))
+            self._wake = WakeWord(model, on_wake=lambda: self.bus.publish_threadsafe(WakeWordHeard()), muted=muted,
+                                  threshold=float(self.settings.get("wake_word.threshold", 0.5)))
+            self.recorder.listeners.append(self._wake.feed)
+        self._wake.on = True
+        self.out('[wake word] say "Hey Jarvis" to make me listen without the key (/wake off stops it).')
+        self.telemetry.log("wake_word", on=True)
+        return True
+
+    def _wake_command(self, arg: str) -> None:
+        if arg == "off":
+            if self._wake is not None:
+                self._wake.on = False
+            self.telemetry.log("wake_word", on=False)
+            self.out("[wake word] off.")
+        elif arg in ("on", ""):
+            if arg == "" and self._wake is not None:
+                self.out(f"[wake word] {'on' if self._wake.on else 'off'}; best score lately {self._wake.best:.2f} "
+                         f"(it wakes at {self._wake.threshold:.2f}).")
+            elif self.bus.loop is not None:
+                self.bus.loop.run_in_executor(None, self._start_wake)
+        else:
+            self.out("[wake word] /wake on, /wake off, or /wake to see if it's on.")
+
     async def _double_clap(self, busy: bool = False) -> None:
         """D29: awake and quiet -> listen now; speaking, thinking or listening -> ignored."""
         if self._clap is None or not self._clap.on:
             return
-        if busy or self.sink.busy or self.state.mode in (Mode.LISTENING, Mode.THINKING, Mode.SPEAKING):
-            self.telemetry.log("double_clap", action="ignored", mode=self.state.mode.value)
+        await self._listen_hands_free("clap", busy)
+
+    async def _listen_hands_free(self, why: str, busy: bool = False) -> None:
+        """After a double clap or "Hey Jarvis": "Yes, sir?", then record until you pause."""
+        if self._hands_free_listener() is None:
             return
-        self.telemetry.log("double_clap", action="listen")
-        self._pause_lesson("clap")
+        if busy or self.sink.busy or self.state.mode in (Mode.LISTENING, Mode.THINKING, Mode.SPEAKING):
+            self.telemetry.log("double_clap" if why == "clap" else "wake_word_heard", action="ignored",
+                               mode=self.state.mode.value)
+            return
+        self.telemetry.log("double_clap" if why == "clap" else "wake_word_heard", action="listen")
+        self._pause_lesson(why)
         lang = self.lang.current
         asks = [line for line in (lang.greetings or {}).get("same_session", ()) if line.endswith("?")]
         await self.sink.say(fill(asks[-1] if asks else "Yes, {address}?", self.persona.address), lang)
         self.state.mode = Mode.LISTENING
-        self.out("\n[clap] listening... speak; I'll stop when you pause.")
+        self.out(f"\n[{'clap' if why == 'clap' else 'Hey Jarvis'}] listening... speak; I'll stop when you pause.")
         self._clap.listen()
         if self.settings.get("llm.prewarm", True):
             self._warm_task = asyncio.create_task(self.llm.warm())
@@ -1888,7 +1961,7 @@ class App(LessonMode, ExploreMode, ProblemMode):
                 "You can also type."
             )
         self.out("Commands: /lang <code>, /empathy <mode>, /name <name>, /remember <fact>, /memory, /forget, "
-                     "/mute, /stop, /camera on|off, /status, /quit")
+                     "/mute, /stop, /camera on|off, /wake on|off, /status, /quit")
         if self.settings.get("gestures.enabled", False):
             self._start_camera()
         moved_from = self._note_machine()
@@ -2126,6 +2199,8 @@ class App(LessonMode, ExploreMode, ProblemMode):
             self._mood_command(arg.strip().lower())
         elif cmd == "/standin":
             self._standin_command(arg.strip().lower())
+        elif cmd == "/wake":
+            self._wake_command(arg.strip().lower())
         elif cmd == "/clap":
             self._clap_command(arg.strip().lower())
         elif cmd == "/explore":
@@ -2182,7 +2257,7 @@ class App(LessonMode, ExploreMode, ProblemMode):
             )
         else:
             self.out("Commands: /lang <code>, /empathy <mode>, /name <name>, /remember <fact>, /memory, /forget, "
-                     "/mute, /stop, /camera on|off, /status, /quit")
+                     "/mute, /stop, /camera on|off, /wake on|off, /status, /quit")
         return True
 
 
