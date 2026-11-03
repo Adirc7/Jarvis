@@ -296,6 +296,8 @@ def test_the_orb_script_is_served_and_the_page_falls_back_without_webgl(view):
     assert status == 200 and b"window.JarvisOrb" in body and b"gl_FragColor" in body
     page = get(v, "/")[1]
     assert b'src="/orb.js"' in page and b'ctx = canvas.getContext("2d")' in page    # the particle sphere, if no WebGL
+    # "ෆ්‍රයිඩේ (Friday)" turns the window teal too (4 Nov: only an exact "Friday" did)
+    assert b'/friday/i.test(s.speaker' in page and b"smoothstep(0.80, 0.99, length(uv))" in get(v, "/orb.js")[1]
 
 
 def test_the_orb_hears_jarvis_and_you_as_loudness_only(settings):

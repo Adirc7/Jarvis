@@ -42,7 +42,8 @@ void main() {
   float bound = uRadius + uAmp + 0.08;
   float b = dot(ro, rd), c = dot(ro, ro) - bound * bound, h = b * b - c;
   float dmin = length(cross(ro, rd));                                         // the ray's nearest pass to the centre
-  float halo = uGlow * exp(-max(dmin - uRadius, 0.0) * 7.0) * 0.55;
+  // the glow fades to nothing well inside the square, so the canvas's edge never shows (4 Nov)
+  float halo = uGlow * exp(-max(dmin - uRadius, 0.0) * 9.0) * 0.55 * (1.0 - smoothstep(0.80, 0.99, length(uv)));
   if (h < 0.0) { gl_FragColor = vec4(uCol * halo, halo); return; }
   float t = -b - sqrt(h), tEnd = -b + sqrt(h);
   bool hit = false; vec3 p;

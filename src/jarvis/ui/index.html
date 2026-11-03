@@ -269,7 +269,8 @@ function addAction(a) {
 function showState(s) {
   if (!s) return;
   document.body.dataset.mode = s.mode || "idle";
-  document.body.dataset.speaker = s.speaker || "Jarvis";
+  // "ෆ්‍රයිඩේ (Friday)" is Friday too: the colours (teal) follow who's talking, not the exact name (4 Nov)
+  document.body.dataset.speaker = /friday/i.test(s.speaker || "") ? "Friday" : "Jarvis";
   $("name").textContent = (s.speaker || "Jarvis").toUpperCase();
   $("capWho").textContent = s.speaker || "Jarvis";
   $("status").textContent = LABELS[s.mode] || s.mode || "";

@@ -1959,3 +1959,8 @@ window server: every number matches SymPy, every button reaches Jarvis.
   Jarvis, teal for Friday, blended when they switch. Without WebGL the old
   particle sphere. docs/orb-states.png shows the five looks (headless
   Chromium, software WebGL).
+- 4 Nov, 03:40: On the laptop the orb showed a faint square (its glow
+  didn't reach zero at the canvas's edge: it now fades out by then) and
+  stayed gold for Friday. The window coloured itself only for a speaker
+  named exactly "Friday", and Friday's name is "ෆ්‍රයිඩේ (Friday)" since
+  21 Oct, so the whole window had stayed gold in Sinhala ever since.
