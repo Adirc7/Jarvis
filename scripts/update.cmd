@@ -28,6 +28,8 @@ if /i "%~3"=="ml" set "ML=1"
 if defined ML set "EXTRAS=%EXTRAS% --extra ml"
 
 echo.
+rem The clap launcher (clap_launcher.ps1) keeps Python's files open: stopped for the install, started after.
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\clap_launcher.ps1 stop
 echo === Installing packages: uv sync %EXTRAS%
 uv sync %EXTRAS%
 if errorlevel 1 goto :fail
@@ -45,6 +47,7 @@ if errorlevel 1 goto :fail
 echo.
 echo === Shortcuts
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\make_shortcuts.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\clap_launcher.ps1 resume
 echo.
 echo Updated. Start Jarvis as usual (the desktop icon).
 exit /b 0

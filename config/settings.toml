@@ -177,6 +177,12 @@ rise_db = 15.0            # how far above the room's noise a clap must be
 min_gap_s = 0.2
 max_gap_s = 0.6
 
+[clap_launcher]
+# Clap three times to open Jarvis when he isn't running (src/jarvis/clap_launcher.py): a small program with
+# no window, started at sign-in by scripts\clap_launcher.cmd install. It uses the [clap] limits above and
+# records nothing. false: it quits at once (or: scripts\clap_launcher.cmd uninstall).
+enabled = true
+
 [gestures]
 # Palm to pause (decision D29; docs/IMPLEMENTATION_PLAN.md, M8): a palm held
 # still for half a second stops Jarvis talking, or plays or pauses a video
@@ -226,6 +232,11 @@ browser = "edge"            # "edge" (Microsoft Edge on Windows) or "default"
 # (30 Oct). "likely": the web and PC tools too only with a word for them;
 # "always": every tool on every request; "off".
 model_tools = "smart"
+# "Where's my DWBI report?", "what's in it?" (knowledge/files.py): find_file and
+# read_file look only in these folders, read-only, and never read secrets (.env,
+# keys, password files). Add your project folders on D: in settings.local.toml,
+# e.g. search_folders = ["~/Desktop", "~/Documents", "~/Downloads", "D:/"].
+search_folders = ["~/Desktop", "~/Documents", "~/Downloads"]
 # The world weather map (knowledge/world_weather.py) asks Open-Meteo for every
 # country again only after this many minutes; until then it opens at once.
 world_weather_minutes = 60

@@ -117,6 +117,7 @@ class PalmCamera:
         self.fps = float(settings.get("gestures.fps", 15))
         self.error: str | None = None        # why it stopped or couldn't start, in plain words
         self.palms = 0
+        self.watchers: list[Callable[[Sequence[HandSeen], int], None]] = []
         # Every result's hands, for whoever wants all of them (the 3D explorer's hand controls);
         # called on MediaPipe's thread, so it must be quick and must not raise.
         self.on_hands: Callable[[Sequence[HandSeen], int, int, int], None] | None = None
@@ -205,6 +206,11 @@ class PalmCamera:
                 self.log("camera_close_failed", error=str(exc)[:200])
 
     def _on_hands(self, hands: Sequence[HandSeen], timestamp_ms: int, width: int, height: int) -> None:
+        for watcher in list(getattr(self, "watchers", [])):     # a thumbs up for Jarvis's question (app.py)
+            try:
+                watcher(hands, timestamp_ms)
+            except Exception as exc:  # noqa: BLE001 - runs on MediaPipe's thread; must not raise
+                self.log("camera_watcher_failed", error=str(exc)[:200])
         listener = self.on_hands
         if listener is not None:
             try:

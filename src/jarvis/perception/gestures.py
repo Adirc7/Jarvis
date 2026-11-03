@@ -143,6 +143,24 @@ class PalmSettings:
                    max_move=float(settings.get("gestures.max_move", 0.35)))
 
 
+class ThumbAnswer:
+    """A thumbs up (or down) from either hand, held for `hold_s`: the answer to Jarvis's question, once.
+    Only listened to while Jarvis is asking (tools/confirm.py)."""
+
+    def __init__(self, hold_s: float = 1.0, min_score: float = 0.6):
+        self.min_score = min_score
+        self.up = PalmHold(hold_s=hold_s, rearm_s=0.5, max_move=None)
+        self.down = PalmHold(hold_s=hold_s, rearm_s=0.5, max_move=None)
+
+    def update(self, t: float, hands: Sequence[HandSeen]) -> bool | None:
+        shown = {h.gesture for h in hands if h.score >= self.min_score}
+        if self.up.update(t, "Thumb_Up" in shown and "Thumb_Down" not in shown):
+            return True
+        if self.down.update(t, "Thumb_Down" in shown and "Thumb_Up" not in shown):
+            return False
+        return None
+
+
 class PalmTrigger:
     """Feed it every camera result; it says True once per deliberate palm."""
 

@@ -1910,3 +1910,17 @@ window server: every number matches SymPy, every button reaches Jarvis.
   3 GB, loaded on a switch to Sinhala; the default if it isn't downloaded),
   and a guess outside English, Sinhala and Tamil is mapped to the likeliest
   of the three. To measure: 20 Sinhala sentences with their text (LANGUAGES.md).
+- 4 Nov, 02:30: Adhi asked for PC power, confirming by voice, opening any
+  program, files, and three claps to open Jarvis. open_app now opens any
+  Start menu program (Get-StartApps; shells, system tools, uninstallers
+  and paths refused before it runs); lock_pc at once; sleep_pc, sign_out,
+  restart_pc and shutdown_pc ask first (shutdown and restart wait 30 s;
+  cancel_shutdown or "undo that" stops them). The confirm box (Asker) is
+  now said out loud too, and answered by a click, a spoken or typed
+  yes/no on this PC (push-to-talk no longer cancels the turn that asks),
+  or a thumbs up/down held a second; the log records which. This changes
+  D29's "voice never confirms": now Adhi's choice, with "no wins" for a
+  muddled answer. find_file and read_file (knowledge/files.py) in the
+  allowed folders, never secrets, the text as data. clap_launcher.py: a
+  windowless listener started at sign-in; three claps start Jarvis.
+  Details: docs/PC_ACTIONS.md.

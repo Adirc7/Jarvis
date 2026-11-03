@@ -131,3 +131,91 @@ def test_every_reply_a_tool_can_give_has_a_sinhala_and_tamil_phrase():
     keys |= {"nothing_to_undo", "refused", "cancelled", "stopped", "failed", "unconfirmed"}
     for lang in ("si", "ta"):
         assert keys <= set(PHRASES[lang]), (lang, keys - set(PHRASES[lang]))
+
+
+# ---- "ask me, and do it when I confirm" (4 Nov): by voice or typing, not only a click ------------------
+def asking_app(settings, tmp_path, tool):
+    import time
+
+    from jarvis.tools.confirm import Asker
+
+    def show(words, timeout_s, state):             # the box: nobody clicks; it waits for another answer
+        end = time.monotonic() + 2
+        while state["answer"] is None and time.monotonic() < end:
+            time.sleep(0.01)
+        return False
+    power = []
+    asker = Asker(show)
+    desk = DesktopTools(tmp_path / "Jarvis", ActionLog(tmp_path / "logs"), confirm=asker, start=lambda t: None,
+                        running=set, wait=lambda s: None, start_apps=list, launch=lambda i: None,
+                        power=power.append)
+    out = []
+    app = App(settings, Telemetry.disabled(), llm=FallbackLLM([Provider("f", "m", Model(tool))]),
+              out=lambda *a, **k: out.append("".join(map(str, a))), desk=desk)
+    return app, asker, power, out
+
+
+async def test_jarvis_asks_out_loud_and_a_spoken_yes_shuts_down(settings, tmp_path):
+    import asyncio
+    app, asker, power, out = asking_app(settings, tmp_path, "shutdown_pc")
+    asking = asyncio.create_task(app.handle_text("shut down the computer"))
+    for _ in range(200):
+        if asker.waiting:
+            break
+        await asyncio.sleep(0.01)
+    assert asker.waiting.startswith("Shut down the computer in 30 seconds")
+    assert any("Shall I shut down the computer in 30 seconds" in line for line in out)      # said, not only shown
+    assert await app.handle_text("what's the time?") == ("I'm waiting for a yes or a no: Shut down the computer "
+                                                         "in 30 seconds; until then 'cancel the shutdown' stops it.")
+    assert await app.handle_text("yes, do it") == ""
+    assert (await asking).startswith("Shutting down in 30 seconds") and power == ["shutdown"]
+    logged = (tmp_path / "logs").glob("*.jsonl")
+    assert '"confirmed_by": "typed"' in "".join(f.read_text() for f in logged)
+
+
+async def test_a_spoken_no_in_sinhala_cancels(settings, tmp_path):
+    import asyncio
+    app, asker, power, _ = asking_app(settings, tmp_path, "restart_pc")
+    app.lang.set("si", source="test")
+    asking = asyncio.create_task(app.handle_text("පරිගණකය රීස්ටාට් කරන්න"))
+    for _ in range(200):
+        if asker.waiting:
+            break
+        await asyncio.sleep(0.01)
+    assert await app.handle_text("එපා") == ""
+    assert await asking == "හරි, මම ඒක කළේ නෑ." and power == []
+
+
+def test_only_a_plain_yes_or_no_counts():
+    from jarvis.tools.confirm import yes_or_no
+    for text in ("yes", "Yes, do it.", "ඔව්", "ඔව් කරන්න", "hari", "ஆம்", "okay jarvis", "go ahead"):
+        assert yes_or_no(text) is True, text
+    for text in ("no", "එපා", "cancel", "don't", "yes no wait", "nehe", "வேண்டாம்"):
+        assert yes_or_no(text) is False, text
+    for text in ("what's the time", "yes I think the weather today is very nice and warm", "", "shut down"):
+        assert yes_or_no(text) is None, text
+
+
+def test_a_thumbs_up_held_a_second_answers_once():
+    from jarvis.perception.gestures import HandSeen, ThumbAnswer
+    thumb = ThumbAnswer(hold_s=1.0)
+    up = [HandSeen("Right", "Thumb_Up", 0.8, (0, 0), 1, 0.9)]
+    assert [thumb.update(t / 10, up) for t in range(12)].count(True) == 1     # once, after a second
+    down = [HandSeen("Left", "Thumb_Down", 0.8, (0, 0), 1, 0.9)]
+    fresh = ThumbAnswer(hold_s=1.0)
+    assert False in [fresh.update(t / 10, down) for t in range(12)]
+    assert all(ThumbAnswer().update(t / 10, [HandSeen("Right", "Open_Palm", 0.9, (0, 0), 1, 0.9)]) is None
+               for t in range(20))
+
+
+async def test_a_yes_said_with_push_to_talk_answers_while_the_asking_turn_waits(settings, tmp_path):
+    import asyncio
+    app, asker, power, _ = asking_app(settings, tmp_path, "sleep_pc")
+    app.transcriber = NS(transcribe=lambda audio: NS(text="ඔව්", unclear=None, language="si"))
+    asking = asyncio.create_task(app.handle_text("put the computer to sleep"))
+    for _ in range(200):
+        if asker.waiting:
+            break
+        await asyncio.sleep(0.01)
+    assert await asyncio.wait_for(app.voice_turn(b"", 1.0), 2) == ""       # not stuck behind the asking turn
+    assert (await asking).startswith("Going to sleep") and power == ["sleep"] and asker.last_how == "voice"

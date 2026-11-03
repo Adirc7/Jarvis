@@ -187,3 +187,37 @@ async def test_in_jarvis_a_double_clap_means_listen_now_and_never_while_he_speak
     app._clap_command("off")
     await app._double_clap()
     assert spoken == [] and "[clap] off." in out[-1]
+
+
+# ---- three claps open Jarvis (clap_launcher.py, 4 Nov) ------------------------------------------
+def launches(audio, block: int = 1600) -> int:
+    from jarvis.clap_launcher import Launcher
+    started = []
+    launcher = Launcher(start=lambda: started.append(1), log=lambda line: None)
+    for i in range(0, len(audio), block):
+        launcher.feed(audio[i:i + block])
+    return len(started)
+
+
+def test_three_claps_start_jarvis_once():
+    audio = at(at(at(room(5), clap(1), 1.0), clap(2), 1.35), clap(3), 1.7)
+    assert launches(audio) == 1
+
+
+def test_two_claps_four_claps_slow_claps_or_knocks_start_nothing():
+    assert launches(at(at(room(4), clap(1), 1.0), clap(2), 1.3)) == 0                      # Jarvis's double clap
+    four = room(5)
+    for i, t in enumerate((1.0, 1.3, 1.6, 1.9)):
+        four = at(four, clap(i + 1), t)
+    assert launches(four) == 0                                                          # applause
+    slow = at(at(at(room(6), clap(1), 1.0), clap(2), 2.0), clap(3), 3.0)
+    assert launches(slow) == 0                                                          # a second apart
+    knocks = at(at(at(room(5), thump(), 1.0), thump(), 1.35), thump(), 1.7)
+    assert launches(knocks) == 0                                                        # low-pitched
+
+
+def test_after_starting_it_rests_before_counting_again():
+    audio = room(8)
+    for t in (1.0, 1.35, 1.7, 3.0, 3.35, 3.7):
+        audio = at(audio, clap(int(t * 10)), t)
+    assert launches(audio) == 1

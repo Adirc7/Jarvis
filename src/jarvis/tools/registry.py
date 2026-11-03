@@ -47,6 +47,7 @@ class Tool:
     undo: Callable[[Args, Result], Result] | None = None
     path_params: tuple[str, ...] = ()               # arguments that are file paths: must be in allowed folders
     describe: Callable[[Args], str] | None = None   # the confirm box's words, written by code from the arguments
+    check: Callable[[Args], list[str]] | None = None  # the tool's own refusals, after the schema (e.g. no shells)
 
     def spec(self) -> dict[str, Any]:
         """The OpenAI-style function definition the model sees."""

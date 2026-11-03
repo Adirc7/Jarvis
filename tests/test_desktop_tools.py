@@ -161,3 +161,59 @@ def test_filler_arguments_on_a_tool_that_takes_none_are_ignored(desk):
     out = tools.call("undo_last_action", '{"action": {}}')
     assert out.status == "done" and out.text.startswith("Note removed")
     assert tools.call("open_app", '{"name": "notepad", "action": {}}').status == "refused"   # still strict here
+
+
+# ---- any program in the Start menu, and the computer's power (4 Nov) ------------------------------
+START_MENU = [("MATLAB R2024b", "MathWorks.MATLAB.R2024b"), ("MATLAB Help", "MathWorks.MATLAB.Help"),
+              ("RStudio", "Posit.RStudio"), ("GNU Octave (GUI)", "GNU.Octave.GUI"),
+              ("Windows PowerShell", "Microsoft.PowerShell"), ("Command Prompt", "Microsoft.Cmd"),
+              ("Uninstall RStudio", "Posit.RStudio.Uninstall"), ("Zoom Workplace", "Zoom.Zoom")]
+
+
+@pytest.fixture
+def pc(tmp_path):
+    win = Windows()
+    win.launched, win.power = [], []
+    tools = DesktopTools(tmp_path / "Jarvis", ActionLog(tmp_path / "logs"), win.confirm, start=win.start,
+                         running=lambda: set(win.procs), wait=lambda s: None, start_apps=lambda: list(START_MENU),
+                         launch=win.launched.append, power=win.power.append)
+    return tools, win
+
+
+def test_any_program_in_the_start_menu_opens_by_name(pc):
+    tools, win = pc
+    out = tools.call("open_app", '{"name": "matlab"}')
+    assert out.status == "claimed" and out.text == "Opening MATLAB R2024b." and win.launched == ["MathWorks.MATLAB.R2024b"]
+    assert tools.call("open_app", '{"name": "R Studio"}').text == "Opening RStudio."
+    assert tools.call("open_app", '{"name": "octave"}').text == "Opening GNU Octave (GUI)."
+    assert tools.call("open_app", '{"name": "zoom"}').text == "Opening Zoom Workplace."
+    assert tools.call("open_app", '{"name": "notepad"}').status == "claimed" or win.started == ["notepad.exe"]
+    missing = tools.call("open_app", '{"name": "photoshop"}')
+    assert missing.status == "failed" and "couldn't find a program called photoshop" in missing.text
+
+
+def test_never_a_shell_a_system_tool_an_uninstaller_or_a_path(pc):
+    tools, win = pc
+    for name in ("powershell", "Windows PowerShell", "command prompt", "cmd", "regedit", "uninstall rstudio",
+                 "C:/evil.exe", "evil.bat", "..\\\\x"):
+        assert tools.call("open_app", json.dumps({"name": name})).status == "refused", name
+    assert tools.find_app("prompt") is None                       # Command Prompt isn't even listed
+    assert win.launched == []
+
+
+def test_lock_at_once_but_shutdown_only_after_asking_and_it_can_be_cancelled(pc):
+    tools, win = pc
+    assert tools.call("lock_pc").status == "claimed" and win.power == ["lock"] and win.clicks == []
+    win.click_answer = False
+    assert tools.call("shutdown_pc").status == "cancelled" and win.power == ["lock"]
+    assert "Shut down the computer in 30 seconds" in win.clicks[-1]
+    win.click_answer = True
+    out = tools.call("shutdown_pc")
+    assert out.status == "claimed" and "Shutting down in 30 seconds" in out.text and win.power[-1] == "shutdown"
+    assert tools.call("cancel_shutdown").text == "Cancelled: the computer stays on." and win.power[-1] == "cancel"
+    assert tools.call("cancel_shutdown").status == "failed"           # nothing left to cancel
+    tools.call("restart_pc")
+    assert tools.call("undo_last_action").text == "Cancelled: the computer stays on."   # "undo that" works too
+    for name in ("sleep_pc", "sign_out"):
+        asked = len(win.clicks)
+        assert tools.call(name).status == "claimed" and len(win.clicks) == asked + 1

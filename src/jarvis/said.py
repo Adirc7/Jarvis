@@ -69,6 +69,13 @@ LINES: dict[str, dict[str, str]] = {
     "closed_lesson": {"en": "Closed the lesson.", "si": "පාඩම වැහුවා.", "ta": "பாடத்தை மூடினேன்."},
     "closed_board": {"en": "Closed the board.", "si": "බෝඩ් එක වැහුවා.", "ta": "பலகையை மூடினேன்."},
     "closed_it": {"en": "Closed it.", "si": "වැහුවා.", "ta": "மூடினேன்."},
+    # The confirm box (tools/confirm.py): Jarvis asks out loud too, and you answer by voice, typing or a thumbs up.
+    "confirm_ask": {"en": "Shall I {what}? Say yes or no, or click.",
+                    "si": "මේක කරන්නද: {what}? ඔව් හරි එපා හරි කියන්න, නැත්නම් ක්ලික් කරන්න.",
+                    "ta": "இதைச் செய்யவா: {what}? ஆம் அல்லது வேண்டாம் என்று சொல்லுங்கள், அல்லது கிளிக் செய்யுங்கள்."},
+    "confirm_yes_no": {"en": "I'm waiting for a yes or a no: {what}.",
+                       "si": "මම බලාගෙන ඉන්නේ ඔව් ද එපා ද කියලා: {what}.",
+                       "ta": "ஆம் அல்லது வேண்டாம் என்பதற்காகக் காத்திருக்கிறேன்: {what}."},
     # The 3D explorer (explore_mode.py). {title} is the model's name, as the window shows it.
     "explore_closed": {"en": "Closed the 3D view.", "si": "ත්‍රීඩී මොඩල් එක වැහුවා.", "ta": "3D காட்சியை மூடினேன்."},
     "explore_assemble": {"en": "Putting it back together.", "si": "ආයෙත් එකතු කරනවා.",

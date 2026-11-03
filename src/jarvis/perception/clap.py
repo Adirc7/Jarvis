@@ -175,6 +175,39 @@ class ClapDetector:
         return []
 
 
+class TripleClap:
+    """Three claps, each 0.2-0.6 s after the one before, then quiet: opens Jarvis (clap_launcher.py).
+
+    Fed the detector's counted peaks and its clock. A fourth clap soon after (applause, knocking) makes it
+    nothing; after a triple, the next one counts only `rest_s` later.
+    """
+
+    def __init__(self, settings: ClapSettings | None = None, claps: int = 3, rest_s: float = 8.0):
+        self.s, self.claps, self.rest_s = settings or ClapSettings(), claps, rest_s
+        self.times: list[float] = []
+        self._rest_until = 0.0
+
+    def peak(self, t: float) -> None:
+        if t < self._rest_until:
+            return
+        if self.times and t - self.times[-1] < self.s.min_gap_s:
+            return                                                     # the same clap's echo
+        if self.times and t - self.times[-1] > self.s.max_gap_s:
+            self.times = []
+        self.times.append(t)
+        if len(self.times) > self.claps:                               # too many: applause
+            self.times, self._rest_until = [], t + self.s.quiet_after_s
+
+    def done(self, now: float) -> bool:
+        """True once, when the claps are in and nothing followed for quiet_after_s."""
+        if len(self.times) == self.claps and now - self.times[-1] >= self.s.quiet_after_s:
+            self.times, self._rest_until = [], now + self.rest_s
+            return True
+        if self.times and now - self.times[-1] > self.s.max_gap_s and len(self.times) < self.claps:
+            self.times = []
+        return False
+
+
 class SpeechEnd:
     """After a double clap: has the user started talking, and then paused? (energy above the room's noise)
 

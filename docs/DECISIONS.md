@@ -370,3 +370,5 @@ someone), and raising the right hand off the mouse is a deliberate act.
 setting later if wanted); palm while idle doing anything beyond the video.
 **Idea:** Adhi, 2026-10-24 (double clap, palm with the right hand, pausing
 YouTube by hand).
+
+**Changed 4 Nov (Adhi's choice):** risky actions can now be confirmed by voice (a plain "yes" / "ඔව්" with push-to-talk or typed on this PC) or a thumbs up held for a second, as well as a click; a muddled answer counts as no, and only while Jarvis is asking. The double clap and the palm still never confirm; three claps open Jarvis when he isn't running (docs/PC_ACTIONS.md).

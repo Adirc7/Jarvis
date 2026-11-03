@@ -174,6 +174,10 @@ class Gate:
         problems = self._path_problems(tool, args)
         if problems:
             return self._refuse(name, problems, args)
+        if tool.check is not None:
+            problems = tool.check(args)
+            if problems:
+                return self._refuse(name, problems, args)
 
         ask = tool.tier is Tier.ASK_FIRST or (tool.tier is Tier.DO_AND_LOG and (untrusted or remote))
         confirmed_by = None
@@ -182,7 +186,7 @@ class Gate:
             if self.confirm is None or not self.confirm(tool, args, words):
                 self.log.write(tool=name, args=args, tier=tool.tier.value, decision="cancelled", asked=words)
                 return Outcome("cancelled", "Okay, I didn't do it.", name)
-            confirmed_by = "click"
+            confirmed_by = getattr(self.confirm, "last_how", None) or "click"    # or voice, or a thumbs up
         if self.stopped():
             self.log.write(tool=name, args=args, tier=tool.tier.value, decision="stopped")
             return Outcome("cancelled", "Stopped.", name)
