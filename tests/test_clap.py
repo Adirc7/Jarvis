@@ -221,3 +221,19 @@ def test_after_starting_it_rests_before_counting_again():
     for t in (1.0, 1.35, 1.7, 3.0, 3.35, 3.7):
         audio = at(audio, clap(int(t * 10)), t)
     assert launches(audio) == 1
+
+
+def test_three_claps_a_little_slower_than_a_double_still_count():
+    """4 Nov on the laptop: Adhi's claps came 0.57-0.6 s apart, at the double clap's 0.6 s limit."""
+    audio = at(at(at(room(5), clap(1), 1.0), clap(2), 1.7), clap(3), 2.45)
+    assert launches(audio) == 1
+
+
+def test_jarvis_is_started_through_run_jarvis_cmd_not_start_with_a_bare_title(monkeypatch, tmp_path):
+    import subprocess
+
+    from jarvis import clap_launcher
+    ran = []
+    monkeypatch.setattr(subprocess, "Popen", lambda args, **kw: ran.append(args))
+    clap_launcher.start_jarvis(tmp_path)
+    assert ran == [["cmd.exe", "/c", str(tmp_path / "scripts" / "run_jarvis.cmd"), "voice"]]

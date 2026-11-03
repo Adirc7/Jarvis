@@ -182,6 +182,7 @@ max_gap_s = 0.6
 # no window, started at sign-in by scripts\clap_launcher.cmd install. It uses the [clap] limits above and
 # records nothing. false: it quits at once (or: scripts\clap_launcher.cmd uninstall).
 enabled = true
+max_gap_s = 0.9           # the most between two of the three claps (people clap three a little slower)
 
 [gestures]
 # Palm to pause (decision D29; docs/IMPLEMENTATION_PLAN.md, M8): a palm held
