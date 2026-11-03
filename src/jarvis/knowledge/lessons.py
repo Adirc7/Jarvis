@@ -66,7 +66,7 @@ SCENES: dict[str, tuple[str, dict[str, tuple]]] = {
              {"focal_length": ("num", 2.0, 20.0, 8.0), "object_distance": ("num", 1.0, 40.0, 16.0),
               "converging": ("bool", None, None, True)}),
 }
-KINDS = ("scene", "plot", "surface", "formula", "diagram", "image", "sketch")
+KINDS = ("scene", "plot", "surface", "formula", "diagram", "image", "sketch", "pview")
 DIAGRAM_TYPES = ("flowchart", "graph", "mindmap", "timeline", "sequenceDiagram", "stateDiagram", "classDiagram",
                  "pie", "quadrantChart")
 MAX_STEPS = 7
@@ -122,12 +122,15 @@ Rules:
 - "say": what Jarvis says for that step: 1 to 3 short spoken sentences in {language}; words only, no symbols,
   no LaTeX, no markdown (say "E equals m c squared"). Refer to the picture ("watch the molecules...").
 - "show": the visual for the step, chosen by what this step needs. One of:
+  {{"view": {{<a tested animation, below>}}}}   motion, forces, circuits, chemistry, quantum, qubits, relativity,
+     matrices, statistics, fields, molecules, Feynman diagrams: accurate and animated; prefer one when it fits
   {{"scene": "<name>", "params": {{...}}}}   a simulation from the library below (accurate; prefer one when it fits)
   {{"plot": ["sin(x)", "x^2"], "from": -5, "to": 5}}   graphs of y = f(x) (maths like x^2 sin(x), exp(-x^2/2), sqrt(2 pi))
   {{"surface": "sin(x) cos(y)", "x": [-3, 3], "y": [-3, 3]}}   a 3D surface z = f(x, y)
   {{"diagram": "flowchart LR\\n A[Sun] --> B[Water evaporates]"}}   Mermaid, at most 12 nodes, for processes and how ideas connect
   {{"image": "search words"}}   a picture from Wikipedia, for real things worth seeing (an organ, a galaxy, an engine)
-  {{"sketch": "what to draw and animate"}}   only if nothing above fits; the drawing is generated, so describe it exactly
+  {{"sketch": "what to draw and animate"}}   a last resort, only if no view, scene, plot, diagram or picture fits:
+     generated drawings often fail, so describe it exactly
   Leave "show" out to keep the previous visual. Use the same scene again with different params to show cause and
   effect (for example wall true, then wall false).
 - "formula" (optional): the key equation for the step, in LaTeX (for example S = k_B \\\\ln W).
@@ -135,7 +138,16 @@ Rules:
 
 Library scenes:
 {scene_catalog()}
+
+Views (in "view", the numbers are plain numbers here):
+{_views()}
 """
+
+
+def _views() -> str:
+    from .problem_views import view_catalog
+    return "\n".join(line for line in view_catalog().splitlines() if '"lesson"' not in line
+                     and "a visual from the lessons" not in line and "(scenes: gas_box" not in line)
 
 
 def sketch_prompt(description: str, title: str) -> str:
@@ -197,6 +209,8 @@ def _clamp_params(name: str, given: Any) -> dict:
 def _visual(show: Any, notes: list[str]) -> dict | None:
     if not isinstance(show, dict) or not show:
         return None
+    if isinstance(show.get("view"), dict) and show["view"]:
+        return {"kind": "pview", "spec": show["view"]}
     if "scene" in show:
         name = str(show["scene"])
         if name not in SCENES:
@@ -275,6 +289,8 @@ def resolve(lesson: Lesson, research=None) -> Lesson:
                         lesson.notes.append(f"couldn't plot {expr}: {exc}")
                 if not v["curves"]:
                     step.visual = None
+            elif v["kind"] == "pview":
+                v["data"] = _problem_view(v.pop("spec"))
             elif v["kind"] == "surface":
                 v["z"] = sample_surface(v["expression"], v["x"], v["y"], 48)
             elif v["kind"] == "image":
@@ -288,6 +304,19 @@ def resolve(lesson: Lesson, research=None) -> Lesson:
             lesson.notes.append(f"couldn't draw {v.get('expression', '?')}: {exc}")
             step.visual = None
     return lesson
+
+
+def _problem_view(spec: dict) -> dict:
+    """A worked problem's tested view (problem_views.py), with the plain numbers a lesson gives it."""
+    from .problem_views import BUILDERS, _Num
+    from .problems import Problem, ProblemError
+    kind = next((k for k in BUILDERS if k in spec), None)
+    if kind is None or not isinstance(spec[kind], dict):
+        raise MathError(f"no known view in {', '.join(list(spec)[:3])}")
+    try:
+        return BUILDERS[kind](spec[kind], _Num(Problem("lesson", "other", "")))
+    except (ProblemError, ValueError, TypeError, ZeroDivisionError, OverflowError) as exc:
+        raise MathError(f"the {kind} view: {exc}") from None
 
 
 def lesson_for_the_model(lesson: Lesson) -> str:

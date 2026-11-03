@@ -532,6 +532,7 @@ window.JarvisLesson = (function () {
       else if (visual.kind === "image") api = image(box, visual);
       else if (visual.kind === "formula") { formula(box, visual.latex, true); api = { stop() {} }; }
       else if (visual.kind === "sketch") api = sketch(box, visual, msg => onSketchError(from, msg));
+      else if (visual.kind === "pview" && window.JarvisProblem) api = window.JarvisProblem.drawView(box, visual.data);
     } catch (err) { box.textContent = ""; box.append(el("div", "empty", "This picture couldn't be drawn (" + err.message + ").")); }
     if (shownIndex !== i) { if (api && api.stop) api.stop(); return; }            // moved on while it loaded
     current = { visual, api };
@@ -590,6 +591,7 @@ window.JarvisLesson = (function () {
         else if (visual.kind === "diagram") api = await diagram(box, visual);
         else if (visual.kind === "image") api = image(box, visual);
         else if (visual.kind === "formula") { formula(box, visual.latex, true); api = { stop() {} }; }
+        else if (visual.kind === "pview" && window.JarvisProblem) api = window.JarvisProblem.drawView(box, visual.data);
       } catch (err) { box.textContent = ""; box.append(el("div", "empty", "This picture couldn't be drawn (" + err.message + ").")); }
       if (stopped && api && api.stop) api.stop();
     })();

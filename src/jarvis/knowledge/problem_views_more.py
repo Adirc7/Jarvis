@@ -234,7 +234,7 @@ def _qcircuit(spec: dict, n) -> dict:
                       "angle_shown": show_number(angle) if angle is not None else ""})
         states.append(snap(state))
     labels = [format(i, f"0{nq}b") for i in range(2 ** nq)]
-    return {"kind": "qcircuit", "qubits": nq, "gates": gates, "states": states, "labels": labels}
+    return {"kind": "qcircuit", "qubits": nq, "initial": init, "gates": gates, "states": states, "labels": labels}
 
 
 # ---- relativity --------------------------------------------------------------------------------------------------

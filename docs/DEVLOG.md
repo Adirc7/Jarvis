@@ -1837,3 +1837,8 @@ window server: every number matches SymPy, every button reaches Jarvis.
   twins 6 and 10 years, the Sun's 2954 m, 95% tails) and drawn in headless
   Chromium without errors. Found in the check: a superposition's |Ψ|² was
   drawn a million times too tall (scaled by ψ's peak once instead of twice).
+- 3 Nov, 20:50: Lessons ("explain time dilation", "show me tunnelling") can
+  now use every tested view too ({"view": ...} in the plan), and the planner
+  is told a model-drawn sketch is a last resort: those were the blank
+  pictures (the CVT lesson's step 5). A view that can't be made, like a
+  worldline faster than light, is dropped with a note instead of drawn.

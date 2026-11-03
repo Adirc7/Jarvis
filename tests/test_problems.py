@@ -320,3 +320,17 @@ def test_a_molecule_from_pubchem_and_a_feynman_diagram(monkeypatch, tmp_path):
     fey, _ = view_of({"feynman": {"lines": [{"from": [0, 0], "to": [0.5, 0.5], "type": "photon", "label": "γ"},
                                             {"from": [0, 1], "to": [0.5, 0.5], "type": "quark-ish"}]}})
     assert [ln["type"] for ln in fey["lines"]] == ["photon", "fermion"]
+
+
+def test_a_lesson_can_use_the_tested_views_and_an_impossible_one_is_dropped():
+    from jarvis.knowledge.lessons import parse_plan, plan_prompt, resolve
+    plan = {"title": "Time dilation", "steps": [
+        {"say": "The twins.", "show": {"view": {"minkowski": {"beta": 0.6, "worldlines": [
+            {"name": "away", "path": [[0, 0], [4, 5], [0, 10]]}]}}}},
+        {"say": "Faster than light?", "show": {"view": {"minkowski": {"worldlines": [
+            {"name": "x", "path": [[0, 0], [5, 1]]}]}}}}]}
+    lesson = resolve(parse_plan(json.dumps(plan)))
+    assert lesson.steps[0].visual["kind"] == "pview" and lesson.steps[0].visual["data"]["worldlines"][0]["tau"] == 6
+    assert lesson.steps[1].visual is None and "faster than light" in lesson.notes[0]
+    prompt = plan_prompt("explain tunnelling", "", "English")
+    assert '{"view":' in prompt and '"qcircuit"' in prompt and "a last resort" in prompt

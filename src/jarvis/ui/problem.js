@@ -570,7 +570,7 @@ window.JarvisProblem = (function () {
       shown = { probs: lerp(from.probs, target.probs, mix), bloch: target.bloch.map((b, q) => lerp(from.bloch[q], b, mix)), amps: target.amps };
       const nq = v.qubits, top = 40, gap = Math.min(46, (h * 0.42) / nq), colW = Math.min(80, (w - 160) / Math.max(1, v.gates.length + 1));
       for (let q = 0; q < nq; q++) { const y = top + q * gap; ctx.strokeStyle = "#3a6f93"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(70, y); ctx.lineTo(80 + colW * (v.gates.length + 1), y); ctx.stroke();
-        text(ctx, `q${q} |${(v.labels[0] || "").length ? "0" : ""}⟩`, 20, y, C.muted, 12); }
+        text(ctx, `q${q} |${(v.initial || "")[q] || "0"}⟩`, 20, y, C.muted, 12); }
       v.gates.forEach((g, i) => { const x = 80 + colW * (i + 1), done = i < step, col = done ? C.cyan : "#35506a";
         if (g.qubits.length > 1) { const ys = g.qubits.map(q => top + q * gap); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, Math.min(...ys)); ctx.lineTo(x, Math.max(...ys)); ctx.stroke();
           const ctrl = g.name === "SWAP" ? [] : g.qubits.slice(0, -1), tq = g.qubits[g.qubits.length - 1];
@@ -892,5 +892,17 @@ window.JarvisProblem = (function () {
     return { state: apply, stop() { if (api) api.stop(); if (lesson && lesson.stop) lesson.stop(); box.textContent = ""; },
       get t() { return t; }, get view() { return viewName; } };
   }
-  return { open, views: Object.keys(VIEWS) };
+  // One view on its own, playing (a lesson's step, ui/lesson.js): the same tested drawings.
+  function drawView(box, data, hl = {}) {
+    const make = VIEWS[data && data.kind];
+    if (!make) throw new Error("no such view");
+    const view = make(data); let t = 0;
+    const api = canvasIn(box, (ctx, w, h, dt) => {
+      if (view.timed) { t += dt * view.T / 10; if (t > view.T * 1.15) t = 0; }       // play, rest a moment, again
+      view.draw(ctx, w, h, dt, Math.min(t, view.T || 0), hl);
+    });
+    if (view.attach) view.attach(api.canvas);
+    return { stop: api.stop };
+  }
+  return { open, drawView, views: Object.keys(VIEWS) };
 })();
