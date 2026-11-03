@@ -1749,3 +1749,12 @@ pinch picks it and tells Jarvis; no page errors. `docs/EXPLORE.md`.
   parts (body and glass, doors, lights, seats, wheels, brakes, springs) are
   one function, `explore_shapes.car`. The model buttons became a list. All
   ten rendered in headless Chromium, assembled and apart, without errors.
+- 3 Nov, 17:40: Adhi asked how the hand motions help and how to train them.
+  Nothing to train (MediaPipe's model is trained); what changes from hand to
+  hand and camera to camera is the limits, so they're settings now
+  (`[explore]` open_fist, open_flat, pinch) and the side panel shows the two
+  numbers they're compared with (spread, pinch), to tune them by eye. Picking
+  a part now tells the language model which part is out, so "what does this
+  do?" is about it. Found in the browser check: the first frame's clock can be
+  before the last one, so the easing ran backwards and showed "-40% apart";
+  a frame's step is now never negative.

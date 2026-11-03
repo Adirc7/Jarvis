@@ -162,7 +162,9 @@ window.JarvisExplore = (function () {
     handRow.append(el("span", "", "Hand"), el("b", "", "not seen")); handBar.append(el("i"));
     handBar.firstChild.style.width = "0";
     exRow.append(el("span", "", "Taken apart"), el("b", "", "0%")); exBar.append(el("i"));
-    side.append(handRow, handBar, exRow, exBar);
+    const tuneRow = el("div", "row");                        // the raw numbers, to tune [explore] to your hand
+    tuneRow.append(el("span", "", "Spread / pinch"), el("b", "", "-"));
+    side.append(handRow, handBar, tuneRow, exRow, exBar);
     const ges = el("div", "ges");
     for (const [what, does] of GESTURES) { const d = el("div"); d.append(el("b", "", what), el("span", "", " - " + does)); ges.append(d); }
     const card = el("div", "xcard"); card.hidden = true;
@@ -231,12 +233,17 @@ window.JarvisExplore = (function () {
       if (hands.length) handsAt = performance.now();
       const lead = hands[0];
       const valueEl = handRow.lastChild;
-      if (!lead) { handRef = twoRef = pointer = null; valueEl.textContent = "not seen"; handBar.firstChild.style.width = "0"; return; }
+      if (!lead) {
+        handRef = twoRef = pointer = null; valueEl.textContent = "not seen"; handBar.firstChild.style.width = "0";
+        tuneRow.lastChild.textContent = "-"; return;
+      }
       idleSpin = false;
       const pointing = lead.gesture === "Pointing_Up" || lead.pinch;
       valueEl.textContent = pointing ? "pointing" : lead.gesture === "Closed_Fist" ? "fist" :
         lead.gesture === "Victory" ? "peace" : Math.round(lead.open * 100) + "% open";
       handBar.firstChild.style.width = Math.round(lead.open * 100) + "%";
+      tuneRow.lastChild.textContent = (lead.spread || 0).toFixed(2) + " / " + (lead.pinch_d || 0).toFixed(2) +
+        (lead.pinch ? "  pinch" : "");
       if (hands.length >= 2) {                                      // two hands: zoom
         const d = Math.hypot(hands[0].centre[0] - hands[1].centre[0], hands[0].centre[1] - hands[1].centre[1]);
         if (!twoRef) twoRef = { d: Math.max(0.05, d), dist: view.dist };
@@ -268,7 +275,7 @@ window.JarvisExplore = (function () {
     const tmp = new T.Vector3();
     function frame(now) {
       if (!alive) return;
-      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      const dt = clamp((now - last) / 1000, 0, 0.05); last = now;   // a frame's time can be before last
       const w = stage.clientWidth || 600, h = stage.clientHeight || 400, pr = renderer.getPixelRatio();
       if (dom.width !== Math.round(w * pr) || dom.height !== Math.round(h * pr)) {
         renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
@@ -277,7 +284,8 @@ window.JarvisExplore = (function () {
       if (performance.now() - handsAt > 1500 && hands.length) onHands({ hands: [] });   // the hand went away
       e += (target - e) * (1 - Math.exp(-dt * 5));
       const f = ease(clamp(e, 0, 1));
-      exRow.lastChild.textContent = Math.round(e * 100) + "%"; exBar.firstChild.style.width = Math.round(e * 100) + "%";
+      const shown = Math.round(clamp(e, 0, 1) * 100) + "%";
+      exRow.lastChild.textContent = shown; exBar.firstChild.style.width = shown;
       if (document.activeElement !== slider) slider.value = String(Math.round(target * 100));
       if (idleSpin && !drag) view.yaw += dt * 0.15;
       for (const part of parts) {

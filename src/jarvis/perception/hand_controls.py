@@ -32,8 +32,10 @@ OPEN_FIST, OPEN_FLAT = 1.15, 1.9            # fingertips' mean distance from the
 PINCH = 0.33                                # thumb tip to index tip, in hand sizes
 
 
-def pose(hand: HandSeen) -> dict | None:
-    """One hand's controls, or None when it came without its points."""
+def pose(hand: HandSeen, open_fist: float = OPEN_FIST, open_flat: float = OPEN_FLAT,
+         pinch: float = PINCH) -> dict | None:
+    """One hand's controls, or None when it came without its points. The three limits are settings
+    ([explore] open_fist, open_flat, pinch): tune them from the side panel's readouts on your camera."""
     pts = hand.points
     if len(pts) < 21 or hand.size <= 0:
         return None
@@ -41,7 +43,7 @@ def pose(hand: HandSeen) -> dict | None:
     size = hand.size
     wrist = pts[0]
     spread = sum(math.dist(pts[i], wrist) for i in TIPS) / len(TIPS) / size
-    openness = min(1.0, max(0.0, (spread - OPEN_FIST) / (OPEN_FLAT - OPEN_FIST)))
+    openness = min(1.0, max(0.0, (spread - open_fist) / max(0.05, open_flat - open_fist)))
     if hand.gesture == "Closed_Fist":
         openness = min(openness, 0.05)
     pinch_d = math.dist(pts[4], pts[8]) / size
@@ -52,7 +54,8 @@ def pose(hand: HandSeen) -> dict | None:
     # how far the hand leans, as you see it: 0 upright, positive leaning to your right
     roll = math.atan2(-(knuckle[0] - wrist[0]), -(knuckle[1] - wrist[1]))
     return {"side": hand.side, "gesture": hand.gesture, "score": round(hand.score, 2),
-            "open": round(openness, 3), "pinch": pinch_d < PINCH and index_out, "pinch_d": round(pinch_d, 3),
+            "open": round(openness, 3), "pinch": pinch_d < pinch and index_out, "pinch_d": round(pinch_d, 3),
+            "spread": round(spread, 3), "pinch_at_most": pinch,
             "tip": mirror(pts[8]), "pinch_at": mirror(((pts[4][0] + pts[8][0]) / 2, (pts[4][1] + pts[8][1]) / 2)),
             "centre": mirror(hand.centre), "roll": round(roll, 3), "size": round(size / max(w, h), 4),
             "points": [mirror(p) for p in pts[:21]]}
@@ -61,8 +64,10 @@ def pose(hand: HandSeen) -> dict | None:
 class ExploreHands:
     """The hands, the hand that leads, and the moments that matter (a pinch, a held peace sign)."""
 
-    def __init__(self, hand: str = "right", next_hold_s: float = 0.6, pinch_gap_s: float = 0.4):
+    def __init__(self, hand: str = "right", next_hold_s: float = 0.6, pinch_gap_s: float = 0.4,
+                 open_fist: float = OPEN_FIST, open_flat: float = OPEN_FLAT, pinch: float = PINCH):
         self.hand = hand.lower()
+        self.limits = (open_fist, open_flat, pinch)
         self.next_hold_s, self.pinch_gap_s = next_hold_s, pinch_gap_s
         self._pinching = False
         self._last_pinch = -1e9
@@ -70,7 +75,7 @@ class ExploreHands:
         self._peace_done = False
 
     def update(self, t: float, hands: Sequence[HandSeen]) -> dict:
-        poses = [p for p in (pose(h) for h in hands) if p is not None]
+        poses = [p for p in (pose(h, *self.limits) for h in hands) if p is not None]
         poses.sort(key=lambda p: (p["side"].lower() != self.hand, -p["score"]))   # your hand first
         events: list[str] = []
         lead = poses[0] if poses else None

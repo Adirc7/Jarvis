@@ -196,3 +196,19 @@ async def test_a_brand_brings_up_the_type_it_is_built_like(settings):
     reply = await app.handle_text("how does a Tesla work?")                    # a question: the model answers
     assert reply == "It splits the power with planetary gears." and client.calls == 1
     assert [d["model"]["id"] for k, d in shown if k == "explore"][-1] == "electric_car"   # and it's on screen
+
+
+async def test_this_means_the_picked_part_and_the_hand_limits_are_settings(settings):
+    settings.raw["explore"] = {"open_fist": 1.0, "open_flat": 1.5, "pinch": 0.2}
+    app, camera, shown, client = explorer_app(settings, words=("It cools the coolant.",))
+    await app.handle_text("take the car apart")
+    assert app._explore_hands.limits == (1.0, 1.5, 0.2)
+    seen = pose(hand(), 1.0, 1.5, 0.2)
+    assert seen["open"] == 1.0 and seen["spread"] > 1.5 and pose(hand(shape="pinch"), pinch=0.01)["pinch"] is False
+    app._explore["part"] = "radiator"
+    assert (await app.handle_text("what does this do?")).startswith("It cools the coolant.")
+    system = client.last_messages[0]["content"]
+    assert "with the radiator picked out" in system and "they mean the radiator" in system
+    app._explore_close()
+    await app.handle_text("what is entropy?")
+    assert "picked out" not in client.last_messages[0]["content"]

@@ -24,12 +24,43 @@ with vehicles and anatomy.)
   | Peace sign, held half a second | The next model |
 
 - **Voice:** "take it apart", "put it back together", "what's the gearbox?",
-  "show me the radiator", "next model", "close the 3D view".
+  "show me the radiator", "next model", "close the 3D view". Once a part is
+  picked, "what does this do?", "why does it need that?" or "what happens if
+  it breaks?" are about that part: Jarvis's prompt says which part is out.
 - **Mouse:** drag to turn, scroll to zoom, click a part, the Take apart / Put
   together buttons, the slider, and the model buttons.
 
 While it's open, the explorer owns your hand: an open palm takes the model
 apart instead of stopping Jarvis (one mode owns the hand at a time, D29).
+
+## Tune it to your hand
+
+Nothing is trained: MediaPipe's hand model is already trained on many hands,
+and gives 21 points per hand. The explorer measures two things from them,
+relative to your hand's own size, and three limits turn them into controls.
+The side panel shows the two numbers live, under the hand bar:
+
+| Panel shows | What it is | Limit in `[explore]` |
+|---|---|---|
+| Spread | Fingertips' mean distance from the wrist, in hand sizes | `open_fist` (0% open below it), `open_flat` (100% above it) |
+| Pinch | Thumb tip to index tip, in hand sizes; "pinch" appears when it counts | `pinch` (it counts below this, with the index reaching out) |
+
+1. Sit 50-80 cm from the camera, in good light, your right hand up.
+2. Make a fist and read the spread (about 1.0-1.1 is usual). Set `open_fist`
+   a little above it.
+3. Spread your fingers wide and read the spread (about 1.8-2.0). Set
+   `open_flat` a little below it, so a relaxed open hand reaches 100%.
+4. Pinch thumb and index and read the pinch (about 0.05-0.2). Set `pinch` a
+   little above your usual pinch, and well below your open hand's (about
+   0.8-1.3), so it never fires by accident.
+5. Put them in `config/settings.local.toml` and restart Jarvis:
+
+   ```toml
+   [explore]
+   open_fist = 1.15
+   open_flat = 1.9
+   pinch = 0.33
+   ```
 
 ## How it works
 
@@ -83,8 +114,10 @@ apart instead of stopping Jarvis (one mode owns the hand at a time, D29).
 - Real CAD models (glTF) where the licence allows, split into named parts.
 - A "step by step" mode: parts come off in the order a mechanic would remove
   them, with Jarvis narrating each one.
-- A gesture threshold check like palm_report.py, from your own hand: how
-  open is "open" and how close is a pinch on your camera.
+- Your own gestures: record the 21 points while you hold a few poses (a
+  "rotate" C-shape, a thumbs-up for "explain more"), and train a small
+  classifier on them, like the palm data. The points are already relative to
+  the hand, so a few hundred frames per pose go a long way.
 
 ## Learn
 

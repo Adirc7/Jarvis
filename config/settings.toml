@@ -142,6 +142,15 @@ size = [1280, 820]
 # Closing the window stops Jarvis, like any app (only with style = "app").
 quit_when_closed = true
 
+[explore]
+# The 3D explorer's hand limits (docs/EXPLORE.md, "Tune it to your hand"). The side panel shows your
+# "spread" (fingertips from the wrist, in hand sizes) and "pinch" (thumb tip to index tip): set open_fist
+# a little above your fist's spread, open_flat a little below your open hand's, and pinch a little above
+# your pinch's distance.
+open_fist = 1.15
+open_flat = 1.9
+pinch = 0.33
+
 [clap]
 # The double clap (decision D29; src/jarvis/perception/clap.py): two claps 0.2-0.6 s apart make Jarvis
 # listen hands-free ("Yes, sir?"), until you pause. Ignored while he speaks and for 0.5 s after; it never

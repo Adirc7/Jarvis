@@ -760,7 +760,7 @@ class App(LessonMode, ExploreMode):
                 # 2 Nov: on the code route, Qwen sent descriptions as code ("solve the damped ODE ..."); the
                 # teach route's gpt-oss-120b wrote code that ran
                 model_route = "teach"
-        system += self._recent_info_note() + self._emotion_note()
+        system += self._recent_info_note() + self._emotion_note() + self._explore_note()
         messages = [{"role": "system", "content": system}] + history + [{"role": "user", "content": text}]
         if decision.route in ("maths", "teach") and "maths" in groups:
             messages[0]["content"] += "\n\n" + STUDY_NOTE

@@ -76,6 +76,20 @@ class ExploreMode:
             return await self._explore_say("Taking it apart.", turn, token, "explode")
         return None
 
+    def _explore_note(self) -> str:
+        """For the language model: what's on screen, so "what does this do?" means the picked part."""
+        ex = self._explore
+        if ex is None:
+            return ""
+        model = MODELS[ex["model"]]
+        part = next((p for p in model["parts"] if p["id"] == ex.get("part")), None)
+        if part is None:
+            return (f"\n\nJarvis's window shows a 3D model of a {model['title'].lower()} that the user can take "
+                    "apart with their hand.")
+        name = part["name"].lower()
+        return (f"\n\nJarvis's window shows a 3D model of a {model['title'].lower()}, with the {name} picked "
+                f"out: when the user says 'this' or 'it', they mean the {name} ({part['desc']})")
+
     async def _explore_say(self, line: str, turn: Any, token: Any, action: str) -> str:
         await self.sink.say(line, self.lang.current, token)
         turn.finish(kind="explore", action=action, model=(self._explore or {}).get("model"))
@@ -90,7 +104,11 @@ class ExploreMode:
             was_on = self.camera is not None and self.camera.running
             started = (not was_on) and self._start_camera()
         self._explore = {"model": key, "part": None, "started_camera": started}
-        self._explore_hands = ExploreHands(str(self.settings.get("gestures.hand", "right")))
+        self._explore_hands = ExploreHands(
+            str(self.settings.get("gestures.hand", "right")),
+            open_fist=float(self.settings.get("explore.open_fist", 1.15)),
+            open_flat=float(self.settings.get("explore.open_flat", 1.9)),
+            pinch=float(self.settings.get("explore.pinch", 0.33)))
         camera_on = self.camera is not None and self.camera.running
         if camera_on:
             self.camera.on_hands = self._explore_on_hands
