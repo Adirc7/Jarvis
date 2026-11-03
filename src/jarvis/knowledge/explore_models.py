@@ -21,29 +21,11 @@ together, follows how CAD viewers draw exploded views (docs/EXPLORE.md).
 from __future__ import annotations
 
 import math
+import re
 
-X, Z = [0, 0, math.pi / 2], [math.pi / 2, 0, 0]      # turn a cylinder to lie along x, or along z
-
-GROUPS = {
-    "body": "Body",
-    "powertrain": "Engine and drive",
-    "running": "Wheels, brakes and suspension",
-    "chassis": "Frame",
-    "interior": "Inside",
-    "electrical": "Electrics and lights",
-}
-
-
-def _part(pid, name, group, desc, out, *shapes, colour=None):
-    part = {"id": pid, "name": name, "group": group, "desc": desc, "out": out, "shapes": list(shapes)}
-    if colour:
-        part["colour"] = colour                      # its own colour, where one group would make all alike
-    return part
-
-
-def _wheel(x, z, r=0.62, tube=0.2):
-    return [{"t": "torus", "s": [r, tube], "p": [x, r + tube, z]},
-            {"t": "cyl", "s": [r * 0.82, r * 0.82, 0.32], "p": [x, r + tube, z], "r": Z}]
+from .explore_shapes import GROUPS, X, Z
+from .explore_shapes import part as _part
+from .explore_shapes import wheel as _wheel
 
 
 def _sports_car() -> dict:
@@ -322,18 +304,47 @@ def _engine() -> dict:
             "scale": 1.6, "parts": parts}
 
 
-MODELS = {m["id"]: m for m in (_sports_car(), _motorcycle(), _engine())}
-ORDER = ["sports_car", "motorcycle", "engine"]
-WORDS = {"sports_car": ("car", "cars", "vehicle", "sports car", "කාර්", "වාහන"),
-         "motorcycle": ("motorcycle", "motorbike", "bike", "motor bike", "බයික්", "යතුරුපැදි"),
-         "engine": ("engine", "motor", "එන්ජින්")}
+def _all() -> list[dict]:
+    from .explore_vehicles import VEHICLES
+    models = [_sports_car(), _motorcycle(), _engine(), *(make() for make in VEHICLES)]
+    likes = {"sports_car": "Toyota Supra, BMW M4, Ford Mustang", "motorcycle": "a sports or touring motorcycle",
+             "engine": "most small cars"}
+    for m in models:
+        m.setdefault("like", likes.get(m["id"], ""))
+    return models
+
+
+ORDER = ["sports_car", "supercar", "electric_car", "hybrid_car", "pickup_4x4", "three_wheeler", "motorcycle",
+         "scooter", "bicycle", "engine"]
+MODELS = {m["id"]: m for m in sorted(_all(), key=lambda m: ORDER.index(m["id"]))}
+# Words that name each model, brands included: a brand points to the type it's built like inside.
+# Checked in this order, most particular first ("electric car" before "car", "car engine" is the engine).
+WORDS = {
+    "three_wheeler": ("three wheeler", "threewheeler", "tuk", "tuktuk", "tuk tuk", "trishaw", "bajaj", "auto rickshaw",
+                      "ත්‍රීවීල්", "ත්‍රී රෝද"),
+    "scooter": ("scooter", "scooty", "vespa", "dio", "activa"),
+    "bicycle": ("bicycle", "bicycles", "cycle", "pushbike", "push bike", "බයිසිකල්"),
+    "supercar": ("supercar", "supercars", "super car", "super cars", "lamborghini", "lambo", "ferrari", "mclaren",
+                 "mid engine", "huracan", "aventador"),
+    "electric_car": ("electric car", "electric vehicle", "ev", "evs", "tesla", "byd", "leaf", "electric cars",
+                     "විදුලි කාර්"),
+    "hybrid_car": ("hybrid", "hybrids", "prius", "aqua", "vezel", "හයිබ්‍රිඩ්"),
+    "pickup_4x4": ("pickup", "pick up", "4x4", "four wheel drive", "4wd", "hilux", "land cruiser", "jeep", "suv",
+                   "suvs", "l200", "ranger", "defender", "off road", "offroad"),
+    "engine": ("engine", "engines", "motor", "එන්ජින්"),
+    "motorcycle": ("motorcycle", "motorbike", "bike", "bikes", "motor bike", "sport bike", "බයික්", "යතුරුපැදි"),
+    "sports_car": ("car", "cars", "vehicle", "vehicles", "sports car", "supra", "bmw", "mustang",
+                   "corvette", "nissan gtr", "කාර්", "වාහන"),
+}
 
 
 def model_for(text: str) -> str | None:
-    """Which model a request names ("take the engine apart" -> "engine"); None when it names none."""
+    """Which model a request names ("take the engine apart" -> "engine", "a Prius" -> the hybrid); None when
+    it names none."""
     t = text.lower()
-    for key in ("engine", "motorcycle", "sports_car"):            # "car engine" is the engine
-        if any(w in t.split() or (" " in w and w in t) or (not w.isascii() and w in t) for w in WORDS[key]):
+    plain = " " + " ".join(re.sub(r"[^a-z0-9\s]", " ", t).split()) + " "
+    for key, words in WORDS.items():
+        if any((f" {w} " in plain) if w.isascii() else (w in t) for w in words):
             return key
     return None
 

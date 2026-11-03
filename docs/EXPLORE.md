@@ -1,7 +1,8 @@
 # The 3D explorer: take it apart with your hand
 
-Ask Jarvis to show you a car, a motorcycle or an engine taken apart, and his
-window shows it in 3D. Your hand, seen by the laptop's camera, takes it
+Ask Jarvis to show you a car (sports, supercar, electric, hybrid, 4x4
+pickup), a three-wheeler, a motorcycle, a scooter, a bicycle or an engine
+taken apart, and his window shows it in 3D. Your hand, seen by the laptop's camera, takes it
 apart and puts it back. Point and pinch at a part to pull it out, and Jarvis
 explains it. (Adhi's idea, 3 Nov, after seeing a webcam app that does this
 with vehicles and anatomy.)
@@ -32,13 +33,35 @@ apart instead of stopping Jarvis (one mode owns the hand at a time, D29).
 
 ## How it works
 
-- **Models** (`src/jarvis/knowledge/explore_models.py`): our own, built from
-  shapes (boxes, cylinders, wheels, pipes, springs), not copies of any
-  maker's design. A sports car (26 parts), a motorcycle (17) and a
-  four-cylinder engine (14). Each part has a name, a group (its colour), a
-  description, and where it moves when the model comes apart. As in CAD
-  viewers' exploded views, each part moves out along a clear direction so
-  round parts stay lined up and groups stay together.
+- **Models** (`src/jarvis/knowledge/explore_models.py`, `explore_vehicles.py`,
+  shared parts in `explore_shapes.py`): our own, built from shapes (boxes,
+  cylinders, wheels, pipes, springs), not copies of any maker's design. Each
+  part has a name, a group (its colour), a description, and where it moves
+  when the model comes apart. As in CAD viewers' exploded views, each part
+  moves out along a clear direction so round parts stay lined up and groups
+  stay together.
+
+  | Model | Parts | Built inside like |
+  |---|---|---|
+  | Sports car (front engine, rear-wheel drive) | 26 | Toyota Supra, BMW M4, Ford Mustang |
+  | Mid-engine supercar | 24 | Lamborghini Huracan, Ferrari 296, McLaren 750S |
+  | Electric car | 25 | Tesla Model 3, BYD Seal, Nissan Leaf |
+  | Hybrid car | 25 | Toyota Prius, Aqua, Corolla Hybrid |
+  | 4x4 pickup | 23 | Toyota Hilux, Mitsubishi L200, Ford Ranger |
+  | Three-wheeler (tuk-tuk) | 17 | Bajaj RE, TVS King, Piaggio Ape |
+  | Motorcycle | 17 | a sports or touring motorcycle |
+  | Scooter | 16 | Honda Dio or Activa, Yamaha Ray ZR, Vespa |
+  | Bicycle | 10 | a road or mountain bike |
+  | Four-cylinder engine | 14 | most small cars |
+
+  **Types, not brands** (Adhi asked for every brand's cars, 3 Nov): a
+  brand's real design and badge belong to it, and makers don't publish their
+  3D parts, so there's nothing to download for "every brand". How cars differ
+  inside is mostly by type, so each model is a type, and a brand points to
+  the type it's built like: "take a Lamborghini apart" opens the supercar,
+  "show me a Prius in 3D" the hybrid. Asked about a brand while the explorer
+  is open ("how does a Tesla work?"), Jarvis puts that type on screen and the
+  language model answers, with the web tools for current facts.
 - **Hands** (`src/jarvis/perception/hand_controls.py`): MediaPipe's gesture
   recognizer, already running for palm-to-pause, gives each hand's 21 points
   and a gesture (Closed_Fist, Open_Palm, Pointing_Up, Victory, ...). From the
@@ -56,7 +79,7 @@ apart instead of stopping Jarvis (one mode owns the hand at a time, D29).
 
 ## Ideas to take it further
 
-- More models: a jet engine, the human heart, a computer.
+- More models: a bus, a lorry, a jet engine, the human heart, a computer.
 - Real CAD models (glTF) where the licence allows, split into named parts.
 - A "step by step" mode: parts come off in the order a mechanic would remove
   them, with Jarvis narrating each one.

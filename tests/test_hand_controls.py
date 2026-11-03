@@ -75,7 +75,7 @@ def test_the_models_are_complete_and_named_parts_are_found():
     assert ORDER == list(MODELS)
     for model in MODELS.values():
         ids = [p["id"] for p in model["parts"]]
-        assert len(ids) == len(set(ids)) >= 14
+        assert len(ids) == len(set(ids)) >= 10
         for part in model["parts"]:
             assert part["group"] in GROUPS and part["shapes"] and len(part["out"]) == 3 and len(part["desc"]) > 30
             for shape in part["shapes"]:
@@ -123,7 +123,8 @@ async def test_ask_for_a_car_taken_apart_and_your_hand_takes_it_apart(settings):
     import asyncio
     app, camera, shown, client = explorer_app(settings)
     reply = await app.handle_text("show me a car taken apart")
-    assert reply.startswith("Here's the sports car. Open your hand slowly") and client.calls == 0
+    assert reply.startswith("Here's the sports car, built inside like a Toyota Supra. Open your hand slowly")
+    assert client.calls == 0
     kind, data = next(e for e in shown if e[0] == "explore")
     assert data["model"]["id"] == "sports_car" and ["engine", "Four-cylinder engine"] in data["models"]
     assert camera.running and camera.on_hands is not None and app.panel == "explore"
@@ -137,7 +138,7 @@ async def test_ask_for_a_car_taken_apart_and_your_hand_takes_it_apart(settings):
     for t in (2000, 2400, 2700):                                              # a peace sign, held
         camera.on_hands([hand(gesture="Victory")], t, W, H)
     await asyncio.sleep(0.05)
-    assert [d["model"]["id"] for k, d in shown if k == "explore"][-1] == "motorcycle"
+    assert [d["model"]["id"] for k, d in shown if k == "explore"][-1] == "supercar"
 
 
 async def test_name_a_part_and_jarvis_pulls_it_out_and_explains_it(settings):
@@ -182,3 +183,16 @@ def test_the_window_can_pick_a_part_choose_a_model_or_close_and_nothing_else():
         _ui_event({"explore": "run_code"})
     js = EXPLORE_JS.read_text(encoding="utf-8")
     assert "window.JarvisExplore" in js and "innerHTML" not in js               # text is set as text, never HTML
+
+
+async def test_a_brand_brings_up_the_type_it_is_built_like(settings):
+    from jarvis.knowledge.explore_models import model_for
+    assert model_for("take a Lamborghini apart") == "supercar" and model_for("how is a Prius built") == "hybrid_car"
+    assert model_for("explode a tuk tuk") == "three_wheeler" and model_for("show me a hilux in 3D") == "pickup_4x4"
+    assert model_for("take apart a Tesla") == "electric_car" and model_for("a vespa") == "scooter"
+    app, camera, shown, client = explorer_app(settings, words=("It splits the power with planetary gears.",))
+    reply = await app.handle_text("show me a Prius taken apart")
+    assert reply.startswith("Here's the hybrid car, built inside like a Toyota Prius.")
+    reply = await app.handle_text("how does a Tesla work?")                    # a question: the model answers
+    assert reply == "It splits the power with planetary gears." and client.calls == 1
+    assert [d["model"]["id"] for k, d in shown if k == "explore"][-1] == "electric_car"   # and it's on screen

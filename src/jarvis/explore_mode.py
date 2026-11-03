@@ -22,7 +22,7 @@ from .language import normalize
 
 OPEN_WORDS = re.compile(
     r"\b(apart|explod\w*|disassembl\w*|dismantl\w*|inside (?:of )?(?:a|an|the)\b|parts of|parts in|3d (?:model|view)|"
-    r"exploded view|break \w+ down|explore|how \w+ (?:is|are) built)\b|ගලව|කෑලි", re.IGNORECASE)
+    r"exploded view|break \w+ down|explore|how \w+ (?:is|are) built|built inside|in 3d)\b|ගලව|කෑලි", re.IGNORECASE)
 EXPLODE = re.compile(r"\b(take (?:it|them) apart|explode|open it up|apart|show (?:me )?(?:the )?inside)\b|ගලවන්න",
                      re.IGNORECASE)
 ASSEMBLE = re.compile(r"\b(put (?:it )?(?:back )?together|assemble|reassemble|put it back|close it up|"
@@ -57,8 +57,12 @@ class ExploreMode:
         if NEXT.search(t):
             return await self._explore_say(self._explore_open(_next(ex["model"])), turn, token, "next")
         named = model_for(t)
-        if named is not None and named != ex["model"] and (OPEN_WORDS.search(t) or ABOUT.search(t)):
-            return await self._explore_say(self._explore_open(named), turn, token, "open")
+        if named is not None and named != ex["model"]:
+            if OPEN_WORDS.search(t) or not ABOUT.search(t):
+                return await self._explore_say(self._explore_open(named), turn, token, "open")
+            # "how does Toyota's hybrid work?": the hybrid comes up on screen, and the model answers
+            self._explore_open(named)
+            return None
         part = find_part(model, t)
         if part is not None and (ABOUT.search(t) or len(t.split()) <= 6):
             asyncio.create_task(self._explain_part(part["id"]))
@@ -96,7 +100,9 @@ class ExploreMode:
         how = ("Open your hand slowly to take it apart, make a fist to put it back, and point and pinch to pick "
                "a part." if camera_on else
                "The camera isn't on, so drag to turn it, use Take apart, and click a part.")
-        return f"Here's the {model['title'].lower()}. {how}"
+        like = model.get("like", "").split(",")[0].strip()
+        inside = f", built inside like a {like}" if like and not like.startswith(("a ", "most ")) else ""
+        return f"Here's the {model['title'].lower()}{inside}. {how}"
 
     def _explore_close(self) -> None:
         ex, self._explore = self._explore, None

@@ -61,6 +61,8 @@ window.JarvisExplore = (function () {
   border-radius:6px; padding:4px 10px; cursor:pointer; }
 .xbar button.on { border-color:var(--cyan,#4de1ff); color:#fff; }
 .xbar input { flex:1; max-width:220px; accent-color:#4de1ff; }
+.xbar select { font-size:12px; color:var(--text,#eaf5ff); background:#12314a; border:1px solid #1c4766;
+  border-radius:6px; padding:4px 6px; }
 .xnote { position:absolute; top:10px; left:12px; font:12px Segoe UI,system-ui,sans-serif; color:var(--muted,#8fa7ba); }`;
     document.head.append(css);
   }
@@ -155,6 +157,7 @@ window.JarvisExplore = (function () {
 
     // ---- the side: the model, your hand, the gestures, the part ----
     side.append(el("h3", "", model.title), el("div", "sz", model.size || ""));
+    if (model.like) side.append(el("div", "sz", "Built inside like: " + model.like));
     const handRow = el("div", "row"), handBar = el("div", "bar"), exRow = el("div", "row"), exBar = el("div", "bar");
     handRow.append(el("span", "", "Hand"), el("b", "", "not seen")); handBar.append(el("i"));
     handBar.firstChild.style.width = "0";
@@ -167,12 +170,12 @@ window.JarvisExplore = (function () {
 
     // ---- the bar: buttons and the slider (the mouse way) ----
     const apart = el("button", "", "Take apart"), together = el("button", "", "Put together"),
-          slider = el("input"), models = el("span");
+          slider = el("input"), models = el("select");
     slider.type = "range"; slider.min = "0"; slider.max = "100"; slider.value = "0";
     for (const [id, name] of (opts.models || [])) {
-      const b = el("button", id === model.id ? "on" : "", name);
-      b.addEventListener("click", () => post({ explore: "model", model: id })); models.append(b);
+      const o = el("option", "", name); o.value = id; o.selected = id === model.id; models.append(o);
     }
+    models.addEventListener("change", () => post({ explore: "model", model: models.value }));
     bar.append(apart, together, slider, models);
     note.textContent = "Show your hand to the camera, or drag to turn and click a part.";
 

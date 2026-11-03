@@ -1739,3 +1739,13 @@ car didn't fit the view: the camera now steps back as it comes apart.
 Checked in headless Chromium with made-up hands: an open hand takes the car
 to 98% apart, a fist back to 0%, pointing finds the cylinder head and a
 pinch picks it and tells Jarvis; no page errors. `docs/EXPLORE.md`.
+- 3 Nov, 15:50: Adhi wanted every brand's vehicles (BMW, Porsche, Toyota...).
+  Not brands: their designs and badges are theirs, and makers publish no 3D
+  parts. Types instead, his choice of seven more: a mid-engine supercar, an
+  electric car, a hybrid, a 4x4 pickup, a three-wheeler, a scooter and a
+  bicycle (ten models, 10-26 parts each), with "built inside like" naming
+  real ones laid out the same way, and brand words pointing to their type
+  ("a Lamborghini" -> the supercar, "a Prius" -> the hybrid). The shared car
+  parts (body and glass, doors, lights, seats, wheels, brakes, springs) are
+  one function, `explore_shapes.car`. The model buttons became a list. All
+  ten rendered in headless Chromium, assembled and apart, without errors.
