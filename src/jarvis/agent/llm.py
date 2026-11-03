@@ -44,8 +44,13 @@ class ToolCall:
 
 
 class LLMUnavailable(RuntimeError):
-    def __init__(self, failures: list[tuple[str, str]]):
-        self.failures = failures
+    """No model answered. `why`: "limit" when one or more had used up a free limit, "busy" when they were
+    only slow or overloaded, "down" when none could be reached at all (no internet, Ollama not running).
+    `back_in`: seconds until the first of them may be tried again, when that's known."""
+
+    def __init__(self, failures: list[tuple[str, str]], why: str = "down", back_in: float | None = None,
+                 local_down: bool = False):
+        self.failures, self.why, self.back_in, self.local_down = failures, why, back_in, local_down
         detail = "; ".join(f"{name}: {err}" for name, err in failures) or "no providers configured"
         super().__init__(f"No LLM provider answered ({detail})")
 
@@ -150,6 +155,10 @@ def rate_limit_wait(exc: BaseException) -> float | None:
 
 
 SLOW_REST_S = 120.0
+# A model that couldn't be reached at all (Ollama not running, the internet down) is left alone this long, so
+# it doesn't count as "another model to try" and cut the last real one short (3 Nov: every Groq model was at
+# its daily limit, Gemini was given 4.5 s because Ollama came after it, and Ollama wasn't running).
+DOWN_REST_S = 60.0
 # A model that hasn't sent anything by its first-reply deadline rests this long:
 # on 24 Oct gpt-oss-20b took 8.7 s and 13.3 s to send its first chunk (laptop
 # logs), while the next model in line answers in about 1 s.
@@ -176,7 +185,22 @@ def failure_rest(exc: BaseException) -> float | None:
         return SLOW_REST_S
     if isinstance(exc, TimeoutError) or "Timeout" in type(exc).__name__:
         return SLOW_REST_S
+    if _unreachable(exc):
+        return DOWN_REST_S
     return None
+
+
+def _unreachable(exc: BaseException) -> bool:
+    return "Connection" in type(exc).__name__ or isinstance(exc, ConnectionError | OSError)
+
+
+def rest_reason(exc: BaseException) -> str:
+    """Why a model rests: "limit" (a free limit used up), "down" (couldn't be reached), "slow" (the rest)."""
+    if rate_limit_wait(exc) is not None:
+        return "limit"
+    if _unreachable(exc) and not isinstance(exc, TimeoutError) and "Timeout" not in type(exc).__name__:
+        return "down"
+    return "slow"
 
 
 class LeakFilter:
@@ -312,6 +336,7 @@ class FallbackLLM:
     # listed (or no routes at all) uses "general", or every provider in order.
     routes: dict[str, list[str]] = field(default_factory=dict)
     resting: dict[str, float] = field(default_factory=dict)   # quota key -> when it may be tried again
+    rest_why: dict[str, str] = field(default_factory=dict)    # quota key -> "limit", "slow" or "down"
     last_route: str | None = None
     clock: Any = time.monotonic
     # Seconds to wait for a model's first chunk before trying the next one, per
@@ -346,6 +371,7 @@ class FallbackLLM:
         wait = failure_rest(exc)
         if wait is not None:
             self.resting[p.quota_key] = self.clock() + wait
+            self.rest_why[p.quota_key] = rest_reason(exc)
             self.telemetry.log("llm_resting", provider=p.name, model=p.model, seconds=round(wait),
                                why=type(exc).__name__)
         return err
@@ -373,11 +399,24 @@ class FallbackLLM:
         if avoid:
             quota = next((p.quota_key for p in chain if p.name == avoid), None)
             chain = [p for p in chain if p.quota_key != quota] + [p for p in chain if p.quota_key == quota]
-        for index, p in enumerate(chain):
+        # A model resting only for being slow or out of reach is tried once more, with no deadline, when
+        # nothing else answered: resting saves time when another model can answer, never the answer itself.
+        # One that has used up a free limit isn't: it would only say so again.
+        queue, soft, last_try, i = list(chain), [], False, 0
+        while True:
+            if i == len(queue):
+                if last_try or not soft:
+                    break
+                queue, soft, last_try, i = soft, [], True, 0
+                self.telemetry.log("llm_last_try", providers=[q.name for q in queue])
+            p = queue[i]
+            i += 1
             wait = self._resting_for(p)
-            if wait > 0:
+            if wait > 0 and not last_try:
                 failures.append((p.name, f"resting after a rate limit or timeout ({wait:.0f} s left)"))
                 self.telemetry.log("llm_skip_resting", provider=p.name, seconds_left=round(wait))
+                if self.rest_why.get(p.quota_key) != "limit" and p not in soft:
+                    soft.append(p)
                 continue
             start = time.perf_counter()
             started = False
@@ -386,7 +425,7 @@ class FallbackLLM:
             think = ThinkFilter()
             leak = LeakFilter()
             calls: dict[int, list[str]] = {}     # tool calls arrive in pieces: index -> [name, arguments]
-            deadline = self._deadline(route, chain[index + 1:])
+            deadline = None if last_try else self._deadline(route, queue[i:])
             try:
                 async def opened(p=p):
                     stream = await p.client.chat.completions.create(
@@ -446,6 +485,8 @@ class FallbackLLM:
                     if not started:
                         started = True
                         self.last_provider = p.name
+                        if self.rest_why.get(p.quota_key) != "limit":
+                            self.resting.pop(p.quota_key, None)      # it answered: not slow or down any more
                         self.telemetry.log(
                             "llm_first_token", provider=p.name, model=p.model,
                             ms=round((time.perf_counter() - start) * 1000, 1),
@@ -483,7 +524,20 @@ class FallbackLLM:
                 err = self._note_failure(p, exc)
                 failures.append((p.name, err))
                 self.telemetry.log("llm_fallback", provider=p.name, error=err)
-        raise LLMUnavailable(failures)
+                if isinstance(exc, SlowFirstChunk) and not last_try:
+                    soft.append(p)                     # cut short by the deadline: it may still answer
+        raise self._unavailable(failures, chain)
+
+    def _unavailable(self, failures: list[tuple[str, str]], chain: list[Provider]) -> LLMUnavailable:
+        """Why nothing answered, and when the first model may answer again."""
+        whys = {self.rest_why.get(p.quota_key, "down") if self._resting_for(p) > 0 else "down" for p in chain}
+        why = "limit" if "limit" in whys else "busy" if "slow" in whys else "down"
+        # when one may answer again: not one that couldn't be reached (its rest ending says nothing)
+        waits = [self._resting_for(p) for p in chain
+                 if self._resting_for(p) > 0 and self.rest_why.get(p.quota_key) != "down"]
+        local = [p for p in chain if "localhost" in p.base_url or "127.0.0.1" in p.base_url]
+        local_down = bool(local) and all(self.rest_why.get(p.quota_key) == "down" for p in local)
+        return LLMUnavailable(failures, why=why, back_in=min(waits) if waits else None, local_down=local_down)
 
     async def warm(self, timeout_s: float = 3.0, route: str | None = None) -> None:
         """Open the connection to the first provider before the question is ready.
@@ -539,4 +593,4 @@ class FallbackLLM:
                 err = self._note_failure(p, exc)
                 failures.append((p.name, err))
                 self.telemetry.log("llm_fallback", provider=p.name, error=err)
-        raise LLMUnavailable(failures)
+        raise self._unavailable(failures, self.chain(route, lang))

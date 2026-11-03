@@ -231,7 +231,7 @@ async def test_a_language_can_have_its_own_order():
 
 
 def test_slow_or_overloaded_models_rest_briefly():
-    from jarvis.agent.llm import SLOW_REST_S, failure_rest
+    from jarvis.agent.llm import DOWN_REST_S, SLOW_REST_S, failure_rest
 
     class Overloaded(Exception):
         status_code = 503
@@ -243,7 +243,8 @@ def test_slow_or_overloaded_models_rest_briefly():
     assert failure_rest(APITimeoutError("Request timed out.")) == SLOW_REST_S
     assert failure_rest(TimeoutError()) == SLOW_REST_S
     assert failure_rest(RateLimited(headers={"retry-after": "30"})) == 30
-    assert failure_rest(ConnectionError("refused")) is None        # fails fast anyway (Ollama not started)
+    # Unreachable (Ollama not started): a minute's rest, so it doesn't count as a model left to try (3 Nov)
+    assert failure_rest(ConnectionError("refused")) == DOWN_REST_S
 
 
 async def test_a_timed_out_model_is_skipped_next_turn():

@@ -289,6 +289,50 @@ async def test_some_kinds_of_request_may_wait_longer():
     assert out == "worked it out"
 
 
+class DailyLimit(Exception):
+    """Groq's 429 on 3 Nov: tokens per day used up."""
+    status_code = 429
+
+    def __init__(self, minutes):
+        super().__init__(f"Rate limit reached for model on tokens per day (TPD): Limit 200000, Used 198903. "
+                         f"Please try again in {minutes}m0.8s.")
+
+
+async def test_with_the_free_limits_used_up_the_slow_last_model_still_answers():
+    """3 Nov, 20:20: both Groq models and OpenRouter at their daily limits, Gemini slow (high demand) and Ollama
+    not running. Gemini was cut off at 4.5 s because Ollama came after it, and every turn said "I can't reach
+    any language model". Now Ollama, once it fails, doesn't count as a model left, and a model cut short by the
+    deadline is asked once more, waiting for it."""
+    from jarvis.agent.llm import LLMUnavailable
+    groq, oss, router = (FakeClient(error=DailyLimit(m)) for m in (19, 27, 30))
+    gemini, ollama = SlowClient(0.2, ["Entropy measures disorder."]), FakeClient(error=ConnectionError("refused"))
+    llm = FallbackLLM([Provider("groq", "a", groq), Provider("groq_oss", "b", oss), Provider("openrouter", "c", router),
+                       Provider("gemini", "d", gemini), Provider("ollama", "e", ollama, base_url="http://localhost:11434/v1")],
+                      first_chunk_s={"default": 0.05})
+    ask = [{"role": "user", "content": "what is entropy?"}]
+    assert await collect(llm.stream_text(ask)) == "Entropy measures disorder."           # turn 1: the retry
+    assert await collect(llm.stream_text(ask)) == "Entropy measures disorder."           # turn 2: no deadline now
+    assert groq.calls == oss.calls == router.calls == 1                                  # the limits are respected
+    gemini.error = RuntimeError("503 high demand")
+    with pytest.raises(LLMUnavailable) as no:
+        await collect(llm.stream_text(ask))
+    assert no.value.why == "limit" and no.value.local_down
+    assert 18 * 60 < no.value.back_in <= 19 * 60 + 1                                     # Groq's 20b, first back
+
+
+def test_what_jarvis_says_when_no_model_answers():
+    from jarvis.agent.llm import LLMUnavailable
+    from jarvis.said import unavailable
+    assert unavailable(LLMUnavailable([], why="down"), "en").startswith("I can't reach any language model")
+    limits = LLMUnavailable([], why="limit", back_in=14 * 60 + 33, local_down=True)
+    assert unavailable(limits, "en") == ("My free models have used up their limits for now. One is free again in "
+                                         "about 15 minutes. If Ollama were running on this computer, it could answer "
+                                         "meanwhile.")
+    assert unavailable(LLMUnavailable([], why="busy", back_in=40), "si") == \
+        "මොඩල් දැන් ගොඩක් කාර්යබහුලයි, නැත්නම් හෙමින්. විනාඩියකින් විතර ආයෙත් අහන්න."
+    assert "විනාඩි 15කින් විතර" in unavailable(limits, "si")
+
+
 def test_the_deadlines_come_from_settings(settings):
     table = settings.first_chunk_deadlines()
     assert table["default"] == 4.5 and table["long"] == 30

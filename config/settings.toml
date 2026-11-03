@@ -313,14 +313,21 @@ dir = "logs"
 # times in 6, while Groq took about 1 s; so Gemini comes after OpenRouter (6 s)
 # in the English orders. It stays first for long documents (big context), and
 # before OpenRouter in Sinhala, which it writes best.
-order = ["groq_oss", "groq", "openrouter", "gemini", "ollama"]
+# Every kind of request ends with this order's models it hasn't tried, so each
+# free limit is a last resort for the others (3 Nov: both gpt-oss models were at
+# Groq's 200,000 tokens a day and OpenRouter at its 50 requests a day, while
+# Qwen and Flash-Lite, with limits of their own, weren't on the list).
+order = ["groq_oss", "groq", "groq_qwen", "openrouter", "gemini", "gemini_lite", "ollama"]
 timeout_s = 20
 # If a model hasn't sent anything this many seconds after the question, Jarvis
 # asks the next model on the route instead (and leaves the slow one alone for
 # 30 s). Laptop logs, 21-28 Oct: gpt-oss-120b's first chunk p50 0.9 s, p95
 # 2.0 s, slowest 3.8 s; but gpt-oss-20b twice took 8.7 s and 13.3 s, which
 # made those replies start 9-15 s late. Never applied to the last model left,
-# so a slow answer still beats none. 0: no deadline. Kinds of request that may
+# so a slow answer still beats none; a model that's resting (at a limit, slow
+# a moment ago, or unreachable like Ollama when it isn't running) doesn't count
+# as one left, and when nothing answers, the ones that were only slow or
+# unreachable are asked once more, waiting as long as it takes. 0: no deadline. Kinds of request that may
 # wait longer are in [llm.first_chunk_s_by_route] below.
 first_chunk_s = 4.5
 # How much of the conversation goes to the model (characters). Groq's free tier
@@ -364,7 +371,8 @@ problem = ["groq_oss_think", "gemini", "groq_qwen", "openrouter", "ollama"]   # 
 # in Hindi letters. So Sinhala goes to gpt-oss-120b first. (Maths already
 # does: groq_oss_think is the same model. Long documents stay with Gemini.)
 [llm.language_routes.si]
-general = ["groq_oss", "gemini", "groq", "openrouter", "ollama"]
+# Qwen last in Sinhala, for when the others are at their limits: weaker Sinhala beats no answer.
+general = ["groq_oss", "gemini", "groq", "openrouter", "gemini_lite", "groq_qwen", "ollama"]
 command = ["groq_oss", "groq", "gemini_lite", "ollama"]
 quick = ["groq_oss", "groq", "gemini_lite", "ollama"]
 teach = ["groq_oss", "gemini", "groq_qwen", "openrouter", "ollama"]

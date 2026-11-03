@@ -1877,3 +1877,17 @@ window server: every number matches SymPy, every button reaches Jarvis.
   scenes, which take their numbers from each question), Sri Lanka's towns,
   monsoons and news feeds (home), and physical defaults in the views (g =
   9.81, the speed of sound 343 m/s) used only when the plan gives none.
+- 3 Nov, 20:30: "I can't reach any language model" all evening, with the
+  internet fine (logs, session 19:46). The free limits were used up: both
+  gpt-oss models at Groq's 200,000 tokens a day (each request is about
+  4,000-5,000 tokens: instructions, tools and the conversation), OpenRouter
+  at its 50 free requests a day, Gemini overloaded (503), and Ollama not
+  running. Two things made it worse: Gemini was cut off after 4.5 s because
+  Ollama came after it (and counted as another model to try), and Qwen and
+  Flash-Lite, with limits of their own, weren't on the general list. Now:
+  an unreachable model rests a minute (so it doesn't count), a model cut
+  short or only resting for being slow is asked once more with no deadline
+  when nothing else answered, a model that answers is no longer "slow", and
+  every route ends with Qwen and Flash-Lite. Jarvis says what happened:
+  "My free models have used up their limits for now. One is free again in
+  about 15 minutes." (or busy, or offline), in the turn's language.

@@ -19,7 +19,7 @@ from typing import Any
 
 from .knowledge.explore_models import GROUPS, MODELS, ORDER, find_part, model_for
 from .language import normalize
-from .said import is_said, said
+from .said import said
 
 OPEN_WORDS = re.compile(
     r"\b(apart|explod\w*|disassembl\w*|dismantl\w*|inside (?:of )?(?:a|an|the)\b|parts of|parts in|3d (?:model|view)|"
@@ -43,6 +43,7 @@ class ExploreMode:
     """Mixed into App (app.py), like LessonMode."""
 
     _explore: dict | None = None
+    model_failed = False                                 # the app sets it when no model answered a turn
 
     # ---- requests ---------------------------------------------------------------------------------
     async def _explore_turn(self, text: str, source: str, turn: Any, token: Any) -> str | None:
@@ -190,10 +191,9 @@ class ExploreMode:
         token = self.state.token()
         turn = self.telemetry.turn(source="explorer")
         async with self._turn_lock:
+            self.model_failed = False                    # set by the app when no model answered (or the stand-in did)
             reply = await self._handle_text(question, "explorer", turn, token)
-        code = self.lang.current.code
-        standin = tuple(said("standin_unreachable", code, source=said(k, code)) for k in ("source_student", "source_saved"))
-        if not reply or is_said(reply, "llm_unavailable") or reply.startswith(standin):
+        if not reply or self.model_failed:
             reply = part["desc"]                         # no model to ask: the part's own description
             await self.sink.say(reply, self.lang.current, token)
         if not token.cancelled:

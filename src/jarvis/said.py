@@ -19,6 +19,24 @@ LINES: dict[str, dict[str, str]] = {
         "ta": "இப்போது எந்த மொழி மாதிரியையும் அணுக முடியவில்லை. இணைய இணைப்பைச் சரிபாருங்கள், "
               "அல்லது Ollama-வைத் தொடங்குங்கள்.",
     },
+    # The models answered but couldn't this time: free limits used up, or busy (llm.py's LLMUnavailable.why).
+    "llm_limits": {
+        "en": "My free models have used up their limits for now. One is free again {when}.",
+        "si": "මගේ ෆ්‍රී මොඩල් වල සීමාව දැනට ඉවරයි. {when} එකක් ආයෙත් ලැබෙයි.",
+        "ta": "என் இலவச மாதிரிகள் இப்போதைக்கு வரம்பை எட்டிவிட்டன. {when} ஒன்று மீண்டும் கிடைக்கும்.",
+    },
+    "llm_busy": {
+        "en": "The models are busy or slow right now. Ask me again {when}.",
+        "si": "මොඩල් දැන් ගොඩක් කාර්යබහුලයි, නැත්නම් හෙමින්. {when} ආයෙත් අහන්න.",
+        "ta": "மாதிரிகள் இப்போது பரபரப்பாக அல்லது மெதுவாக உள்ளன. {when} மீண்டும் கேளுங்கள்.",
+    },
+    "when_minute": {"en": "in about a minute", "si": "විනාඩියකින් විතර", "ta": "சுமார் ஒரு நிமிடத்தில்"},
+    "when_minutes": {"en": "in about {n} minutes", "si": "විනාඩි {n}කින් විතර", "ta": "சுமார் {n} நிமிடங்களில்"},
+    "when_hours": {"en": "in about {n} hours", "si": "පැය {n}කින් විතර", "ta": "சுமார் {n} மணி நேரத்தில்"},
+    "when_soon": {"en": "soon", "si": "ටිකකින්", "ta": "விரைவில்"},
+    "ollama_hint": {"en": "If Ollama were running on this computer, it could answer meanwhile.",
+                    "si": "මේ පරිගණකයේ ඔලාමා ඕන් කළොත්, ඒ අතරේ ඒකෙන් උත්තර දෙන්න පුළුවන්.",
+                    "ta": "இந்தக் கணினியில் Ollama இயங்கினால், அதுவரை அது பதில் சொல்லும்."},
     "reply_broke_off": {
         "en": "Sorry, the connection dropped in the middle of my answer. Please ask again.",
         "si": "සමාවෙන්න, උත්තරේ මැද්දෙදි කනෙක්ෂන් එක කැඩුණා. ආයෙත් අහන්න.",
@@ -29,6 +47,11 @@ LINES: dict[str, dict[str, str]] = {
         "en": "The connection's slow, so this is from {source}.",
         "si": "කනෙක්ෂන් එක හෙමින් නිසා, මේ උත්තරේ {source} ගත්තේ.",
         "ta": "இணைப்பு மெதுவாக உள்ளது, அதனால் இந்தப் பதில் {source} வருகிறது.",
+    },
+    "standin_limits": {
+        "en": "My free models are at their limits for now, so this is from {source}.",
+        "si": "මගේ ෆ්‍රී මොඩල් වල සීමාව දැනට ඉවර නිසා, මේ උත්තරේ {source} ගත්තේ.",
+        "ta": "என் இலவச மாதிரிகள் இப்போதைக்கு வரம்பை எட்டிவிட்டன, அதனால் இந்தப் பதில் {source} வருகிறது.",
     },
     "standin_unreachable": {
         "en": "I can't reach the language models, so this is from {source}.",
@@ -93,9 +116,29 @@ def said(key: str, lang: str, **values: object) -> str:
         return options["en"].format(**values).strip()
 
 
+def when(seconds: float | None, lang: str) -> str:
+    """'in about 14 minutes', in `lang`."""
+    if seconds is None:
+        return said("when_soon", lang)
+    if seconds < 90:
+        return said("when_minute", lang)
+    if seconds < 90 * 60:
+        return said("when_minutes", lang, n=round(seconds / 60))
+    return said("when_hours", lang, n=round(seconds / 3600))
+
+
+def unavailable(exc: object, lang: str) -> str:
+    """What to say when no model answered (llm.py's LLMUnavailable): why, and when to ask again."""
+    why = getattr(exc, "why", "down")
+    if why == "down":
+        return said("llm_unavailable", lang)
+    line = said("llm_limits" if why == "limit" else "llm_busy", lang, when=when(getattr(exc, "back_in", None), lang))
+    return f"{line} {said('ollama_hint', lang)}" if getattr(exc, "local_down", False) else line
+
+
 def is_said(text: str, key: str) -> bool:
     """Whether `text` is the line `key` in any language (its fixed part: lines with values aren't matched)."""
     return text in LINES[key].values()
 
 
-__all__ = ["LINES", "is_said", "said"]
+__all__ = ["LINES", "is_said", "said", "unavailable", "when"]

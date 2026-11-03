@@ -57,7 +57,7 @@ from .lesson_mode import LESSON_SPEC, OFFER_NOTE, LessonMode
 from .problem_mode import HAS_NUMBER, NOT_HERE, SOLVE_NOTE, SOLVE_SPEC, SOLVE_WORDS, ProblemMode
 from .memory import Memory, detect_fact, detect_name
 from .persona import Persona
-from .said import said
+from .said import said, unavailable
 from .state import CancelToken, Mode, SharedState
 from .telemetry import Telemetry, Turn
 from .tools.desk_phrases import words_for
@@ -822,14 +822,18 @@ class App(LessonMode, ExploreMode, ProblemMode):
                                                                    lang=lang.code, **extra), text)),
                 lang, token, turn)
         except StandInInstead as instead:            # a weak connection: nothing after [standin] after_s
+            self.model_failed = True
             return await self._standin_reply(instead.reply, "slow", text, lang, token, turn, decision.route)
         except LLMUnavailable as exc:
+            self.model_failed = True
             backup = await self._standin_answer(text)
             if backup is not None:
-                return await self._standin_reply(backup, "unreachable", text, lang, token, turn, decision.route)
-            line = said("llm_unavailable", lang.code)
+                why = "limits" if exc.why == "limit" else "unreachable"
+                return await self._standin_reply(backup, why, text, lang, token, turn, decision.route)
+            line = unavailable(exc, lang.code)
             await self.sink.say(line, lang, token)
-            turn.finish(kind="llm_unavailable", failures=exc.failures, route=decision.route)
+            turn.finish(kind="llm_unavailable", failures=exc.failures, route=decision.route, why=exc.why,
+                        back_in_s=round(exc.back_in) if exc.back_in else None)
             return line
         except Exception as exc:             # the provider dropped after the reply had started
             self.telemetry.log("llm_error", error=f"{type(exc).__name__}: {exc}"[:300],
@@ -930,7 +934,8 @@ class App(LessonMode, ExploreMode, ProblemMode):
                              route: str) -> str:
         """Say the stand-in's answer, and that it is one: never passed off as the language model's."""
         source = said("source_student" if reply.how == "student" else "source_saved", lang.code)
-        lead = said("standin_slow" if why == "slow" else "standin_unreachable", lang.code, source=source)
+        lead = said({"slow": "standin_slow", "limits": "standin_limits"}.get(why, "standin_unreachable"), lang.code,
+                    source=source)
         self.state.mode = Mode.SPEAKING
         try:
             await self.sink.say(lead, lang, token)
@@ -1385,9 +1390,10 @@ class App(LessonMode, ExploreMode, ProblemMode):
             reply = await self.sink.stream(self.llm.stream_text(messages, token=token, route=route, lang=lang.code,
                                                                 avoid=avoid), lang, token, turn)
         except LLMUnavailable as exc:
-            line = said("llm_unavailable", lang.code)
+            self.model_failed = True
+            line = unavailable(exc, lang.code)
             await self.sink.say(line, lang, token)
-            turn.finish(kind="llm_unavailable", failures=exc.failures, route=route)
+            turn.finish(kind="llm_unavailable", failures=exc.failures, route=route, why=exc.why)
             return line
         finally:
             if self.state.mode in (Mode.THINKING, Mode.SPEAKING):
