@@ -142,6 +142,17 @@ size = [1280, 820]
 # Closing the window stops Jarvis, like any app (only with style = "app").
 quit_when_closed = true
 
+[clap]
+# The double clap (decision D29; src/jarvis/perception/clap.py): two claps 0.2-0.6 s apart make Jarvis
+# listen hands-free ("Yes, sir?"), until you pause. Ignored while he speaks and for 0.5 s after; it never
+# confirms, cancels, sleeps or quits. Off by default: when on, the microphone is measured between key
+# presses (nothing kept). /clap on or /clap off. Tune with scripts/clap_test.py on your own claps.
+enabled = false
+min_high_share = 0.3      # a clap's share of energy above 2 kHz; a desk tap or knock is lower
+rise_db = 15.0            # how far above the room's noise a clap must be
+min_gap_s = 0.2
+max_gap_s = 0.6
+
 [gestures]
 # Palm to pause (decision D29; docs/IMPLEMENTATION_PLAN.md, M8): a palm held
 # still for half a second stops Jarvis talking, or plays or pauses a video

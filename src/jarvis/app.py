@@ -43,6 +43,8 @@ from .events import (
     KillSwitchPressed,
     LanguageChanged,
     MuteToggled,
+    DoubleClap,
+    ListenTimedOut,
     PushToTalkPressed,
     UtteranceCaptured,
 )
@@ -367,6 +369,7 @@ class App(LessonMode):
         self.history: list[dict[str, str]] = []
         self._hotkeys: HotkeyListener | None = None
         self._ptt = None
+        self._clap = None                      # the double clap listener, when [clap] is on (D29)
         self._stt_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="stt")
         # How you sound (perception/emotion.py), beside Whisper on the same audio; off until enabled.
         from .perception.emotion import EmotionEars
@@ -1371,12 +1374,20 @@ class App(LessonMode):
 
     # ---- voice ----------------------------------------------------------
     async def _voice_task(self) -> None:
-        q = self.bus.subscribe(PushToTalkPressed, UtteranceCaptured, name="voice")
+        q = self.bus.subscribe(PushToTalkPressed, UtteranceCaptured, DoubleClap, ListenTimedOut, name="voice")
         min_s = float(self.settings.get("audio.min_utterance_s", 0.35))
         max_s = float(self.settings.get("audio.max_utterance_s", 30))
         current: asyncio.Task | None = None
         while True:
             ev = await q.get()
+            if isinstance(ev, DoubleClap):
+                await self._double_clap(busy=current is not None and not current.done())
+                continue
+            if isinstance(ev, ListenTimedOut):
+                if self.state.mode == Mode.LISTENING:
+                    self.state.mode = Mode.IDLE
+                    self.out("(nothing heard after the clap)")
+                continue
             if isinstance(ev, PushToTalkPressed):
                 self._pause_lesson("push_to_talk")      # between two steps the voice is quiet: stop it too
                 if (current is not None and not current.done()) or self.sink.busy:
@@ -1467,6 +1478,8 @@ class App(LessonMode):
         from .voice.capture import PushToTalk
 
         def pressed() -> None:
+            if self._clap is not None:
+                self._clap.cancel()              # the key decides when this recording ends
             self.recorder.begin()
             self.bus.publish_threadsafe(PushToTalkPressed())
 
@@ -1513,6 +1526,64 @@ class App(LessonMode):
         self.recorder.open()
         self._recorder_open = True            # closed on exit even if what follows fails
         self._start_push_to_talk()
+        if self.settings.get("clap.enabled", False):
+            self._start_clap()
+
+    # ---- the double clap (D29, perception/clap.py) ---------------------------------------------
+    def _start_clap(self) -> bool:
+        """Listen for a double clap between key presses; nothing is kept."""
+        from .perception.clap import ClapListener, ClapSettings
+        if self.recorder is None or not hasattr(self.recorder, "listeners"):
+            self.out("[clap] needs the microphone (voice mode).")
+            return False
+        if self._clap is None:
+            rate = int(getattr(self.recorder, "sample_rate", 16000) or 16000)
+            self._clap = ClapListener(
+                self.recorder, ClapSettings.from_settings(self.settings),
+                on_double=lambda: self.bus.publish_threadsafe(DoubleClap()),
+                on_heard=lambda audio: self.bus.publish_threadsafe(UtteranceCaptured(audio=audio,
+                                                                                     seconds=len(audio) / rate)),
+                on_nothing=lambda: self.bus.publish_threadsafe(ListenTimedOut()),
+                muted=lambda: bool(self.sink.busy) or self.state.mode in (Mode.LISTENING, Mode.THINKING),
+                rate=rate)
+            self.recorder.listeners.append(self._clap.feed)
+        self._clap.on = True
+        self.out("[clap] listening for a double clap: clap twice to make Jarvis listen (/clap off stops it).")
+        self.telemetry.log("clap", on=True)
+        return True
+
+    async def _double_clap(self, busy: bool = False) -> None:
+        """D29: awake and quiet -> listen now; speaking, thinking or listening -> ignored."""
+        if self._clap is None or not self._clap.on:
+            return
+        if busy or self.sink.busy or self.state.mode in (Mode.LISTENING, Mode.THINKING, Mode.SPEAKING):
+            self.telemetry.log("double_clap", action="ignored", mode=self.state.mode.value)
+            return
+        self.telemetry.log("double_clap", action="listen")
+        self._pause_lesson("clap")
+        lang = self.lang.current
+        asks = [line for line in (lang.greetings or {}).get("same_session", ()) if line.endswith("?")]
+        await self.sink.say(fill(asks[-1] if asks else "Yes, {address}?", self.persona.address), lang)
+        self.state.mode = Mode.LISTENING
+        self.out("\n[clap] listening... speak; I'll stop when you pause.")
+        self._clap.listen()
+        if self.settings.get("llm.prewarm", True):
+            self._warm_task = asyncio.create_task(self.llm.warm())
+
+    def _clap_command(self, arg: str) -> None:
+        if arg == "off":
+            if self._clap is not None:
+                self._clap.on = False
+                self._clap.cancel()
+            self.telemetry.log("clap", on=False)
+            self.out("[clap] off.")
+        elif arg in ("on", ""):
+            if arg == "" and self._clap is not None:
+                self.out(f"[clap] {'on' if self._clap.on else 'off'}; room noise {self._clap.detector.floor_db:.0f} dB.")
+            else:
+                self._start_clap()
+        else:
+            self.out("[clap] /clap on, /clap off, or /clap to see if it's on.")
 
     # ---- control (kill switch, mute) ------------------------------------
     async def _control_task(self) -> None:
@@ -1866,6 +1937,8 @@ class App(LessonMode):
             self._mood_command(arg.strip().lower())
         elif cmd == "/standin":
             self._standin_command(arg.strip().lower())
+        elif cmd == "/clap":
+            self._clap_command(arg.strip().lower())
         elif cmd == "/name":
             if arg.strip():
                 self.memory.set_name(arg.strip())

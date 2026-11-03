@@ -134,6 +134,10 @@ Measurements: [docs/RESULTS.md](docs/RESULTS.md).
 - **Moves with you to a new PC**: `uv run jarvis --carry-out` packs his
   memory, your notes and your trained model into one file; setup on the new
   PC offers to bring it in, and Jarvis greets you on the new computer.
+- **Double clap** (`[clap] enabled = true` or `/clap on`): clap twice and
+  Jarvis says "Yes, sir?" and listens until you pause, without the key.
+  Ignored while he speaks; it never confirms or cancels anything.
+  `scripts/clap_test.py` tunes it to your claps.
 - **Palm to pause**: hold your right palm up to stop Jarvis talking or pause
   its video (`/camera on`).
 

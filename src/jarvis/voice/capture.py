@@ -25,10 +25,18 @@ class MicRecorder:
         self._recording = False
         self._lock = threading.Lock()
         self._stream = None
+        # Called with every block, kept or not (the double clap listens between key presses: it measures
+        # each block and drops it; perception/clap.py). Runs on PortAudio's thread: must be quick.
+        self.listeners: list[Callable[[np.ndarray], None]] = []
 
     # The stream callback runs on PortAudio's thread.
     def _callback(self, indata, frames, time_info, status) -> None:
         self.feed(indata[:, 0])
+        for listener in list(self.listeners):
+            try:
+                listener(indata[:, 0])
+            except Exception:  # noqa: BLE001 - a listener's bug must never stop the microphone
+                pass
 
     def feed(self, samples: np.ndarray) -> None:
         with self._lock:

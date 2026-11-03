@@ -242,6 +242,12 @@ for the wake word and the clap; phone first-audio p50/p95.
 
 ### The double clap, step by step
 
+**Built 3 Nov** (steps 1, 2, 4 and 5, for "awake and quiet": listen now): `perception/clap.py`
+(`ClapDetector`, `SpeechEnd` for hands-free listening until you pause, `ClapListener`),
+`tests/test_clap.py`, `scripts/clap_test.py`, `[clap]` in settings.toml, `/clap on|off`. Waking from
+sleep waits for M6 (there's no sleeping Jarvis yet). Still yours: calibrating on your claps and the
+missed-wake and false-wake measurements below.
+
 **Meaning (D29):** sleeping -> wake; awake and quiet -> listen now; while
 Jarvis speaks -> ignored. Never sleep, quit, cancel or confirm.
 

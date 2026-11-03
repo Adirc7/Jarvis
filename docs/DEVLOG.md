@@ -1700,3 +1700,21 @@ Adhi asked for what's known: models, papers, datasets, code
   model are documented as the next encoders to try, not wired in: new
   libraries and downloads that can't be tried here three days before the
   deadline.
+
+## 2026-11-03: The double clap
+
+D29's "awake and quiet: listen now", built from the step-by-step plan:
+`perception/clap.py` measures each 10 ms of the microphone between key presses
+(nothing kept): a clap rises 15 dB over the room's noise (the 20th percentile
+of 3 s), 10 dB of it within 20 ms, falls 10 dB within 100 ms, and has much of
+its energy above 2 kHz; a second 0.2-0.6 s later and no third within 0.6 s is
+a double clap, then 2 s of rest. Ignored while Jarvis speaks and 0.5 s after,
+and while he listens or thinks. Then "Yes, sir?" (the language's own line)
+and hands-free listening (`SpeechEnd`): it starts at 50 ms above the noise and
+stops after 0.8 s of quiet, or after 5 s of nothing. The push-to-talk key
+takes over at any time. Tested on made-up audio: two clicks 0.3 s apart (any
+block size), not one, not 0.1 or 0.9 s apart, not three or four, not a tone,
+a noise burst or low thumps (the desk tap), not while speaking, the rest
+after a pair; and in Jarvis, clap to answer. `scripts/clap_test.py` prints
+each sound's loudness and high share on the laptop's microphone, to choose
+`min_high_share` from his own claps and taps.

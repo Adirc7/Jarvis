@@ -70,6 +70,16 @@ class MuteToggled(Event):
 
 
 @dataclass(frozen=True)
+class DoubleClap(Event):
+    """Two claps 0.2-0.6 s apart (perception/clap.py, D29): "listen now"."""
+
+
+@dataclass(frozen=True)
+class ListenTimedOut(Event):
+    """After a double clap, nobody spoke."""
+
+
+@dataclass(frozen=True)
 class PushToTalkPressed(Event):
     """Push-to-talk key went down: recording has started."""
 
