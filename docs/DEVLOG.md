@@ -1964,3 +1964,10 @@ window server: every number matches SymPy, every button reaches Jarvis.
   stayed gold for Friday. The window coloured itself only for a speaker
   named exactly "Friday", and Friday's name is "ෆ්‍රයිඩේ (Friday)" since
   21 Oct, so the whole window had stayed gold in Sinhala ever since.
+- 4 Nov, 12:30: Adhi: questions sometimes got an answer in words and no
+  window. Worked problems already open by rule (solve words and numbers),
+  but lessons depended on the model calling show_lesson. Now "visualise",
+  "animate", "simulate", "visually", "in 3D", "show me in the window",
+  "window eke pennanna", "visualize karala pennanna", "ඇනිමේෂන් එකක්" open a
+  lesson at once (not the map, weather, news, videos, MATLAB or the 3D
+  explorer). docs/HOW_TO_ASK.md lists what to say.

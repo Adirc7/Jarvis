@@ -262,7 +262,7 @@ async def test_show_me_and_the_tool_start_a_lesson_and_a_bad_plan_is_tried_again
     assert "isn't a usable plan" in retry[-1]["content"]
     assert "converging lens" in model.requests[1]["messages"][0]["content"]
     await app._lesson_task
-    reply = await app.handle_text("can you visualise the field of a dipole")
+    reply = await app.handle_text("can you help me picture the field of a dipole")    # the model's call
     assert reply == "Dipole: a lesson in 1 steps, in the window."
     assert "'electric field of a dipole (focus: in 3D)'" in model.requests[4]["messages"][0]["content"]
     assert kinds(events, "lesson")[-1]["id"] == 2
@@ -347,3 +347,25 @@ def test_what_the_model_hears_about_the_lesson_afterwards():
     text = lesson_for_the_model(lesson)
     assert text.splitlines()[0] == "(Jarvis showed a visual lesson in his window: Entropy)"
     assert "[showing scene gas_box]" in text and "[showing plot]" in text
+
+
+def test_a_clear_request_to_visualise_is_a_lesson_whatever_the_model_thinks():
+    """4 Nov, Adhi: "sometimes he only answers in the conversation, not open the environment"."""
+    from jarvis.lesson_mode import wants_visual
+    for text in ("visualise how a transistor amplifies a signal", "Can you animate a wave on a string?",
+                 "simulate a projectile fired at 30 degrees", "explain entropy visually",
+                 "show me in the window how a capacitor charges", "entropy eka window eke pennanna",
+                 "Fourier series visualize karala pennanna", "ඇනිමේෂන් එකක් එක්ක තරංග පෙන්නන්න",
+                 "teach me visually how a car's brakes stop it"):
+        assert wants_visual(text), text
+    for text in ("show me the weather map", "visualise the news on the map", "play the video", "animate",
+                 "show me a car engine in 3d", "simulate it in MATLAB", "what is entropy?"):
+        assert not wants_visual(text), text
+
+
+async def test_visualise_opens_the_lesson_without_asking_the_model_first(settings):
+    app, model, said, events = lesson_app(settings, json.dumps(PLAN))
+    reply = await app.handle_text("visualise how entropy grows when a gas spreads out")
+    assert reply == "Entropy: a lesson in 3 steps, in the window." and app.panel == "lesson"
+    assert len(model.requests) == 1                                   # the plan only: no chat answer, no tool call
+    assert "entropy grows when a gas spreads out" in model.requests[0]["messages"][0]["content"]

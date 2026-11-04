@@ -62,6 +62,28 @@ SHOW_IT = re.compile(
     r"(?:\s+(?:it|that|this|please|visually|in 3d|in three d|on (?:the )?(?:screen|window)|to me|for me|now|then))*$")
 SHOW_IT_SI = {"pennanna", "penanna", "eka pennanna", "meka pennanna", "පෙන්නන්න", "ඒක පෙන්නන්න", "මේක පෙන්නන්න",
               "පෙන්වන්න", "ඒක පෙන්වන්න"}
+# A clear request to see something taught visually opens the lesson at once, not only when the model
+# decides to call show_lesson (4 Nov, Adhi: "sometimes he only answers in the conversation").
+VISUALISE = re.compile(
+    r"\b(?:visuali[sz]e|animate|simulate|visually|"
+    r"show (?:me |it )?(?:in|on) (?:the |your )?(?:window|screen)|in 3d|in three d|visualise karala|visualize karala|"
+    r"window eke (?:pennanna|penanna|pennala)|animation ekak|simulation ekak|visual(?:ly)? (?:karala|krla) pennanna)\b|"
+    r"වින්ඩෝ එකේ පෙන්නන්න|විෂුවලයිස්|ඇනිමේෂන් එකක්|සිමියුලේෂන් එකක්|පින්තූරයකින් පෙන්නන්න", re.IGNORECASE)
+NOT_A_LESSON = re.compile(
+    r"\b(map|weather|news|youtube|video|song|bing|matlab|octave|apart|explod\w*|explorer|disassembl\w*|board)\b|"
+    r"සිතියම|කාලගුණ|ප්‍රවෘත්ති|ප්රවෘත්ති", re.IGNORECASE)
+
+
+def wants_visual(text: str) -> bool:
+    """"Visualise how a transistor works", "window eke pennanna entropy": a lesson, whatever the model thinks.
+    Not the map, the weather, videos, MATLAB or the 3D explorer: those have their own tools."""
+    from .knowledge.explore_models import model_for
+    t = normalize(text)
+    if len(t.split()) < 3 or not VISUALISE.search(text) or NOT_A_LESSON.search(text):
+        return False
+    return not (model_for(t) is not None and re.search(r"\b(?:3d|three d|inside|parts?)\b", t))   # the 3D explorer's
+
+
 OFFERED = re.compile(
     r"(?:want|shall|should|would you like|like|may)\b[^?.!]{0,40}?\b(?:show|visuali[sz]e|draw|animate|simulate|"
     r"demonstrate|see it|see this|see that)\b[^?]{0,80}\?\s*$|(?:පෙන්නන්න|පෙන්වන්න)[^?]{0,30}\?\s*$",
@@ -175,6 +197,9 @@ class LessonMode:
         if self._teachable is not None and self.view is not None and asks_to_see_it(text):
             question, reply = self._teachable
             return await self._lesson(question, reply, text, turn, token, how="asked")
+        if self.view is not None and wants_visual(text) and self.panel not in ("problem", "explore"):
+            context = self.history[-1]["content"] if self.history and self.history[-1]["role"] == "assistant" else ""
+            return await self._lesson(text.strip()[:300], context, text, turn, token, how="asked")
         self._pause_lesson("question")
         return None
 
